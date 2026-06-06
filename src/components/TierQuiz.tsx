@@ -17,8 +17,8 @@ const QUESTIONS: Q[] = [
     opts: [
       { label: "Under $3,000", weight: 1 },
       { label: "$3,000 — $10,000", weight: 2 },
-      { label: "$10,000 — $25,000", weight: 3 },
-      { label: "Over $25,000", weight: 4 },
+      { label: "$10,000 — $30,000", weight: 3 },
+      { label: "$30,000 — $60,000+", weight: 4 },
     ],
   },
   {
@@ -44,10 +44,11 @@ const QUESTIONS: Q[] = [
 function recommend(score: number) {
   if (score <= 4) return PACKAGES[0];
   if (score <= 6) return PACKAGES[1];
-  if (score <= 8) return PACKAGES[2];
-  if (score <= 9) return PACKAGES[3];
-  if (score <= 10) return PACKAGES[4];
-  return PACKAGES[5];
+  if (score <= 7) return PACKAGES[2];
+  if (score <= 8) return PACKAGES[3];
+  if (score <= 9) return PACKAGES[4];
+  if (score <= 10) return PACKAGES[5];
+  return PACKAGES[6];
 }
 
 export function TierQuiz() {

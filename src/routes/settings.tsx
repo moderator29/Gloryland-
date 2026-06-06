@@ -39,6 +39,12 @@ export default function Settings() {
     try {
       if (currency === "AUTO") localStorage.removeItem(CURRENCY_KEY);
       else localStorage.setItem(CURRENCY_KEY, currency);
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: CURRENCY_KEY,
+          newValue: currency === "AUTO" ? null : currency,
+        }),
+      );
     } catch {
       /* ignore */
     }

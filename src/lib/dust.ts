@@ -25,6 +25,7 @@ const TIER_PALETTE: Record<string, string[]> = {
   "Gold Plan": GOLD,
   "Legendary Plan": ["#f3e8ff", "#a855f7", "#6b21a8", "#c084fc"],
   "Immortal Plan": ["#ffffff", "#FFD700", "#FFF7C2", "#fef3c7"],
+  "Platinum Plan": ["#ffffff", "#cffafe", "#e0e7ff", "#fef3c7", "#f0fdf4"],
 };
 
 export function tierConfetti(tier: string, origin?: { x: number; y: number }) {

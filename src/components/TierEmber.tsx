@@ -8,6 +8,7 @@ const TIER_COLORS: Record<string, [string, string]> = {
   "Gold Plan": ["#d4af37", "#fcf6ba"],
   "Legendary Plan": ["#9333ea", "#f3e8ff"],
   "Immortal Plan": ["#ef4444", "#fee2e2"],
+  "Platinum Plan": ["#cffafe", "#ffffff"],
 };
 
 export function TierEmber({ tier }: { tier: string }) {

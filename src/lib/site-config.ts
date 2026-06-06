@@ -9,6 +9,7 @@ export const PACKAGES = [
   { name: "Gold Plan", price: 10000, daily: 2200, spots: 20, taken: 15 },
   { name: "Legendary Plan", price: 20000, daily: 5000, spots: 20, taken: 12 },
   { name: "Immortal Plan", price: 40000, daily: 9000, spots: 20, taken: 14 },
+  { name: "Platinum Plan", price: 60000, daily: 18000, spots: 20, taken: 6 },
 ] as const;
 
 export const REVENUE_STREAMS = [

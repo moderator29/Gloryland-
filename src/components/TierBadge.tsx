@@ -11,6 +11,7 @@ const TIER_RANK: Record<string, number> = {
   "Gold Plan": 4,
   "Legendary Plan": 5,
   "Immortal Plan": 6,
+  "Platinum Plan": 7,
 };
 
 const TIER_GRADIENT: Record<string, string> = {
@@ -20,6 +21,7 @@ const TIER_GRADIENT: Record<string, string> = {
   "Gold Plan": "linear-gradient(135deg, #FFF7C2, #FFD700, #B8842B)",
   "Legendary Plan": "linear-gradient(135deg, #f3e8ff, #a855f7, #6b21a8)",
   "Immortal Plan": "linear-gradient(135deg, #fee2e2, #ef4444, #7f1d1d)",
+  "Platinum Plan": "linear-gradient(135deg, #ffffff, #e0e7ff, #cffafe, #fef3c7)",
 };
 
 function readTopTier(): string | null {

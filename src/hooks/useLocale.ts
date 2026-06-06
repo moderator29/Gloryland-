@@ -10,6 +10,8 @@ const COUNTRY_TO_CURRENCY: Record<string, { currency: string; locale: string }> 
   ES: { currency: "EUR", locale: "es-ES" },
   IT: { currency: "EUR", locale: "it-IT" },
   NL: { currency: "EUR", locale: "nl-NL" },
+  IE: { currency: "EUR", locale: "en-IE" },
+  PT: { currency: "EUR", locale: "pt-PT" },
   JP: { currency: "JPY", locale: "ja-JP" },
   CN: { currency: "CNY", locale: "zh-CN" },
   IN: { currency: "INR", locale: "en-IN" },
@@ -22,6 +24,14 @@ const COUNTRY_TO_CURRENCY: Record<string, { currency: string; locale: string }> 
   SG: { currency: "SGD", locale: "en-SG" },
   CH: { currency: "CHF", locale: "de-CH" },
   SE: { currency: "SEK", locale: "sv-SE" },
+  NO: { currency: "NOK", locale: "nb-NO" },
+  DK: { currency: "DKK", locale: "da-DK" },
+  PL: { currency: "PLN", locale: "pl-PL" },
+  TR: { currency: "TRY", locale: "tr-TR" },
+  KR: { currency: "KRW", locale: "ko-KR" },
+  PH: { currency: "PHP", locale: "en-PH" },
+  ID: { currency: "IDR", locale: "id-ID" },
+  TH: { currency: "THB", locale: "th-TH" },
 };
 
 const USD_TO: Record<string, number> = {
@@ -42,6 +52,42 @@ const USD_TO: Record<string, number> = {
   SGD: 1.35,
   CHF: 0.9,
   SEK: 10.5,
+  NOK: 10.6,
+  DKK: 6.9,
+  PLN: 4.0,
+  TRY: 32,
+  KRW: 1370,
+  PHP: 57,
+  IDR: 15800,
+  THB: 35,
+};
+
+const CURRENCY_TO_LOCALE: Record<string, string> = {
+  USD: "en-US",
+  GBP: "en-GB",
+  EUR: "de-DE",
+  CAD: "en-CA",
+  AUD: "en-AU",
+  JPY: "ja-JP",
+  CNY: "zh-CN",
+  INR: "en-IN",
+  BRL: "pt-BR",
+  MXN: "es-MX",
+  NGN: "en-NG",
+  ZAR: "en-ZA",
+  KES: "en-KE",
+  AED: "en-AE",
+  SGD: "en-SG",
+  CHF: "de-CH",
+  SEK: "sv-SE",
+  NOK: "nb-NO",
+  DKK: "da-DK",
+  PLN: "pl-PL",
+  TRY: "tr-TR",
+  KRW: "ko-KR",
+  PHP: "en-PH",
+  IDR: "id-ID",
+  THB: "th-TH",
 };
 
 export type Locale = {
@@ -51,7 +97,27 @@ export type Locale = {
   rate: number;
 };
 
-const STORAGE_KEY = "ec_locale_v1";
+const GEO_KEY = "ec_locale_v1";
+const OVERRIDE_KEY = "ec_currency_override_v1";
+
+function readOverride(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(OVERRIDE_KEY);
+    return v && v !== "AUTO" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyOverride(base: Locale, currency: string): Locale {
+  return {
+    country: base.country,
+    currency,
+    locale: CURRENCY_TO_LOCALE[currency] ?? base.locale,
+    rate: USD_TO[currency] ?? 1,
+  };
+}
 
 function detectFromBrowser(): Locale {
   const lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
@@ -65,50 +131,93 @@ function detectFromBrowser(): Locale {
   };
 }
 
+function initialLocale(): Locale {
+  const base = detectFromBrowser();
+  if (typeof window === "undefined") return base;
+  try {
+    const cached = localStorage.getItem(GEO_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached) as Locale;
+      const o = readOverride();
+      return o ? applyOverride(parsed, o) : parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  const o = readOverride();
+  return o ? applyOverride(base, o) : base;
+}
+
 export function useLocale(): Locale {
-  const [loc, setLoc] = useState<Locale>(detectFromBrowser);
+  const [loc, setLoc] = useState<Locale>(initialLocale);
 
   useEffect(() => {
+    let cancelled = false;
+    let geoBase: Locale | null = null;
     try {
-      const cached = localStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        setLoc(JSON.parse(cached));
-        return;
-      }
+      const cached = localStorage.getItem(GEO_KEY);
+      if (cached) geoBase = JSON.parse(cached) as Locale;
     } catch {
       /* ignore */
     }
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/country");
-        if (!res.ok) return;
-        const data = await res.json();
-        const code = (data.country_code as string)?.toUpperCase();
-        if (!code) return;
-        const cfg = COUNTRY_TO_CURRENCY[code];
-        if (!cfg) return;
-        const next: Locale = {
-          country: code,
-          currency: cfg.currency,
-          locale: cfg.locale,
-          rate: USD_TO[cfg.currency] ?? 1,
-        };
-        if (!cancelled) {
-          setLoc(next);
+    const apply = (base: Locale) => {
+      const override = readOverride();
+      setLoc(override ? applyOverride(base, override) : base);
+    };
+
+    if (!geoBase) {
+      (async () => {
+        try {
+          const res = await fetch("/api/country");
+          if (!res.ok) return;
+          const data = await res.json();
+          const code = (data.country_code as string)?.toUpperCase();
+          if (!code) return;
+          const cfg = COUNTRY_TO_CURRENCY[code];
+          if (!cfg) return;
+          const next: Locale = {
+            country: code,
+            currency: cfg.currency,
+            locale: cfg.locale,
+            rate: USD_TO[cfg.currency] ?? 1,
+          };
+          if (cancelled) return;
+          geoBase = next;
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            localStorage.setItem(GEO_KEY, JSON.stringify(next));
           } catch {
             /* ignore */
           }
+          apply(next);
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
+      })();
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === OVERRIDE_KEY || e.key === GEO_KEY) {
+        try {
+          const raw = localStorage.getItem(GEO_KEY);
+          const fresh = raw ? (JSON.parse(raw) as Locale) : detectFromBrowser();
+          apply(fresh);
+        } catch {
+          /* ignore */
+        }
       }
-    })();
+    };
+    window.addEventListener("storage", onStorage);
+
+    const onFocus = () => {
+      if (geoBase) apply(geoBase);
+    };
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 

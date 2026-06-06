@@ -81,6 +81,7 @@ const TIER_CHORDS: Record<string, number[]> = {
   "Gold Plan": [294, 370, 440],
   "Legendary Plan": [330, 415, 494],
   "Immortal Plan": [392, 494, 587],
+  "Platinum Plan": [523, 659, 784, 988],
 };
 
 export function playTierChord(tier: string) {

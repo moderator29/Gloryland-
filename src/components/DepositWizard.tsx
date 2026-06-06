@@ -150,6 +150,7 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
                         "Gold Plan",
                         "Legendary Plan",
                         "Immortal Plan",
+                        "Platinum Plan",
                       ].map((p) => (
                         <button
                           key={p}
