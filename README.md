@@ -15,13 +15,13 @@ Then open the URL Vite prints.
 
 ## Scripts
 
-| Command        | What it does                |
-| -------------- | --------------------------- |
-| `pnpm dev`     | Start the Vite dev server   |
-| `pnpm build`   | Production build            |
-| `pnpm preview` | Preview the production build|
-| `pnpm lint`    | Run ESLint                  |
-| `pnpm format`  | Format with Prettier        |
+| Command        | What it does                 |
+| -------------- | ---------------------------- |
+| `pnpm dev`     | Start the Vite dev server    |
+| `pnpm build`   | Production build             |
+| `pnpm preview` | Preview the production build |
+| `pnpm lint`    | Run ESLint                   |
+| `pnpm format`  | Format with Prettier         |
 
 ## Project layout
 

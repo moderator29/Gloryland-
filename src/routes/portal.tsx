@@ -1,16 +1,30 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Bitcoin, Copy, Send, Upload, Check, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Bitcoin,
+  Copy,
+  Send,
+  Upload,
+  Check,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { MagneticButton } from "@/components/MagneticButton";
-import { BTC_WALLET, BTC_RATE_USD } from "@/lib/site-config";
+import { DepositTracker } from "@/components/DepositTracker";
+import { DepositWizard } from "@/components/DepositWizard";
+import { Receipt } from "@/components/Receipt";
+import { ASSETS, type CryptoAsset } from "@/lib/crypto-assets";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { goldBurst } from "@/lib/confetti";
-import { playTing, playTap } from "@/lib/sound";
+import { playTing, playTap, playTierChord } from "@/lib/sound";
+import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
 const SUBS_KEY = "ec_subscribed_plans";
@@ -32,32 +46,51 @@ export default function Portal() {
   const [depositAmount, setDepositAmount] = useState<string>(amount ? String(amount) : "5000");
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [tracking, setTracking] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const [assetKey, setAssetKey] = useState<CryptoAsset["key"]>("BTC");
+  const asset = ASSETS.find((a) => a.key === assetKey) ?? ASSETS[0];
 
   useEffect(() => {
     if (amount) setDepositAmount(String(amount));
   }, [amount]);
 
   const handleConfirm = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (plan && typeof window !== "undefined") {
-      const list: string[] = JSON.parse(localStorage.getItem(SUBS_KEY) || "[]");
-      if (!list.includes(plan)) {
-        list.push(plan);
-        localStorage.setItem(SUBS_KEY, JSON.stringify(list));
-      }
-    }
     setConfirmed(true);
+    setTracking(true);
+    setShowReceipt(false);
 
     const r = e.currentTarget.getBoundingClientRect();
     goldBurst({
       x: (r.left + r.width / 2) / window.innerWidth,
       y: (r.top + r.height / 2) / window.innerHeight,
     });
-    playTing();
-    toast.success("Deposit confirmed. Activating your tier.", {
-      duration: 2200,
-    });
+    playTap();
+    hapticTap();
+    toast.info("Watching the network for your deposit.", { duration: 1800 });
+  };
 
-    setTimeout(() => setConfirmed(false), 2500);
+  const onTrackerDone = () => {
+    if (plan && typeof window !== "undefined") {
+      try {
+        const list: string[] = JSON.parse(localStorage.getItem(SUBS_KEY) || "[]");
+        if (!list.includes(plan)) {
+          list.push(plan);
+          localStorage.setItem(SUBS_KEY, JSON.stringify(list));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    playTing();
+    if (plan) playTierChord(plan);
+    hapticSuccess();
+    toast.success("Deposit confirmed. Tier activated.", { duration: 2200 });
+    setShowReceipt(true);
+    setTracking(false);
+    window.setTimeout(() => setConfirmed(false), 2500);
   };
 
   const handleWithdraw = () => {
@@ -66,11 +99,13 @@ export default function Portal() {
     setIsWithdrawing(true);
     setWithdrawSuccess(false);
     playTap();
+    hapticTap();
 
     setTimeout(() => {
       setIsWithdrawing(false);
       setWithdrawSuccess(true);
       playTing();
+      hapticSuccess();
       toast.success("Withdrawal sent to the network.", { duration: 2400 });
 
       setWithdrawAmount("");
@@ -80,16 +115,17 @@ export default function Portal() {
     }, 7000);
   };
 
-  const btcEquivalent = useMemo(() => {
+  const cryptoEquivalent = useMemo(() => {
     const n = parseFloat(depositAmount || "0");
     if (!n) return "0.000000";
-    return (n / BTC_RATE_USD).toFixed(6);
-  }, [depositAmount]);
+    return (n / asset.rateUsd).toFixed(asset.decimals);
+  }, [depositAmount, asset]);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(BTC_WALLET);
+    await navigator.clipboard.writeText(asset.address);
     setCopied(true);
     playTap();
+    hapticTap();
     toast.success("Address copied to clipboard.", { duration: 1600 });
     setTimeout(() => setCopied(false), 1800);
   };
@@ -103,19 +139,31 @@ export default function Portal() {
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
           <Stagger className="space-y-6">
             <StaggerItem>
-              <header>
-                <h1 className="font-display text-4xl">
-                  Investor <em className="not-italic text-gradient-gold">Portal</em>
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Deposit crypto to activate packages.
-                </p>
+              <header className="flex items-end justify-between gap-3">
+                <div>
+                  <h1 className="font-display text-4xl">
+                    Investor <em className="not-italic text-gradient-gold">Portal</em>
+                  </h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Deposit crypto to activate packages.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setWizardOpen(true);
+                    hapticTap();
+                  }}
+                  className="pill-luxury text-xs text-primary"
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Guided
+                </button>
               </header>
             </StaggerItem>
 
             {plan && (
               <StaggerItem>
-                <div className="card-luxury flex items-center gap-3 border-primary/40 p-4">
+                <div className="glass-luxury aurora-border flex items-center gap-3 p-4">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/15">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </span>
@@ -133,18 +181,19 @@ export default function Portal() {
             )}
 
             <StaggerItem>
-              <section className="card-luxury p-5">
+              <section className="glass-luxury p-5">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Upload className="h-4 w-4 text-primary" /> Withdraw Funds
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-surface p-1">
+                <div className="embossed mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-black/40 p-1">
                   {(["USD", "BTC"] as const).map((m) => (
                     <button
                       key={m}
                       onClick={() => {
                         setMode(m);
                         playTap();
+                        hapticTap();
                       }}
                       className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                         mode === m
@@ -157,7 +206,7 @@ export default function Portal() {
                   ))}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-surface-elevated/60 p-4">
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-border/60 bg-black/30 p-4">
                   <div>
                     <p className="text-base">Available Balance</p>
                     <p className="font-display text-3xl text-primary">$30,459</p>
@@ -169,6 +218,7 @@ export default function Portal() {
                     onClick={() => {
                       setWithdrawAmount("30459");
                       playTap();
+                      hapticTap();
                     }}
                     className="rounded-xl border border-border px-4 py-2 text-sm text-primary"
                   >
@@ -176,7 +226,7 @@ export default function Portal() {
                   </button>
                 </div>
 
-                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-surface-elevated/60 px-4 py-3.5">
+                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={withdrawAmount}
@@ -188,7 +238,7 @@ export default function Portal() {
                   />
                 </label>
 
-                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-surface-elevated/60 px-4 py-3.5">
+                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
                   <span className="grid h-6 w-6 place-items-center rounded-full bg-white">
                     <Bitcoin className="h-4 w-4 text-[#f7931a]" />
                   </span>
@@ -216,7 +266,7 @@ export default function Portal() {
                 <MagneticButton
                   onClick={handleWithdraw}
                   disabled={isWithdrawing || !withdrawAmount || !walletAddr}
-                  className="btn-gold mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+                  className="btn-foil mt-4 flex w-full items-center justify-center gap-2 px-4 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isWithdrawing ? (
                     <>
@@ -232,7 +282,7 @@ export default function Portal() {
             </StaggerItem>
 
             <StaggerItem>
-              <section className="card-luxury p-5">
+              <section className="glass-luxury p-5">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="grid h-5 w-5 place-items-center rounded-full bg-white">
                     <Bitcoin className="h-3.5 w-3.5 text-[#f7931a]" />
@@ -240,17 +290,46 @@ export default function Portal() {
                   Deposit Crypto
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-border bg-surface-elevated/40 p-5">
+                <div className="mt-4 grid grid-cols-4 gap-1.5">
+                  {ASSETS.map((a) => (
+                    <button
+                      key={a.key}
+                      onClick={() => {
+                        setAssetKey(a.key);
+                        playTap();
+                        hapticTap();
+                      }}
+                      className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-2 text-[11px] transition-all ${
+                        assetKey === a.key
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/60 bg-black/30 text-muted-foreground"
+                      }`}
+                    >
+                      <span
+                        className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-black"
+                        style={{ background: a.color }}
+                      >
+                        {a.key[0]}
+                      </span>
+                      {a.key}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-border/60 bg-black/30 p-5">
                   <div className="relative mx-auto w-fit rounded-xl bg-white p-3">
-                    <QRCodeSVG value={BTC_WALLET} size={200} level="H" />
+                    <QRCodeSVG value={asset.address} size={200} level="H" />
                     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
                       <div className="shimmer h-full w-full" />
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center gap-2 mt-5">
-                    <span className="break-all text-center font-mono text-xs text-muted-foreground max-w-xs">
-                      {BTC_WALLET}
+                  <div className="mt-5 flex flex-col items-center gap-2">
+                    <span className="max-w-xs break-all text-center font-mono text-xs text-muted-foreground">
+                      {asset.address}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                      Network: {asset.network}
                     </span>
                   </div>
 
@@ -269,7 +348,7 @@ export default function Portal() {
                   </div>
                 </div>
 
-                <label className="mt-5 flex items-center gap-3 rounded-2xl border border-border bg-surface-elevated/60 px-4 py-3.5">
+                <label className="mt-5 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={depositAmount}
@@ -290,8 +369,9 @@ export default function Portal() {
                       onClick={() => {
                         setDepositAmount(String(v));
                         playTap();
+                        hapticTap();
                       }}
-                      className="rounded-xl border border-border bg-surface-elevated/40 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                      className="rounded-xl border border-border/60 bg-black/30 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
                     >
                       ${v.toLocaleString()}
                     </button>
@@ -299,12 +379,13 @@ export default function Portal() {
                 </div>
 
                 <p className="mt-3 text-xs text-muted-foreground">
-                  ≈ {btcEquivalent} BTC at current rate
+                  ≈ {cryptoEquivalent} {asset.key} at current rate
                 </p>
 
                 <MagneticButton
                   onClick={handleConfirm}
-                  className="btn-gold mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm"
+                  disabled={tracking}
+                  className="btn-foil mt-4 flex w-full items-center justify-center gap-2 px-4 py-3.5 text-sm disabled:opacity-70"
                 >
                   {confirmed ? (
                     <>
@@ -316,10 +397,31 @@ export default function Portal() {
                     </>
                   )}
                 </MagneticButton>
+
+                <DepositTracker active={tracking} onComplete={onTrackerDone} />
+
+                {showReceipt && (
+                  <div className="mt-5">
+                    <Receipt
+                      plan={plan ?? undefined}
+                      amount={depositNum}
+                      asset={asset.key}
+                      network={asset.network}
+                      txDate={new Date()}
+                    />
+                  </div>
+                )}
               </section>
             </StaggerItem>
           </Stagger>
         </main>
+
+        <DepositWizard
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          defaultPlan={plan ?? undefined}
+          defaultAmount={Number(amount) || undefined}
+        />
       </div>
     </RouteShell>
   );

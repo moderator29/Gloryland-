@@ -1,4 +1,5 @@
 import { Crown, Video, Film, Monitor, TrendingUp, ArrowRight, ArrowUp, Upload } from "lucide-react";
+import { motion } from "framer-motion";
 import portrait from "@/assets/image.png";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -8,7 +9,11 @@ import { MagneticButton } from "@/components/MagneticButton";
 import { Ticker } from "@/components/Ticker";
 import { Sparkline } from "@/components/Sparkline";
 import { PortraitGlow } from "@/components/PortraitGlow";
+import { ScrollParallax } from "@/components/ScrollParallax";
+import { LiveWithdrawals } from "@/components/LiveWithdrawals";
+import { ReferralCard } from "@/components/ReferralCard";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
+import { useBalancePulse } from "@/hooks/useBalancePulse";
 
 const streams = [
   { icon: Video, label: "NETFLIX DEAL", value: "$18.4M" },
@@ -19,6 +24,8 @@ const streams = [
 
 export default function Home() {
   const loc = useLocale();
+  const { value: balance, pulse } = useBalancePulse({ initial: 30459 });
+
   return (
     <RouteShell>
       <div className="min-h-screen pb-28">
@@ -27,16 +34,20 @@ export default function Home() {
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
           <Stagger className="space-y-6">
             <StaggerItem>
-              <section className="card-luxury p-6 text-center">
-                <PortraitGlow>
-                  <img
-                    src={portrait}
-                    alt="Emilia Clarke portrait"
-                    width={512}
-                    height={512}
-                    className="h-full w-full object-cover"
-                  />
-                </PortraitGlow>
+              <section className="glass-luxury aurora-border p-6 text-center">
+                <ScrollParallax range={28}>
+                  <PortraitGlow>
+                    <img
+                      src={portrait}
+                      alt="Emilia Clarke portrait"
+                      width={512}
+                      height={512}
+                      loading="eager"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </PortraitGlow>
+                </ScrollParallax>
                 <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
                   <Crown className="h-3.5 w-3.5 text-primary" />
@@ -47,7 +58,7 @@ export default function Home() {
                   {streams.map((s) => (
                     <div
                       key={s.label}
-                      className="flex items-center justify-between rounded-2xl border border-border/70 bg-gray-950 px-4 py-3"
+                      className="flex items-center justify-between rounded-2xl border border-border/70 bg-black/40 px-4 py-3"
                     >
                       <div className="flex items-center gap-3">
                         <s.icon className="h-4 w-4 text-primary" strokeWidth={1.8} />
@@ -84,7 +95,7 @@ export default function Home() {
                 <MagneticButton
                   as="link"
                   to="/packages"
-                  className="btn-gold inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm"
+                  className="btn-foil inline-flex items-center gap-2 px-6 py-3 text-sm"
                 >
                   Explore Packages <ArrowRight className="h-4 w-4" />
                 </MagneticButton>
@@ -92,22 +103,25 @@ export default function Home() {
             </StaggerItem>
 
             <StaggerItem>
-              <section className="card-luxury p-6">
+              <section className="glass-luxury p-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs tracking-wider text-muted-foreground">
                       Your Portfolio Value
                     </p>
-                    <p className="mt-2 font-display text-4xl text-gradient-gold">
-                      <CountUp value={30459} prefix="$" />
-                    </p>
+                    <motion.p
+                      className="mt-2 font-display text-4xl text-gradient-gold"
+                      animate={pulse ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <CountUp value={balance} prefix="$" decimals={0} duration={0.9} />
+                    </motion.p>
                     <p className="mt-1 inline-flex items-center gap-1 text-xs text-success">
-                      <ArrowUp className="h-3 w-3" /> +
-                      <CountUp value={2500} prefix="$" />
+                      <ArrowUp className="h-3 w-3" /> +<CountUp value={2500} prefix="$" />
                       .0 today
                     </p>
                     <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-                      Local: {formatLocal(30459, loc)}
+                      Local: {formatLocal(balance, loc)}
                     </p>
                   </div>
                   <div className="w-32">
@@ -123,7 +137,7 @@ export default function Home() {
                   ].map((s) => (
                     <div
                       key={s.l}
-                      className="rounded-xl border border-border/60 bg-surface-elevated/60 p-3"
+                      className="embossed rounded-xl border border-border/60 bg-black/30 p-3"
                     >
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         {s.l}
@@ -146,18 +160,26 @@ export default function Home() {
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Net Balance</span>
                   <span className="text-success">
-                    <CountUp value={30459} prefix="$" />
+                    <CountUp value={balance} prefix="$" />
                   </span>
                 </div>
 
                 <MagneticButton
                   as="link"
                   to="/portal"
-                  className="btn-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm"
+                  className="btn-foil mt-5 flex w-full items-center justify-center gap-2 px-4 py-3 text-sm"
                 >
                   <Upload className="h-4 w-4" /> Withdraw Funds
                 </MagneticButton>
               </section>
+            </StaggerItem>
+
+            <StaggerItem>
+              <LiveWithdrawals />
+            </StaggerItem>
+
+            <StaggerItem>
+              <ReferralCard />
             </StaggerItem>
           </Stagger>
         </main>
