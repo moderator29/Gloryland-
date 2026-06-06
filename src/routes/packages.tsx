@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Check, Zap, Users, ArrowRight, BadgeCheck, Lock } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { BottomNav } from "@/components/BottomNav";
 import { PACKAGES } from "@/lib/site-config";
 
 const SUBS_KEY = "ec_subscribed_plans";
@@ -82,7 +81,7 @@ export default function Packages() {
                   {isFull ? (
                     <span className="text-red-400">Fully Subscribed</span>
                   ) : (
-                    <>{p.taken} of {p.spots} spots — Almost Full</>
+                    <>{p.taken} of {p.spots} spots. Almost Full.</>
                   )}
                 </div>
                 
@@ -114,7 +113,7 @@ export default function Packages() {
                         : "btn-gold"
                     }`}
                   >
-                    {isSubscribed ? <><BadgeCheck className="h-4 w-4" /> Subscribed — Top Up</> : <>Invest Now <ArrowRight className="h-4 w-4" /></>}
+                    {isSubscribed ? <><BadgeCheck className="h-4 w-4" /> Subscribed. Top Up</> : <>Invest Now <ArrowRight className="h-4 w-4" /></>}
                   </Link>
                 )}
               </article>
@@ -122,7 +121,6 @@ export default function Packages() {
           })}
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }

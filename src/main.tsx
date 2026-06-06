@@ -4,7 +4,9 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import { Toaster } from "sonner";
 import { BottomNav } from "./components/BottomNav";
-import { Analytics } from "@vercel/analytics/react"
+import { Backdrop } from "./components/Backdrop";
+import { WelcomeCards } from "./components/WelcomeCards";
+import { Analytics } from "@vercel/analytics/react";
 
 import Home from "./routes/index";
 import Packages from "./routes/packages";
@@ -13,9 +15,13 @@ import "./index.css";
 
 function Layout() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20">
-      <Outlet />
+    <div className="relative min-h-screen bg-[#0a0a0a] text-white pb-20">
+      <Backdrop />
+      <div className="relative z-10">
+        <Outlet />
+      </div>
       <BottomNav />
+      <WelcomeCards />
       <Toaster theme="dark" position="top-center" />
     </div>
   );

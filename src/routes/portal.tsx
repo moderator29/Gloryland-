@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Bitcoin, Copy, Send, Upload, Check, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { BottomNav } from "@/components/BottomNav";
 import { BTC_WALLET, BTC_RATE_USD } from "@/lib/site-config";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
@@ -233,11 +232,10 @@ export default function Portal() {
           </p>
 
           <button onClick={handleConfirm} className="btn-gold mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm">
-            {confirmed ? <><Check className="h-4 w-4" /> Confirmed — Activating</> : <><Send className="h-4 w-4" /> Confirm Deposit</>}
+            {confirmed ? <><Check className="h-4 w-4" /> Confirmed. Activating</> : <><Send className="h-4 w-4" /> Confirm Deposit</>}
           </button>
         </section>
       </main>
-      <BottomNav />
     </div>
   );
 }

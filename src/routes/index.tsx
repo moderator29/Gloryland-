@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { BadgeCheck, Crown, Video, Film, Monitor, TrendingUp, ArrowRight, ArrowUp, Upload } from "lucide-react";
 import portrait from "@/assets/image.png";
 import { SiteHeader } from "@/components/SiteHeader";
-import { BottomNav } from "@/components/BottomNav";
 
 const streams = [
   { icon: Video, label: "NETFLIX DEAL", value: "$18.4M" },
@@ -20,9 +19,9 @@ export default function Home() {
         {/* Founder card */}
         <section className="card-luxury p-6 text-center">
           <div className="mx-auto h-28 w-28 overflow-hidden rounded-full ring-2 ring-primary/60 ring-offset-4 ring-offset-background">
-            <img src={portrait} alt="Emilia Clark portrait" width={512} height={512} className="h-full w-full object-cover" />
+            <img src={portrait} alt="Emilia Clarke portrait" width={512} height={512} className="h-full w-full object-cover" />
           </div>
-          <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clark</h1>
+          <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
           <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
             <Crown className="h-3.5 w-3.5 text-primary" />
             Founder & Board Member
@@ -45,7 +44,7 @@ export default function Home() {
         <section className="space-y-5">
           <span className="chip">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            No Account Needed — Start Instantly
+            No Account Needed. Start Instantly.
           </span>
           <h2 className="font-display text-5xl leading-[1.05]">
             Smart Capital,
@@ -53,7 +52,7 @@ export default function Home() {
             <em className="not-italic text-gradient-gold">Daily Returns</em>
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Earn your share of Emilia Clark's entertainment revenue. No registration required — just deposit and start earning daily.
+            Earn your share of Emilia Clarke's entertainment revenue. No registration required. Just deposit and start earning daily.
           </p>
           <Link to="/packages" className="btn-gold inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm">
             Explore Packages <ArrowRight className="h-4 w-4" />
