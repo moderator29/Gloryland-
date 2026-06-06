@@ -1,9 +1,4 @@
-import {
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useSpring,
-} from "framer-motion";
+import { motion, useMotionTemplate, useMotionValue, useSpring } from "framer-motion";
 import { useRef, type ReactNode, type MouseEvent } from "react";
 
 type Props = {

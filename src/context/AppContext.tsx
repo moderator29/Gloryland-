@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface AppContextType {
   selectedAmount: number;
@@ -18,6 +18,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAppContext = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error('useAppContext must be used within an AppProvider');
+  if (!context) throw new Error("useAppContext must be used within an AppProvider");
   return context;
 };

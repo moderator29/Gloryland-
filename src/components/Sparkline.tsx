@@ -1,8 +1,7 @@
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
 const POINTS = [
-  18, 20, 19, 22, 24, 23, 26, 28, 27, 31, 33, 30, 34,
-  36, 39, 38, 41, 44, 43, 47, 49, 52, 55, 60,
+  18, 20, 19, 22, 24, 23, 26, 28, 27, 31, 33, 30, 34, 36, 39, 38, 41, 44, 43, 47, 49, 52, 55, 60,
 ].map((y, i) => ({ x: i, y }));
 
 export function Sparkline({ height = 70 }: { height?: number }) {

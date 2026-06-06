@@ -4,7 +4,9 @@ let muted = false;
 if (typeof window !== "undefined") {
   try {
     muted = localStorage.getItem("ec_muted") === "1";
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 
 function getCtx() {
@@ -23,7 +25,9 @@ export function setMuted(v: boolean) {
   muted = v;
   try {
     localStorage.setItem("ec_muted", v ? "1" : "0");
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 export function isMuted() {
   return muted;

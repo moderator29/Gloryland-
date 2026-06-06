@@ -86,7 +86,9 @@ export function WelcomeCards() {
   const close = () => {
     try {
       localStorage.setItem(STORAGE_KEY, "1");
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     setOpen(false);
   };
   const next = () => {

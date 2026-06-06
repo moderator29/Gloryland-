@@ -1,12 +1,6 @@
 import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Outlet,
-  useLocation,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AppProvider } from "./context/AppContext";
 import { Toaster } from "sonner";
@@ -53,11 +47,7 @@ function Layout() {
 
 function App() {
   useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !("serviceWorker" in navigator) ||
-      import.meta.env.DEV
-    ) {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || import.meta.env.DEV) {
       return;
     }
     navigator.serviceWorker.register("/sw.js").catch(() => {});

@@ -2,10 +2,7 @@ import { motion } from "framer-motion";
 
 export function Backdrop() {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-    >
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(191,149,63,0.10),_transparent_55%)]" />
 
       <motion.div

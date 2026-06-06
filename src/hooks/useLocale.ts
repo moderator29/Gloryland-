@@ -54,8 +54,7 @@ export type Locale = {
 const STORAGE_KEY = "ec_locale_v1";
 
 function detectFromBrowser(): Locale {
-  const lang =
-    typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
+  const lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
   const country = lang.split("-")[1]?.toUpperCase() || "US";
   const cfg = COUNTRY_TO_CURRENCY[country] ?? { currency: "USD", locale: "en-US" };
   return {
@@ -76,7 +75,9 @@ export function useLocale(): Locale {
         setLoc(JSON.parse(cached));
         return;
       }
-    } catch {}
+    } catch {
+      /* ignore */
+    }
 
     let cancelled = false;
     (async () => {
@@ -98,9 +99,13 @@ export function useLocale(): Locale {
           setLoc(next);
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          } catch {}
+          } catch {
+            /* ignore */
+          }
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     })();
     return () => {
       cancelled = true;

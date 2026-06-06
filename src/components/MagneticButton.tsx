@@ -47,12 +47,7 @@ export function MagneticButton(props: Props) {
   };
 
   return (
-    <div
-      ref={ref}
-      onMouseMove={handleMove}
-      onMouseLeave={reset}
-      className="inline-block"
-    >
+    <div ref={ref} onMouseMove={handleMove} onMouseLeave={reset} className="inline-block">
       {props.as === "link" ? (
         <MotionLink
           to={props.to}

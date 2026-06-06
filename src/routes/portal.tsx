@@ -1,16 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import {
-  Bitcoin,
-  Copy,
-  Send,
-  Upload,
-  Check,
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-} from "lucide-react";
+import { Bitcoin, Copy, Send, Upload, Check, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -38,9 +29,7 @@ export default function Portal() {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
-  const [depositAmount, setDepositAmount] = useState<string>(
-    amount ? String(amount) : "5000",
-  );
+  const [depositAmount, setDepositAmount] = useState<string>(amount ? String(amount) : "5000");
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 

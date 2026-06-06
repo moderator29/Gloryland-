@@ -40,5 +40,9 @@ export function CountUp({
     return controls.stop;
   }, [inView, value, duration, mv]);
 
-  return <motion.span ref={ref} className={className}>{text}</motion.span>;
+  return (
+    <motion.span ref={ref} className={className}>
+      {text}
+    </motion.span>
+  );
 }

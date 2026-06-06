@@ -19,8 +19,7 @@ export function PortraitGlow({ children }: { children: ReactNode }) {
         aria-hidden
         className="absolute -inset-2 rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)",
+          background: "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)",
           filter: "blur(10px)",
         }}
         animate={{ opacity: [0.5, 0.9, 0.5] }}

@@ -86,8 +86,8 @@ export default function Packages() {
                       <div
                         className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isFull ? "bg-gray-800 text-gray-400" : "bg-success/10 text-success"}`}
                       >
-                        <Zap className="h-3 w-3 fill-current" />
-                        ${p.daily.toLocaleString()}/day reward
+                        <Zap className="h-3 w-3 fill-current" />${p.daily.toLocaleString()}/day
+                        reward
                       </div>
 
                       <ul className="mt-4 space-y-1.5 text-sm">

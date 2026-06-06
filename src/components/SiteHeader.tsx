@@ -21,10 +21,7 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
           Emilia Clarke
         </span>
         {/* Correct "verified" badge put back in */}
-        <BadgeCheck 
-           className="h-4 w-4 fill-[#3b82f6] text-white" 
-            strokeWidth={2.5} 
-/>
+        <BadgeCheck className="h-4 w-4 fill-[#3b82f6] text-white" strokeWidth={2.5} />
       </Link>
 
       {/* User Section */}
@@ -40,7 +37,7 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
           </div>
 
           {/* Logout Icon */}
-          <button 
+          <button
             onClick={handleLogout}
             className="group flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-400"
             title="Logout"

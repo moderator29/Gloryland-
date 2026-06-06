@@ -1,13 +1,4 @@
-import {
-  Crown,
-  Video,
-  Film,
-  Monitor,
-  TrendingUp,
-  ArrowRight,
-  ArrowUp,
-  Upload,
-} from "lucide-react";
+import { Crown, Video, Film, Monitor, TrendingUp, ArrowRight, ArrowUp, Upload } from "lucide-react";
 import portrait from "@/assets/image.png";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -46,9 +37,7 @@ export default function Home() {
                     className="h-full w-full object-cover"
                   />
                 </PortraitGlow>
-                <h1 className="mt-4 font-display text-3xl text-gradient-gold">
-                  Emilia Clarke
-                </h1>
+                <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
                   <Crown className="h-3.5 w-3.5 text-primary" />
                   Founder & Board Member
@@ -89,7 +78,8 @@ export default function Home() {
                   <em className="not-italic text-gradient-gold">Daily Returns</em>
                 </h2>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Earn your share of Emilia Clarke's entertainment revenue. No registration required. Just deposit and start earning daily.
+                  Earn your share of Emilia Clarke's entertainment revenue. No registration
+                  required. Just deposit and start earning daily.
                 </p>
                 <MagneticButton
                   as="link"

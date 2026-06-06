@@ -19,32 +19,15 @@ const child: Variants = {
   },
 };
 
-export function Stagger({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function Stagger({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <motion.div
-      variants={parent}
-      initial="hidden"
-      animate="show"
-      className={className}
-    >
+    <motion.div variants={parent} initial="hidden" animate="show" className={className}>
       {children}
     </motion.div>
   );
 }
 
-export function StaggerItem({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <motion.div variants={child} className={className}>
       {children}

@@ -71,15 +71,23 @@
   --ring: oklch(0.78 0.14 78 / 0.5);
 
   --gold: oklch(0.82 0.15 82);
-  --gold-soft: oklch(0.86 0.10 85);
+  --gold-soft: oklch(0.86 0.1 85);
   --gold-deep: oklch(0.55 0.13 60);
 
   --success: oklch(0.78 0.18 155);
   --success-foreground: oklch(0.15 0.02 160);
 
   --gradient-gold: linear-gradient(135deg, oklch(0.82 0.15 82), oklch(0.55 0.13 60));
-  --gradient-gold-soft: linear-gradient(135deg, oklch(0.78 0.14 78 / 0.18), oklch(0.55 0.13 60 / 0.05));
-  --gradient-radial-gold: radial-gradient(circle at 50% 0%, oklch(0.78 0.14 78 / 0.18), transparent 60%);
+  --gradient-gold-soft: linear-gradient(
+    135deg,
+    oklch(0.78 0.14 78 / 0.18),
+    oklch(0.55 0.13 60 / 0.05)
+  );
+  --gradient-radial-gold: radial-gradient(
+    circle at 50% 0%,
+    oklch(0.78 0.14 78 / 0.18),
+    transparent 60%
+  );
   --gradient-card: linear-gradient(180deg, oklch(0.18 0.012 60), oklch(0.13 0.01 60));
 
   --shadow-gold: 0 10px 40px -10px oklch(0.78 0.14 78 / 0.35);
@@ -94,7 +102,8 @@
     border-color: var(--color-border);
   }
 
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -107,11 +116,18 @@
       radial-gradient(at 80% 100%, oklch(0.55 0.13 60 / 0.08), transparent 50%),
       linear-gradient(oklch(0.78 0.14 78 / 0.025) 1px, transparent 1px),
       linear-gradient(90deg, oklch(0.78 0.14 78 / 0.025) 1px, transparent 1px);
-    background-size: auto, auto, 40px 40px, 40px 40px;
+    background-size:
+      auto,
+      auto,
+      40px 40px,
+      40px 40px;
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     font-weight: 500;
     letter-spacing: -0.01em;
@@ -131,10 +147,18 @@
     color: oklch(0.15 0.01 60);
     font-weight: 600;
     box-shadow: var(--shadow-gold);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
   }
-  .btn-gold:hover { filter: brightness(1.05); transform: translateY(-1px); }
-  .btn-gold:active { transform: translateY(0); }
+  .btn-gold:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active {
+    transform: translateY(0);
+  }
 
   .card-luxury {
     background: var(--gradient-card);
