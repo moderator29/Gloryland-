@@ -1,4 +1,4 @@
-export const BTC_WALLET = "bc1qt9nnxx8de30kjtx0zt9st05e2qwy95dxe43vax";
+export const BTC_WALLET = "bc1q9agcjeu40pmtv00dvclkpld0msdkk305z89nx2";
 
 export const BTC_RATE_USD = 78700;
 
