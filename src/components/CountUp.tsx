@@ -41,7 +41,7 @@ export function CountUp({
   }, [inView, value, duration, mv]);
 
   return (
-    <motion.span ref={ref} className={className}>
+    <motion.span ref={ref} className={`font-numeric ${className ?? ""}`}>
       {text}
     </motion.span>
   );

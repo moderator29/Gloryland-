@@ -86,7 +86,7 @@ export default function Packages() {
                           )}
                         </div>
 
-                        <p className="mt-2 font-display text-4xl">
+                        <p className="font-numeric mt-2 text-4xl">
                           <span className="align-top text-base text-muted-foreground">$</span>
                           {p.price.toLocaleString()}
                         </p>

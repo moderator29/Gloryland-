@@ -13,7 +13,6 @@ import { ScrollParallax } from "@/components/ScrollParallax";
 import { LiveWithdrawals } from "@/components/LiveWithdrawals";
 import { ReferralCard } from "@/components/ReferralCard";
 import { BtcChartCard } from "@/components/BtcChartCard";
-import { AddressCard } from "@/components/AddressCard";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 import { useUser } from "@/context/UserContext";
@@ -71,7 +70,7 @@ export default function Home() {
                           {s.label}
                         </span>
                       </div>
-                      <span className="font-display text-base text-primary">{s.value}</span>
+                      <span className="font-numeric text-base text-primary">{s.value}</span>
                     </div>
                   ))}
                 </div>
@@ -80,14 +79,6 @@ export default function Home() {
 
             <StaggerItem>
               <Ticker />
-            </StaggerItem>
-
-            <StaggerItem>
-              <BtcChartCard />
-            </StaggerItem>
-
-            <StaggerItem>
-              <AddressCard />
             </StaggerItem>
 
             <StaggerItem>
@@ -123,7 +114,7 @@ export default function Home() {
                       Your Portfolio Value
                     </p>
                     <motion.p
-                      className="mt-2 font-display text-4xl text-gradient-gold"
+                      className="font-numeric mt-2 text-4xl text-gradient-gold"
                       animate={pulse ? { scale: [1, 1.04, 1] } : { scale: 1 }}
                       transition={{ duration: 0.6 }}
                     >
@@ -134,7 +125,7 @@ export default function Home() {
                       .0 today
                     </p>
                     <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-                      Local: {formatLocal(balance, loc)}
+                      Local: <span className="font-numeric">{formatLocal(balance, loc)}</span>
                     </p>
                   </div>
                   <div className="w-32">
@@ -155,7 +146,7 @@ export default function Home() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         {s.l}
                       </p>
-                      <p className="mt-1 font-display text-lg">
+                      <p className="mt-1 text-lg">
                         <CountUp value={s.v} prefix="$" decimals={2} />
                       </p>
                     </div>
@@ -185,6 +176,21 @@ export default function Home() {
                   <Upload className="h-4 w-4" /> Withdraw Funds
                 </MagneticButton>
               </section>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="flex items-center justify-between px-1">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                  Live Market
+                </p>
+                <span className="chip">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success pulse-gold" />
+                  Live
+                </span>
+              </div>
+              <div className="mt-2">
+                <BtcChartCard />
+              </div>
             </StaggerItem>
 
             <StaggerItem>

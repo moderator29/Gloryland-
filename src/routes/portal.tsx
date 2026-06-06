@@ -20,6 +20,8 @@ import { MagneticButton } from "@/components/MagneticButton";
 import { DepositTracker } from "@/components/DepositTracker";
 import { DepositWizard } from "@/components/DepositWizard";
 import { Receipt } from "@/components/Receipt";
+import { BtcChartCard } from "@/components/BtcChartCard";
+import { AddressCard } from "@/components/AddressCard";
 import { ASSETS, type CryptoAsset } from "@/lib/crypto-assets";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { goldBurst } from "@/lib/confetti";
@@ -173,12 +175,16 @@ export default function Portal() {
                     </p>
                     <p className="font-display text-lg text-primary">{plan}</p>
                   </div>
-                  <p className="font-display text-xl text-primary">
+                  <p className="font-numeric text-xl text-primary">
                     ${Number(amount || 0).toLocaleString()}
                   </p>
                 </div>
               </StaggerItem>
             )}
+
+            <StaggerItem>
+              <AddressCard />
+            </StaggerItem>
 
             <StaggerItem>
               <section className="glass-luxury p-5">
@@ -209,7 +215,7 @@ export default function Portal() {
                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-border/60 bg-black/30 p-4">
                   <div>
                     <p className="text-base">Available Balance</p>
-                    <p className="font-display text-3xl text-primary">$30,459</p>
+                    <p className="font-numeric text-3xl text-primary">$30,459</p>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
                       Local: {formatLocal(30459, loc)}
                     </p>
@@ -279,6 +285,21 @@ export default function Portal() {
                   )}
                 </MagneticButton>
               </section>
+            </StaggerItem>
+
+            <StaggerItem>
+              <div className="flex items-center justify-between px-1">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                  Market Reference
+                </p>
+                <span className="chip">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success pulse-gold" />
+                  BTC · USD
+                </span>
+              </div>
+              <div className="mt-2">
+                <BtcChartCard />
+              </div>
             </StaggerItem>
 
             <StaggerItem>

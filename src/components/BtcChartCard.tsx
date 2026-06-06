@@ -74,10 +74,10 @@ export function BtcChartCard() {
               </span>
             </div>
             <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="text-white">
+              <span className="font-numeric text-white">
                 {snap ? fmtUsd(snap.price, snap.price < 1 ? 6 : 0) : "--"}
               </span>
-              <span style={{ color: trendColor }} className="font-medium">
+              <span style={{ color: trendColor }} className="font-numeric font-semibold">
                 {snap ? `${up ? "+" : ""}${snap.change24h.toFixed(2)}%` : "--"}
               </span>
             </p>
@@ -194,11 +194,11 @@ function BtcChartModal({
           </button>
         </div>
 
-        <p className="font-display text-5xl leading-none">
+        <p className="font-numeric text-5xl font-semibold leading-none">
           {snap ? fmtUsd(snap.price, snap.price < 1 ? 6 : 0) : "--"}
         </p>
         <p
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium"
+          className="font-numeric mt-2 inline-flex items-center gap-1.5 text-sm font-semibold"
           style={{ color: trendColor }}
         >
           {up ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
