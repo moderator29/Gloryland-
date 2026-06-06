@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AppProvider } from "./context/AppContext";
+import { UserProvider } from "./context/UserContext";
+import { LoginGate } from "./components/LoginGate";
 import { Toaster } from "sonner";
 import { BottomNav } from "./components/BottomNav";
 import { Backdrop } from "./components/Backdrop";
@@ -91,12 +93,16 @@ function App() {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
   return (
-    <AppProvider>
-      <BrowserRouter>
-        <AnimatedRoutes />
-        <Analytics />
-      </BrowserRouter>
-    </AppProvider>
+    <UserProvider>
+      <AppProvider>
+        <LoginGate>
+          <BrowserRouter>
+            <AnimatedRoutes />
+            <Analytics />
+          </BrowserRouter>
+        </LoginGate>
+      </AppProvider>
+    </UserProvider>
   );
 }
 

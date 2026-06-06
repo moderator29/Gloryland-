@@ -12,8 +12,11 @@ import { PortraitGlow } from "@/components/PortraitGlow";
 import { ScrollParallax } from "@/components/ScrollParallax";
 import { LiveWithdrawals } from "@/components/LiveWithdrawals";
 import { ReferralCard } from "@/components/ReferralCard";
+import { BtcChartCard } from "@/components/BtcChartCard";
+import { AddressCard } from "@/components/AddressCard";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
+import { useUser } from "@/context/UserContext";
 
 const streams = [
   { icon: Video, label: "NETFLIX DEAL", value: "$18.4M" },
@@ -25,6 +28,8 @@ const streams = [
 export default function Home() {
   const loc = useLocale();
   const { value: balance, pulse } = useBalancePulse({ initial: 30459 });
+  const { username } = useUser();
+  const firstName = (username || "Investor").split(" ")[0];
 
   return (
     <RouteShell>
@@ -78,10 +83,18 @@ export default function Home() {
             </StaggerItem>
 
             <StaggerItem>
+              <BtcChartCard />
+            </StaggerItem>
+
+            <StaggerItem>
+              <AddressCard />
+            </StaggerItem>
+
+            <StaggerItem>
               <section className="space-y-5">
                 <span className="chip">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  No Account Needed. Start Instantly.
+                  Welcome back, {firstName}.
                 </span>
                 <h2 className="font-display text-5xl leading-[1.05]">
                   Smart Capital,

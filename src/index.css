@@ -10,14 +10,14 @@
     --muted-foreground: 0 0% 65%;
     --border: 0 0% 15%;
     --input: 0 0% 15%;
-    --ring: 43 74% 49%;
-    --primary: 43 74% 49%;
+    --ring: 47 90% 55%;
+    --primary: 47 90% 55%;
     --primary-foreground: 0 0% 9%;
     --success: 142 71% 45%;
-    --gold-1: #bf953f;
-    --gold-2: #fcf6ba;
-    --gold-3: #b38728;
-    --gold-4: #d4af37;
+    --gold-1: #e5b947;
+    --gold-2: #fff1b5;
+    --gold-3: #b8842b;
+    --gold-4: #ffd700;
   }
 
   * {
@@ -36,7 +36,30 @@
 
 @layer components {
   .text-gradient-gold {
-    @apply bg-gradient-to-r from-[#BF953F] via-[#FCF6BA] to-[#B38728] bg-clip-text text-transparent;
+    background: linear-gradient(
+      100deg,
+      #b8842b 0%,
+      #ffd700 20%,
+      #fff7c2 40%,
+      #ffd700 60%,
+      #e5b947 80%,
+      #b8842b 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gold-shine 6s ease-in-out infinite;
+  }
+  @keyframes gold-shine {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
   }
 
   .card-luxury {
@@ -112,9 +135,12 @@
   }
 
   .btn-gold {
-    @apply bg-gradient-to-r from-[#BF953F] via-[#d4af37] to-[#B38728] text-black font-bold shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-[0.98];
+    @apply text-black font-bold shadow-lg shadow-primary/30 transition-all hover:opacity-95 active:scale-[0.98];
     position: relative;
     overflow: hidden;
+    background: linear-gradient(135deg, #ffd700 0%, #fff7c2 25%, #e5b947 55%, #b8842b 100%);
+    background-size: 200% 200%;
+    animation: gold-shine 6s ease-in-out infinite;
   }
   .btn-gold::after {
     content: "";
@@ -141,16 +167,19 @@
     font-weight: 700;
     border-radius: 9999px;
     background:
-      radial-gradient(circle at 30% 30%, #fffbe6, transparent 40%),
-      linear-gradient(135deg, #fcf6ba 0%, #d4af37 35%, #bf953f 50%, #fcf6ba 80%, #b38728 100%);
+      radial-gradient(circle at 30% 25%, #ffffff, transparent 35%),
+      radial-gradient(circle at 75% 80%, #fff7c2, transparent 50%),
+      linear-gradient(135deg, #fff7c2 0%, #ffd700 30%, #e5b947 55%, #ffd700 80%, #b8842b 100%);
     background-size:
+      120% 120%,
       120% 120%,
       300% 300%;
     box-shadow:
-      0 8px 24px -8px rgba(212, 175, 55, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 10px 28px -8px rgba(255, 215, 0, 0.55),
+      0 0 24px -4px rgba(255, 215, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
       inset 0 -2px 0 rgba(0, 0, 0, 0.18);
-    animation: foil-shift 8s ease-in-out infinite;
+    animation: foil-shift 7s ease-in-out infinite;
     transition: transform 0.15s ease;
   }
   .btn-foil:active {
@@ -200,8 +229,8 @@
   .pill-luxury {
     @apply inline-flex items-center gap-2 rounded-full border border-primary/40 bg-black/50 px-3 py-1.5 backdrop-blur-md;
     box-shadow:
-      inset 0 1px 0 rgba(252, 246, 186, 0.15),
-      0 6px 16px -6px rgba(212, 175, 55, 0.35);
+      inset 0 1px 0 rgba(255, 247, 194, 0.25),
+      0 6px 16px -6px rgba(255, 215, 0, 0.4);
   }
 
   .chip {
