@@ -620,6 +620,17 @@
   }
 }
 
+html[data-motion="solo"] *,
+html[data-motion="solo"] *::before,
+html[data-motion="solo"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 60ms !important;
+}
+html[data-motion="cinema"] {
+  --cinema-boost: 1.4;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

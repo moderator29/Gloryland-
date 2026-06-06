@@ -266,13 +266,19 @@ function BtcChartModal({
                 playTap();
                 hapticTap();
               }}
-              className={`rounded-xl py-2 text-xs font-medium transition-all ${
-                win === w
-                  ? "bg-white/[0.07] text-white ring-1 ring-white/10"
-                  : "text-muted-foreground hover:text-white"
+              className={`relative rounded-xl py-2 text-xs font-medium transition-colors ${
+                win === w ? "text-white" : "text-muted-foreground hover:text-white"
               }`}
             >
-              {w}
+              {win === w && (
+                <motion.span
+                  layoutId="btc-win"
+                  className="absolute inset-0 rounded-xl bg-white/[0.07] ring-1 ring-primary/40"
+                  style={{ boxShadow: "0 0 14px -2px rgba(255,215,0,0.35)" }}
+                  transition={{ type: "spring", stiffness: 360, damping: 28 }}
+                />
+              )}
+              <span className="relative">{w}</span>
             </button>
           ))}
         </div>

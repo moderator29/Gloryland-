@@ -1,4 +1,4 @@
-import { LogOut, BadgeCheck } from "lucide-react";
+import { LogOut, BadgeCheck, Settings as SettingsIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SoundToggle } from "@/components/SoundToggle";
 import { TierBadge } from "@/components/TierBadge";
@@ -47,6 +47,18 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
               <span className="max-w-[88px] truncate font-medium">{username}</span>
             </div>
 
+            <Link
+              to="/settings"
+              title="Settings"
+              aria-label="Settings"
+              onClick={() => {
+                playTap();
+                hapticTap();
+              }}
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-all hover:bg-white/[0.05] hover:text-primary"
+            >
+              <SettingsIcon className="h-4 w-4" />
+            </Link>
             <button
               onClick={() => {
                 playTap();

@@ -19,9 +19,12 @@ import { StatusCard } from "@/components/StatusCard";
 import { SpotlightCard } from "@/components/SpotlightCard";
 import { FirstDepositGift } from "@/components/FirstDepositGift";
 import { Odometer } from "@/components/Odometer";
+import { PresencePill } from "@/components/PresencePill";
+import { TimeAwareGreeting } from "@/components/TimeAwareGreeting";
+import { TopUpNudge } from "@/components/TopUpNudge";
+import { ReorderableStack } from "@/components/ReorderableStack";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
-import { useUser } from "@/context/UserContext";
 
 const streams = [
   { icon: Video, label: "NETFLIX DEAL", value: "$18.4M" },
@@ -33,8 +36,6 @@ const streams = [
 export default function Home() {
   const loc = useLocale();
   const { value: balance, pulse } = useBalancePulse({ initial: 30459 });
-  const { username } = useUser();
-  const firstName = (username || "Investor").split(" ")[0];
 
   return (
     <RouteShell>
@@ -88,11 +89,15 @@ export default function Home() {
             </StaggerItem>
 
             <StaggerItem>
+              <TopUpNudge />
+            </StaggerItem>
+
+            <StaggerItem>
               <section className="space-y-5">
-                <span className="chip">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Welcome back, {firstName}.
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <TimeAwareGreeting />
+                  <PresencePill />
+                </div>
                 <h2 className="font-display text-5xl leading-[1.05]">
                   Smart Capital,
                   <br />
@@ -199,27 +204,18 @@ export default function Home() {
                 <BtcChartCard />
               </div>
             </StaggerItem>
-
-            <StaggerItem>
-              <LiveWithdrawals />
-            </StaggerItem>
-
-            <StaggerItem>
-              <FounderQuote />
-            </StaggerItem>
-
-            <StaggerItem>
-              <FounderTimeline />
-            </StaggerItem>
-
-            <StaggerItem>
-              <ReferralCard />
-            </StaggerItem>
-
-            <StaggerItem>
-              <StatusCard />
-            </StaggerItem>
           </Stagger>
+
+          <ReorderableStack
+            storageKey="ec_home_order_v1"
+            items={[
+              { key: "live", node: <LiveWithdrawals /> },
+              { key: "quote", node: <FounderQuote /> },
+              { key: "timeline", node: <FounderTimeline /> },
+              { key: "referral", node: <ReferralCard /> },
+              { key: "status", node: <StatusCard /> },
+            ]}
+          />
         </main>
       </div>
     </RouteShell>

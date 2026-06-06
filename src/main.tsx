@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-
 import { AnimatePresence } from "framer-motion";
 import { AppProvider } from "./context/AppContext";
 import { UserProvider } from "./context/UserContext";
+import { MotionProvider } from "./context/MotionContext";
 import { LoginGate } from "./components/LoginGate";
 import { Toaster } from "sonner";
 import { BottomNav } from "./components/BottomNav";
@@ -27,6 +28,8 @@ const Home = lazy(() => import("./routes/index"));
 const Packages = lazy(() => import("./routes/packages"));
 const Portal = lazy(() => import("./routes/portal"));
 const Portfolio = lazy(() => import("./routes/portfolio"));
+const Settings = lazy(() => import("./routes/settings"));
+const NotFound = lazy(() => import("./routes/not-found"));
 
 function RouteFallback() {
   return (
@@ -80,6 +83,22 @@ function AnimatedRoutes() {
                 </Suspense>
               }
             />
+            <Route
+              path="settings"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <Settings />
+                </Suspense>
+              }
+            />
+            <Route
+              path="*"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <NotFound />
+                </Suspense>
+              }
+            />
           </Route>
         </Routes>
       </AnimatePresence>
@@ -116,16 +135,18 @@ function App() {
   }, []);
   return (
     <UserProvider>
-      <AppProvider>
-        <GlobalFilters />
-        <CurtainReveal />
-        <LoginGate>
-          <BrowserRouter>
-            <AnimatedRoutes />
-            <Analytics />
-          </BrowserRouter>
-        </LoginGate>
-      </AppProvider>
+      <MotionProvider>
+        <AppProvider>
+          <GlobalFilters />
+          <CurtainReveal />
+          <LoginGate>
+            <BrowserRouter>
+              <AnimatedRoutes />
+              <Analytics />
+            </BrowserRouter>
+          </LoginGate>
+        </AppProvider>
+      </MotionProvider>
     </UserProvider>
   );
 }

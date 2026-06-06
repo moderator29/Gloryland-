@@ -11,6 +11,7 @@ import { Countdown } from "@/components/Countdown";
 import { MagneticButton } from "@/components/MagneticButton";
 import { ReserveStickyPill } from "@/components/ReserveStickyPill";
 import { ComparisonDrawer } from "@/components/ComparisonDrawer";
+import { TierQuiz } from "@/components/TierQuiz";
 import { PACKAGES } from "@/lib/site-config";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { playTap, playTierChord } from "@/lib/sound";
@@ -55,6 +56,9 @@ export default function Packages() {
             <p className="mt-2 text-sm text-muted-foreground">
               Daily payouts. Pull anytime. Twenty seats per tier.
             </p>
+            <div className="mt-4">
+              <TierQuiz />
+            </div>
             <div className="gold-ribbon-hr mt-4 !w-24" />
           </header>
 

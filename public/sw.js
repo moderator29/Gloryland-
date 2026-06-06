@@ -15,6 +15,19 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+self.addEventListener("sync", (e) => {
+  if (e.tag === "ec-deposit-sync") {
+    e.waitUntil(replayDeposits());
+  }
+});
+
+async function replayDeposits() {
+  const all = await self.clients.matchAll({ includeUncontrolled: true });
+  for (const c of all) {
+    c.postMessage({ type: "ec-deposit-replay" });
+  }
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;

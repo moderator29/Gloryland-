@@ -1,6 +1,8 @@
 import { useRef } from "react";
 import { Download, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useUser } from "@/context/UserContext";
+import { depositRef } from "@/lib/depositRef";
 
 type Props = {
   plan?: string;
@@ -12,6 +14,8 @@ type Props = {
 
 export function Receipt({ plan, amount, asset, network, txDate }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const { username } = useUser();
+  const ref_tag = depositRef(username, String(txDate.getTime()));
 
   const save = async () => {
     const node = ref.current;
@@ -51,6 +55,7 @@ export function Receipt({ plan, amount, asset, network, txDate }: Props) {
           <Row label="Asset" value={asset} />
           <Row label="Network" value={network} />
           <Row label="Date" value={txDate.toLocaleString()} />
+          <Row label="Ref" value={ref_tag} />
           <Row label="Status" value="Confirmed" success />
         </div>
 

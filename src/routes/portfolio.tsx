@@ -9,6 +9,8 @@ import { Sparkline } from "@/components/Sparkline";
 import { TierBadge } from "@/components/TierBadge";
 import { StreakCounter } from "@/components/StreakCounter";
 import { Receipt } from "@/components/Receipt";
+import { ReceiptReactions } from "@/components/ReceiptReactions";
+import { PayoutCalendar } from "@/components/PayoutCalendar";
 import { useUser } from "@/context/UserContext";
 import { listDeposits, listWithdraws, type Deposit, type Withdraw } from "@/lib/history";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
@@ -158,13 +160,16 @@ export default function Portfolio() {
                     className="mt-3"
                   >
                     {current && (
-                      <Receipt
-                        plan={current.plan}
-                        amount={current.amount}
-                        asset={current.asset}
-                        network={current.network}
-                        txDate={new Date(current.date)}
-                      />
+                      <>
+                        <Receipt
+                          plan={current.plan}
+                          amount={current.amount}
+                          asset={current.asset}
+                          network={current.network}
+                          txDate={new Date(current.date)}
+                        />
+                        <ReceiptReactions receiptId={current.id} />
+                      </>
                     )}
                   </motion.div>
                   {deposits.length > 1 && (
@@ -175,6 +180,10 @@ export default function Portfolio() {
                 </section>
               </StaggerItem>
             )}
+
+            <StaggerItem>
+              <PayoutCalendar />
+            </StaggerItem>
 
             <StaggerItem>
               <section className="glass-luxury p-5">
