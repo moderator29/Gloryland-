@@ -54,7 +54,7 @@ export function BottomNav() {
       </div>
 
       <p className="pb-2 pt-1 text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-        Lockdown Enabled
+        Private Portal
       </p>
     </nav>
   );

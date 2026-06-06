@@ -1,17 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import {
-  Bitcoin,
-  Copy,
-  Send,
-  Upload,
-  Check,
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  Wand2,
-} from "lucide-react";
+import { Copy, Send, Upload, Check, Sparkles, Loader2, CheckCircle2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -22,7 +12,8 @@ import { DepositWizard } from "@/components/DepositWizard";
 import { Receipt } from "@/components/Receipt";
 import { BtcChartCard } from "@/components/BtcChartCard";
 import { AddressCard } from "@/components/AddressCard";
-import { ASSETS, type CryptoAsset } from "@/lib/crypto-assets";
+import { BtcLogo } from "@/components/BtcLogo";
+import { BTC_WALLET, BTC_RATE_USD } from "@/lib/site-config";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { goldBurst } from "@/lib/confetti";
 import { tierConfetti } from "@/lib/dust";
@@ -30,6 +21,7 @@ import { playTing, playTap, playTierChord } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
 import { recordDeposit, recordWithdraw } from "@/lib/history";
 import { consumeFirstDepositGift } from "@/lib/firstDeposit";
+import { availableBalance } from "@/lib/balance";
 import { FirstDepositGift } from "@/components/FirstDepositGift";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
@@ -56,8 +48,21 @@ export default function Portal() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  const [assetKey, setAssetKey] = useState<CryptoAsset["key"]>("BTC");
-  const asset = ASSETS.find((a) => a.key === assetKey) ?? ASSETS[0];
+  const [balance, setBalance] = useState(0);
+  useEffect(() => {
+    setBalance(availableBalance());
+    const id = window.setInterval(() => setBalance(availableBalance()), 2000);
+    return () => window.clearInterval(id);
+  }, []);
+  const asset = {
+    key: "BTC" as const,
+    label: "Bitcoin",
+    network: "BTC mainnet",
+    rateUsd: BTC_RATE_USD,
+    decimals: 6,
+    color: "#f7931a",
+    address: BTC_WALLET,
+  };
 
   useEffect(() => {
     if (amount) setDepositAmount(String(amount));
@@ -236,14 +241,16 @@ export default function Portal() {
                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-border/60 bg-black/30 p-4">
                   <div>
                     <p className="text-base">Available Balance</p>
-                    <p className="font-numeric text-3xl text-primary">$30,459</p>
+                    <p className="font-numeric text-3xl text-primary">
+                      ${balance.toLocaleString()}
+                    </p>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
-                      Local: {formatLocal(30459, loc)}
+                      Local: {formatLocal(balance, loc)}
                     </p>
                   </div>
                   <button
                     onClick={() => {
-                      setWithdrawAmount("30459");
+                      setWithdrawAmount(String(balance));
                       playTap();
                       hapticTap();
                     }}
@@ -253,7 +260,7 @@ export default function Portal() {
                   </button>
                 </div>
 
-                <label className="mt-3 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
+                <label className="coin-slot mt-3 flex items-center gap-3 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={withdrawAmount}
@@ -265,10 +272,8 @@ export default function Portal() {
                   />
                 </label>
 
-                <label className="mt-3 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white">
-                    <Bitcoin className="h-4 w-4 text-[#f7931a]" />
-                  </span>
+                <label className="coin-slot mt-3 flex items-center gap-3 px-4 py-3.5">
+                  <BtcLogo size={24} />
                   <input
                     value={walletAddr}
                     onChange={(e) => setWalletAddr(e.target.value)}
@@ -326,38 +331,10 @@ export default function Portal() {
             <StaggerItem>
               <section className="glass-luxury p-5">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="grid h-5 w-5 place-items-center rounded-full bg-white">
-                    <Bitcoin className="h-3.5 w-3.5 text-[#f7931a]" />
-                  </span>
+                  <BtcLogo size={22} />
                   Send Capital
                 </div>
                 <FirstDepositGift className="mt-3" />
-
-                <div className="mt-4 grid grid-cols-4 gap-1.5">
-                  {ASSETS.map((a) => (
-                    <button
-                      key={a.key}
-                      onClick={() => {
-                        setAssetKey(a.key);
-                        playTap();
-                        hapticTap();
-                      }}
-                      className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-2 text-[11px] transition-all ${
-                        assetKey === a.key
-                          ? "border-primary/60 bg-primary/10 text-primary"
-                          : "border-border/60 bg-black/30 text-muted-foreground"
-                      }`}
-                    >
-                      <span
-                        className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-black"
-                        style={{ background: a.color }}
-                      >
-                        {a.key[0]}
-                      </span>
-                      {a.key}
-                    </button>
-                  ))}
-                </div>
 
                 <div className="mt-4 rounded-2xl border border-border/60 bg-black/30 p-5">
                   <div className="relative mx-auto w-fit rounded-xl bg-white p-3">
@@ -391,7 +368,7 @@ export default function Portal() {
                   </div>
                 </div>
 
-                <label className="mt-5 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
+                <label className="coin-slot mt-5 flex items-center gap-3 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={depositAmount}

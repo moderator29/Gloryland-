@@ -23,6 +23,8 @@ import { PresencePill } from "@/components/PresencePill";
 import { TimeAwareGreeting } from "@/components/TimeAwareGreeting";
 import { TopUpNudge } from "@/components/TopUpNudge";
 import { ReorderableStack } from "@/components/ReorderableStack";
+import { availableBalance, topTierDaily } from "@/lib/balance";
+import { useEffect, useState } from "react";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 
@@ -35,7 +37,22 @@ const streams = [
 
 export default function Home() {
   const loc = useLocale();
-  const { value: balance, pulse } = useBalancePulse({ initial: 30459 });
+  const [base, setBase] = useState(0);
+  const [daily, setDaily] = useState(0);
+  useEffect(() => {
+    const read = () => {
+      setBase(availableBalance());
+      setDaily(topTierDaily());
+    };
+    read();
+    const id = window.setInterval(read, 3000);
+    return () => window.clearInterval(id);
+  }, []);
+  const { value: balance, pulse } = useBalancePulse({
+    initial: base,
+    minStep: daily > 0 ? 3 : 0,
+    maxStep: daily > 0 ? 18 : 0,
+  });
 
   return (
     <RouteShell>
@@ -133,7 +150,7 @@ export default function Home() {
                     </motion.p>
                     <p className="mt-1 inline-flex items-center gap-1 text-xs text-success">
                       <ArrowUp className="h-3 w-3" /> +
-                      <Odometer value={2500} prefix="$" />
+                      <Odometer value={daily} prefix="$" />
                       &nbsp;today
                     </p>
                     <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground/70">
@@ -147,20 +164,18 @@ export default function Home() {
 
                 <div className="mt-5 grid grid-cols-3 gap-2">
                   {[
-                    { l: "Today", v: 2500 },
+                    { l: "Today", v: daily },
                     { l: "Referral", v: 0 },
                     { l: "VIP", v: 0 },
                   ].map((s) => (
                     <div
                       key={s.l}
-                      className="embossed rounded-xl border border-border/60 bg-black/30 p-3"
+                      className="embossed min-w-0 rounded-xl border border-border/60 bg-black/30 p-3"
                     >
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         {s.l}
                       </p>
-                      <p className="mt-1 text-lg">
-                        <CountUp value={s.v} prefix="$" decimals={2} />
-                      </p>
+                      <p className="font-numeric mt-1 truncate text-lg">${s.v.toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -170,7 +185,7 @@ export default function Home() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Today's Rewards</span>
                   <span className="text-success">
-                    <CountUp value={2500} prefix="$" />
+                    <CountUp value={daily} prefix="$" />
                   </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">

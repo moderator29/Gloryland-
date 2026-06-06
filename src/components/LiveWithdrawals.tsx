@@ -3,54 +3,88 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, MapPin } from "lucide-react";
 
 const NAMES = [
-  "Sara",
+  "Sarah",
   "Marcus",
-  "Aisha",
+  "Emily",
+  "Jacob",
+  "Lena",
+  "Ryan",
+  "Hannah",
   "Diego",
   "Yuki",
-  "Lena",
-  "Kwame",
-  "Priya",
-  "Niko",
+  "Olivia",
+  "Connor",
   "Maya",
-  "Omar",
+  "Noah",
+  "Sophia",
+  "Ethan",
+  "Priya",
+  "Liam",
   "Inez",
+  "Mason",
+  "Camila",
 ];
+
 const CITIES = [
-  "London",
-  "Lagos",
-  "Tokyo",
-  "Berlin",
-  "Dubai",
-  "Mumbai",
-  "Sao Paulo",
-  "Mexico City",
-  "Singapore",
-  "Toronto",
-  "Cape Town",
-  "Madrid",
+  "New York, US",
+  "Los Angeles, US",
+  "Chicago, US",
+  "Austin, US",
+  "Miami, US",
+  "Seattle, US",
+  "Boston, US",
+  "Denver, US",
+  "San Francisco, US",
+  "Dallas, US",
+  "London, UK",
+  "Toronto, CA",
+  "Vancouver, CA",
+  "Tokyo, JP",
+  "Berlin, DE",
+  "Paris, FR",
+  "Amsterdam, NL",
+  "Madrid, ES",
+  "Sydney, AU",
+  "Dubai, AE",
+  "Singapore, SG",
+  "Mumbai, IN",
 ];
+
+const AMOUNTS = [820, 1240, 1980, 2400, 3120, 4820, 6450, 8900];
 
 type Item = {
   id: number;
   name: string;
   city: string;
   amount: number;
-  ago: string;
+  agoSeconds: number;
 };
 
-function pick<T>(arr: T[]) {
+function pick<T>(arr: readonly T[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function fmtAgo(seconds: number): string {
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  return `${Math.floor(seconds / 3600)}h ago`;
+}
+
 function makeItem(id: number): Item {
-  const amounts = [820, 1240, 1980, 2400, 3120, 4820, 6450, 8900];
+  // Spread: ~30% secs, ~50% mins, ~20% hours
+  const r = Math.random();
+  const agoSeconds =
+    r < 0.3
+      ? Math.floor(Math.random() * 55) + 5
+      : r < 0.8
+        ? (Math.floor(Math.random() * 58) + 1) * 60
+        : (Math.floor(Math.random() * 7) + 1) * 3600;
   return {
     id,
     name: pick(NAMES),
     city: pick(CITIES),
-    amount: pick(amounts),
-    ago: `${Math.floor(Math.random() * 50) + 8}s ago`,
+    amount: pick(AMOUNTS),
+    agoSeconds,
   };
 }
 
@@ -62,7 +96,7 @@ export function LiveWithdrawals() {
     const id = window.setInterval(() => {
       setItems((prev) => [makeItem(seed), ...prev].slice(0, 3));
       setSeed((s) => s + 1);
-    }, 4200);
+    }, 5200);
     return () => window.clearInterval(id);
   }, [seed]);
 
@@ -92,17 +126,17 @@ export function LiveWithdrawals() {
               <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#BF953F] to-[#B38728] text-[11px] font-bold text-black">
                 {it.name[0]}
               </span>
-              <div className="flex-1 text-sm">
-                <p className="leading-tight">
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="truncate leading-tight">
                   <span className="font-medium">{it.name}</span>{" "}
                   <span className="text-muted-foreground">withdrew</span>{" "}
-                  <span className="text-success">${it.amount.toLocaleString()}</span>
+                  <span className="font-numeric text-success">${it.amount.toLocaleString()}</span>
                 </p>
                 <p className="mt-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <MapPin className="h-3 w-3" /> {it.city} · {it.ago}
+                  <MapPin className="h-3 w-3" /> {it.city} · {fmtAgo(it.agoSeconds)}
                 </p>
               </div>
-              <ArrowUpRight className="h-4 w-4 text-success" />
+              <ArrowUpRight className="h-4 w-4 shrink-0 text-success" />
             </motion.li>
           ))}
         </AnimatePresence>

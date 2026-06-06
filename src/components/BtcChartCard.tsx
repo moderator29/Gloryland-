@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { ArrowUp, ArrowDown, X, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/Skeleton";
+import { BtcLogo } from "@/components/BtcLogo";
 import { useBtcChart, useBtcSnapshot, type Window } from "@/hooks/useBtcMarket";
 import { playTap } from "@/lib/sound";
 import { tap as hapticTap } from "@/lib/haptic";
@@ -23,25 +24,6 @@ function fmtCompact(n: number) {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(n);
-}
-
-function BtcLogo({ size = 36 }: { size?: number }) {
-  return (
-    <span
-      aria-hidden
-      className="relative grid shrink-0 place-items-center rounded-full"
-      style={{
-        width: size,
-        height: size,
-        background: "linear-gradient(135deg, #f7931a 0%, #ffb347 100%)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px -2px rgba(247,147,26,0.5)",
-      }}
-    >
-      <span className="font-display text-base font-bold text-white" style={{ lineHeight: 1 }}>
-        ₿
-      </span>
-    </span>
-  );
 }
 
 export function BtcChartCard() {
@@ -173,7 +155,7 @@ function BtcChartModal({
         animate={{ y: 0 }}
         exit={{ y: 600 }}
         transition={{ type: "spring", stiffness: 280, damping: 30 }}
-        className="glass-luxury aurora-border relative max-h-[92vh] w-full max-w-md overflow-auto rounded-t-3xl p-5 pb-8 md:rounded-3xl"
+        className="relative max-h-[92vh] w-full max-w-md overflow-auto rounded-t-3xl border border-border/60 bg-[#0a0a0a] p-5 pb-8 shadow-2xl md:rounded-3xl"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">

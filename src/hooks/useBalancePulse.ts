@@ -17,6 +17,11 @@ export function useBalancePulse({
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
+    setValue(initial);
+  }, [initial]);
+
+  useEffect(() => {
+    if (maxStep <= 0) return;
     const id = window.setInterval(() => {
       const delta = Math.random() * (maxStep - minStep) + minStep;
       setValue((v) => Math.round((v + delta) * 100) / 100);

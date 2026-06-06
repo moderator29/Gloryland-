@@ -24,13 +24,30 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    overscroll-behavior-y: none;
+  }
+
   html {
     font-family: "Inter", system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
     font-feature-settings: "ss01", "cv11";
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
   }
 }
 
@@ -73,8 +90,8 @@
       linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)) padding-box,
       linear-gradient(
           140deg,
-          rgba(212, 175, 55, 0.6),
-          rgba(252, 246, 186, 0.18) 40%,
+          rgba(212, 175, 55, 0.55),
+          rgba(252, 246, 186, 0.16) 40%,
           rgba(0, 0, 0, 0) 70%
         )
         border-box;
@@ -82,34 +99,41 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 30px 60px -30px rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(20px);
-    background-color: rgba(15, 15, 15, 0.6);
+    background-color: rgba(15, 15, 15, 0.92);
+  }
+  @media (min-width: 768px) {
+    .glass-luxury {
+      backdrop-filter: blur(12px);
+      background-color: rgba(15, 15, 15, 0.7);
+    }
   }
 
   .aurora-border {
     position: relative;
     border-radius: 1.5rem;
   }
-  .aurora-border::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: 1px;
-    border-radius: inherit;
-    background: conic-gradient(
-      from var(--angle, 0deg),
-      transparent 0deg,
-      rgba(212, 175, 55, 0.9) 90deg,
-      rgba(252, 246, 186, 0.4) 180deg,
-      transparent 270deg
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    animation: aurora-spin 6s linear infinite;
+  @media (min-width: 768px) {
+    .aurora-border::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: inherit;
+      background: conic-gradient(
+        from var(--angle, 0deg),
+        transparent 0deg,
+        rgba(212, 175, 55, 0.9) 90deg,
+        rgba(252, 246, 186, 0.4) 180deg,
+        transparent 270deg
+      );
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      animation: aurora-spin 6s linear infinite;
+    }
   }
   @property --angle {
     syntax: "<angle>";
@@ -306,16 +330,18 @@
   .marble-vein {
     position: relative;
   }
-  .marble-vein::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><defs><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.04' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.95  0 0 0 0 0.7  0 0 0 0.12 0'/></filter></defs><rect width='100%25' height='100%25' filter='url(%23m)'/></svg>");
-    background-size: cover;
-    mix-blend-mode: overlay;
-    opacity: 0.55;
+  @media (min-width: 768px) {
+    .marble-vein::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><defs><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.04' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.95  0 0 0 0 0.7  0 0 0 0.12 0'/></filter></defs><rect width='100%25' height='100%25' filter='url(%23m)'/></svg>");
+      background-size: cover;
+      mix-blend-mode: overlay;
+      opacity: 0.45;
+    }
   }
 
   .corner-fold {

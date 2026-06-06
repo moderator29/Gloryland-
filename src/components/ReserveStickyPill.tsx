@@ -27,7 +27,7 @@ export function ReserveStickyPill({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: "spring", stiffness: 320, damping: 24 }}
-          className="btn-foil fixed bottom-24 left-1/2 z-30 -translate-x-1/2 px-5 py-3 text-sm"
+          className="btn-foil fixed bottom-[5.5rem] left-1/2 z-30 max-w-[80vw] -translate-x-1/2 truncate px-4 py-2.5 text-xs sm:bottom-24 sm:px-5 sm:py-3 sm:text-sm"
         >
           <span className="inline-flex items-center gap-2">
             {label}

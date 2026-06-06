@@ -46,8 +46,11 @@ export function MagneticButton(props: Props) {
     y.set(0);
   };
 
+  const fullWidth = className.includes("w-full") || className.includes("flex w-full");
+  const wrapCls = fullWidth ? "block w-full" : "inline-block";
+
   return (
-    <div ref={ref} onMouseMove={handleMove} onMouseLeave={reset} className="inline-block">
+    <div ref={ref} onMouseMove={handleMove} onMouseLeave={reset} className={wrapCls}>
       {props.as === "link" ? (
         <MotionLink
           to={props.to}

@@ -56,8 +56,9 @@ export default function Packages() {
             <p className="mt-2 text-sm text-muted-foreground">
               Daily payouts. Pull anytime. Twenty seats per tier.
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <TierQuiz />
+              <ComparisonDrawer />
             </div>
             <div className="gold-ribbon-hr mt-4 !w-24" />
           </header>
@@ -191,8 +192,6 @@ export default function Packages() {
             }}
           />
         )}
-
-        <ComparisonDrawer />
       </div>
     </RouteShell>
   );

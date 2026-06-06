@@ -23,14 +23,14 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 
 ## Routes
 
-| Path | Purpose |
-|---|---|
-| `/` | Home dashboard with founder card, hero, portfolio, BTC market reference, social proof, founder quote, timeline, status |
-| `/packages` | Magazine-spread 2-column tier grid with Tier Match quiz, comparison drawer, sticky reserve pill |
-| `/portal` | Investor portal: quick BTC address copy, withdraw, market reference, multi-crypto deposit (BTC/USDT/ETH/SOL), guided 5-step wizard, deposit tracker, receipt download |
-| `/portfolio` | Vault: total position, deposits, withdrawals, swipeable receipt history with reactions, 30-day payout calendar, tier badge, streak |
-| `/settings` | Profile, motion intensity, sound, currency override, log out |
-| `*` | Themed 404 page |
+| Path         | Purpose                                                                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`          | Home dashboard with founder card, hero, portfolio, BTC market reference, social proof, founder quote, timeline, status                                                |
+| `/packages`  | Magazine-spread 2-column tier grid with Tier Match quiz, comparison drawer, sticky reserve pill                                                                       |
+| `/portal`    | Investor portal: quick BTC address copy, withdraw, market reference, multi-crypto deposit (BTC/USDT/ETH/SOL), guided 5-step wizard, deposit tracker, receipt download |
+| `/portfolio` | Vault: total position, deposits, withdrawals, swipeable receipt history with reactions, 30-day payout calendar, tier badge, streak                                    |
+| `/settings`  | Profile, motion intensity, sound, currency override, log out                                                                                                          |
+| `*`          | Themed 404 page                                                                                                                                                       |
 
 ---
 
@@ -71,6 +71,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 ## Round 4 — 40 platform upgrades
 
 ### Container vocabulary
+
 - `.hex-clip` chamfered top-right corner
 - `.card-stack` three-layer pulled-out shadow with hover lift
 - `.marble-vein` SVG marble overlay inside glass cards
@@ -83,6 +84,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 - `.gilded-edge`, `.embossed` inner gloss / pressed depth
 
 ### Button vocabulary
+
 - `.btn-gold` brighter palette with hover sheen sweep
 - `.btn-foil` animated gold foil with radial highlights
 - `.btn-foil-hover` hover-only shimmer variant
@@ -95,6 +97,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 - `LiquidMorphButton`, `CoinFlipButton`, `HolographicButton` React wrappers
 
 ### Motion / surface effects
+
 - `SpotlightCard` cursor-tracked radial highlight
 - `ScrollParallax` for the founder portrait
 - `CursorTrail` gold canvas trail (desktop only)
@@ -105,6 +108,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 - `Backdrop` drifting gold orbs
 
 ### Trust / platform features
+
 - `LiveWithdrawals` rolling feed
 - `Countdown` per-tier time-to-fill
 - `ReserveStickyPill` follows scroll
@@ -133,6 +137,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 - `DepositWizard` 5-step modal: Tier → Asset → Address → Confirm → Receipt
 
 ### Microcopy pass
+
 - "Deposit Crypto" → "Send Capital"
 - "Withdraw Funds" → "Pull Earnings"
 - "Invest Now" → "Take Position"
@@ -140,6 +145,7 @@ The repo is the **Emilia Clarke Investor Portal**: a dark, gold-themed dashboard
 - "Withdrawal sent..." → "Earnings pulled. Broadcasting now."
 
 ### Performance
+
 - Routes lazy-loaded with Suspense + Skeleton fallbacks
 - html2canvas dynamic-imported only when generating a receipt
 - Main bundle dropped from 861 KB → 430 KB
