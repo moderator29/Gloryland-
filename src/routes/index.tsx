@@ -1,6 +1,5 @@
 import { Crown, Video, Film, Monitor, TrendingUp, ArrowRight, ArrowUp, Upload } from "lucide-react";
 import { motion } from "framer-motion";
-import portrait from "@/assets/image.png";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
 import { Stagger, StaggerItem } from "@/components/Stagger";
@@ -8,11 +7,18 @@ import { CountUp } from "@/components/CountUp";
 import { MagneticButton } from "@/components/MagneticButton";
 import { Ticker } from "@/components/Ticker";
 import { Sparkline } from "@/components/Sparkline";
-import { PortraitGlow } from "@/components/PortraitGlow";
+import { FounderPortrait } from "@/components/FounderPortrait";
 import { ScrollParallax } from "@/components/ScrollParallax";
 import { LiveWithdrawals } from "@/components/LiveWithdrawals";
 import { ReferralCard } from "@/components/ReferralCard";
 import { BtcChartCard } from "@/components/BtcChartCard";
+import { FounderQuote } from "@/components/FounderQuote";
+import { FounderTimeline } from "@/components/FounderTimeline";
+import { PressWall } from "@/components/PressWall";
+import { StatusCard } from "@/components/StatusCard";
+import { SpotlightCard } from "@/components/SpotlightCard";
+import { FirstDepositGift } from "@/components/FirstDepositGift";
+import { Odometer } from "@/components/Odometer";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 import { useUser } from "@/context/UserContext";
@@ -38,47 +44,47 @@ export default function Home() {
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
           <Stagger className="space-y-6">
             <StaggerItem>
-              <section className="glass-luxury aurora-border p-6 text-center">
-                <ScrollParallax range={28}>
-                  <PortraitGlow>
-                    <img
-                      src={portrait}
-                      alt="Emilia Clarke portrait"
-                      width={512}
-                      height={512}
-                      loading="eager"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  </PortraitGlow>
-                </ScrollParallax>
-                <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                  <Crown className="h-3.5 w-3.5 text-primary" />
-                  Founder & Board Member
-                </div>
+              <SpotlightCard>
+                <section className="glass-luxury marble-vein aurora-border p-6 text-center">
+                  <ScrollParallax range={28}>
+                    <FounderPortrait />
+                  </ScrollParallax>
+                  <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
+                  <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                    <Crown className="h-3.5 w-3.5 text-primary" />
+                    Founder & Board Member
+                  </div>
 
-                <div className="mt-6 space-y-2.5">
-                  {streams.map((s) => (
-                    <div
-                      key={s.label}
-                      className="flex items-center justify-between rounded-2xl border border-border/70 bg-black/40 px-4 py-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <s.icon className="h-4 w-4 text-primary" strokeWidth={1.8} />
-                        <span className="text-xs tracking-[0.18em] text-muted-foreground">
-                          {s.label}
-                        </span>
+                  <div className="mt-6 space-y-2.5">
+                    {streams.map((s) => (
+                      <div
+                        key={s.label}
+                        className="flex items-center justify-between rounded-2xl border border-border/70 bg-black/40 px-4 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <s.icon className="h-4 w-4 text-primary" strokeWidth={1.8} />
+                          <span className="text-xs tracking-[0.18em] text-muted-foreground">
+                            {s.label}
+                          </span>
+                        </div>
+                        <span className="font-numeric text-base text-primary">{s.value}</span>
                       </div>
-                      <span className="font-numeric text-base text-primary">{s.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              </SpotlightCard>
+            </StaggerItem>
+
+            <StaggerItem>
+              <PressWall />
             </StaggerItem>
 
             <StaggerItem>
               <Ticker />
+            </StaggerItem>
+
+            <StaggerItem>
+              <FirstDepositGift />
             </StaggerItem>
 
             <StaggerItem>
@@ -121,8 +127,9 @@ export default function Home() {
                       <CountUp value={balance} prefix="$" decimals={0} duration={0.9} />
                     </motion.p>
                     <p className="mt-1 inline-flex items-center gap-1 text-xs text-success">
-                      <ArrowUp className="h-3 w-3" /> +<CountUp value={2500} prefix="$" />
-                      .0 today
+                      <ArrowUp className="h-3 w-3" /> +
+                      <Odometer value={2500} prefix="$" />
+                      &nbsp;today
                     </p>
                     <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground/70">
                       Local: <span className="font-numeric">{formatLocal(balance, loc)}</span>
@@ -198,7 +205,19 @@ export default function Home() {
             </StaggerItem>
 
             <StaggerItem>
+              <FounderQuote />
+            </StaggerItem>
+
+            <StaggerItem>
+              <FounderTimeline />
+            </StaggerItem>
+
+            <StaggerItem>
               <ReferralCard />
+            </StaggerItem>
+
+            <StaggerItem>
+              <StatusCard />
             </StaggerItem>
           </Stagger>
         </main>

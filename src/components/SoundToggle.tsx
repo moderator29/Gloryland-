@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Volume2, VolumeX, Waves } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { isMuted, setMuted, startAmbient, stopAmbient, isAmbientOn } from "@/lib/sound";
+import { AudioMeter } from "@/components/AudioMeter";
 
 export function SoundToggle() {
   const [muted, setMutedState] = useState(isMuted());
@@ -41,7 +42,7 @@ export function SoundToggle() {
             : "text-muted-foreground hover:text-primary"
         }`}
       >
-        <Waves className="h-3.5 w-3.5" />
+        <AudioMeter active={ambient} />
       </button>
     </div>
   );

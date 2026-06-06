@@ -1,6 +1,8 @@
 import { LogOut, BadgeCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SoundToggle } from "@/components/SoundToggle";
+import { TierBadge } from "@/components/TierBadge";
+import { StreakCounter } from "@/components/StreakCounter";
 import { useUser } from "@/context/UserContext";
 import { playTap } from "@/lib/sound";
 import { tap as hapticTap } from "@/lib/haptic";
@@ -24,6 +26,8 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
       </Link>
 
       <div className="flex items-center gap-2">
+        <StreakCounter />
+        <TierBadge />
         <SoundToggle />
         {showUser && username && (
           <>

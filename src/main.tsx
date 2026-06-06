@@ -13,6 +13,12 @@ import { CursorTrail } from "./components/CursorTrail";
 import { WelcomeCards } from "./components/WelcomeCards";
 import { PwaInstall } from "./components/PwaInstall";
 import { Skeleton } from "./components/Skeleton";
+import { GlobalFilters } from "./components/GlobalFilters";
+import { BtcTickerBar } from "./components/BtcTickerBar";
+import { CurtainReveal } from "./components/CurtainReveal";
+import { GoldRail } from "./components/GoldRail";
+import { HelpDrawer } from "./components/HelpDrawer";
+import { VaultDial } from "./components/VaultDial";
 import { Analytics } from "@vercel/analytics/react";
 
 import "./index.css";
@@ -20,6 +26,7 @@ import "./index.css";
 const Home = lazy(() => import("./routes/index"));
 const Packages = lazy(() => import("./routes/packages"));
 const Portal = lazy(() => import("./routes/portal"));
+const Portfolio = lazy(() => import("./routes/portfolio"));
 
 function RouteFallback() {
   return (
@@ -34,45 +41,59 @@ function RouteFallback() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const onPortal = location.pathname === "/portal";
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Layout />}>
-          <Route
-            index
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <Home />
-              </Suspense>
-            }
-          />
-          <Route
-            path="packages"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <Packages />
-              </Suspense>
-            }
-          />
-          <Route
-            path="portal"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <Portal />
-              </Suspense>
-            }
-          />
-        </Route>
-      </Routes>
-    </AnimatePresence>
+    <>
+      {onPortal && <VaultDial trigger={location.pathname} />}
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Layout />}>
+            <Route
+              index
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <Home />
+                </Suspense>
+              }
+            />
+            <Route
+              path="packages"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <Packages />
+                </Suspense>
+              }
+            />
+            <Route
+              path="portal"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <Portal />
+                </Suspense>
+              }
+            />
+            <Route
+              path="portfolio"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <Portfolio />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Routes>
+      </AnimatePresence>
+    </>
   );
 }
 
 function Layout() {
   return (
     <div className="relative min-h-screen bg-[#0a0a0a] pb-20 text-white">
+      <BtcTickerBar />
       <Backdrop />
       <FrameLight />
+      <GoldRail />
       <div className="relative z-10">
         <Outlet />
       </div>
@@ -80,6 +101,7 @@ function Layout() {
       <WelcomeCards />
       <PwaInstall />
       <CursorTrail />
+      <HelpDrawer />
       <Toaster theme="dark" position="top-center" />
     </div>
   );
@@ -95,6 +117,8 @@ function App() {
   return (
     <UserProvider>
       <AppProvider>
+        <GlobalFilters />
+        <CurtainReveal />
         <LoginGate>
           <BrowserRouter>
             <AnimatedRoutes />

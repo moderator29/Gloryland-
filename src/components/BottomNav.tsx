@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles, Gem, Wallet2 } from "lucide-react";
+import { Sparkles, Gem, Wallet2, Crown } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Sparkles },
   { to: "/packages", label: "Tiers", icon: Gem },
   { to: "/portal", label: "Portal", icon: Wallet2 },
+  { to: "/portfolio", label: "Vault", icon: Crown },
 ] as const;
 
 export function BottomNav() {

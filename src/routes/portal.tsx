@@ -25,8 +25,12 @@ import { AddressCard } from "@/components/AddressCard";
 import { ASSETS, type CryptoAsset } from "@/lib/crypto-assets";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { goldBurst } from "@/lib/confetti";
+import { tierConfetti } from "@/lib/dust";
 import { playTing, playTap, playTierChord } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
+import { recordDeposit, recordWithdraw } from "@/lib/history";
+import { consumeFirstDepositGift } from "@/lib/firstDeposit";
+import { FirstDepositGift } from "@/components/FirstDepositGift";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
 const SUBS_KEY = "ec_subscribed_plans";
@@ -89,7 +93,19 @@ export default function Portal() {
     playTing();
     if (plan) playTierChord(plan);
     hapticSuccess();
-    toast.success("Deposit confirmed. Tier activated.", { duration: 2200 });
+    const gift = consumeFirstDepositGift();
+    recordDeposit({
+      amount: depositNum,
+      asset: asset.key,
+      network: asset.network,
+      plan: plan ?? undefined,
+    });
+    if (plan) tierConfetti(plan, { x: 0.5, y: 0.45 });
+    if (gift) {
+      toast.success("Welcome gift unlocked. 1.5x your first day.", { duration: 2800 });
+    } else {
+      toast.success("Deposit confirmed. Tier activated.", { duration: 2200 });
+    }
     setShowReceipt(true);
     setTracking(false);
     window.setTimeout(() => setConfirmed(false), 2500);
@@ -108,7 +124,12 @@ export default function Portal() {
       setWithdrawSuccess(true);
       playTing();
       hapticSuccess();
-      toast.success("Withdrawal sent to the network.", { duration: 2400 });
+      recordWithdraw({
+        amount: parseFloat(withdrawAmount) || 0,
+        address: walletAddr,
+        status: "sent",
+      });
+      toast.success("Earnings pulled. Broadcasting now.", { duration: 2400 });
 
       setWithdrawAmount("");
       setWalletAddr("");
@@ -147,7 +168,7 @@ export default function Portal() {
                     Investor <em className="not-italic text-gradient-gold">Portal</em>
                   </h1>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Deposit crypto to activate packages.
+                    Send capital. Activate your tier.
                   </p>
                 </div>
                 <button
@@ -189,7 +210,7 @@ export default function Portal() {
             <StaggerItem>
               <section className="glass-luxury p-5">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Upload className="h-4 w-4 text-primary" /> Withdraw Funds
+                  <Upload className="h-4 w-4 text-primary" /> Pull Earnings
                 </div>
 
                 <div className="embossed mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-black/40 p-1">
@@ -232,7 +253,7 @@ export default function Portal() {
                   </button>
                 </div>
 
-                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
+                <label className="mt-3 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={withdrawAmount}
@@ -244,7 +265,7 @@ export default function Portal() {
                   />
                 </label>
 
-                <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
+                <label className="mt-3 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
                   <span className="grid h-6 w-6 place-items-center rounded-full bg-white">
                     <Bitcoin className="h-4 w-4 text-[#f7931a]" />
                   </span>
@@ -308,8 +329,9 @@ export default function Portal() {
                   <span className="grid h-5 w-5 place-items-center rounded-full bg-white">
                     <Bitcoin className="h-3.5 w-3.5 text-[#f7931a]" />
                   </span>
-                  Deposit Crypto
+                  Send Capital
                 </div>
+                <FirstDepositGift className="mt-3" />
 
                 <div className="mt-4 grid grid-cols-4 gap-1.5">
                   {ASSETS.map((a) => (
@@ -369,7 +391,7 @@ export default function Portal() {
                   </div>
                 </div>
 
-                <label className="mt-5 flex items-center gap-3 rounded-2xl border border-border/60 bg-black/30 px-4 py-3.5">
+                <label className="mt-5 flex items-center gap-3 coin-slot flex items-center gap-3 px-4 py-3.5">
                   <span className="text-muted-foreground">$</span>
                   <input
                     value={depositAmount}

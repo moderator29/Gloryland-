@@ -47,16 +47,18 @@ export default function Packages() {
         <SiteHeader showUser={false} />
         <main className="mx-auto max-w-2xl px-5 py-6">
           <header className="mb-6">
-            <span className="chip">Investment Packages</span>
+            <div className="gold-ribbon-hr mb-4 !w-24" />
+            <span className="chip">Investment Dossier</span>
             <h1 className="mt-3 font-display text-4xl">
               Choose Your <em className="not-italic text-gradient-gold">Tier</em>
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Daily passive earnings. Withdraw anytime. Limited to 20 spots per package.
+              Daily payouts. Pull anytime. Twenty seats per tier.
             </p>
+            <div className="gold-ribbon-hr mt-4 !w-24" />
           </header>
 
-          <Stagger className="space-y-4">
+          <Stagger className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {PACKAGES.map((p) => {
               const isSubscribed = subscribed.includes(p.name);
               const isFull = p.taken >= p.spots;
@@ -65,7 +67,7 @@ export default function Packages() {
                 <StaggerItem key={p.name}>
                   <TiltCard>
                     <article
-                      className={`glass-luxury relative p-5 ${isSubscribed ? "ring-1 ring-success/50" : ""} ${isFull ? "opacity-80" : ""}`}
+                      className={`glass-luxury marble-vein corner-fold asym-radius card-stack relative p-5 ${isSubscribed ? "ring-1 ring-success/50" : ""} ${isFull ? "opacity-80" : ""}`}
                     >
                       {!isFull && <TierEmber tier={p.name} />}
                       <div className="relative">
@@ -149,8 +151,8 @@ export default function Packages() {
                                 hapticTap();
                                 toast.success(
                                   isSubscribed
-                                    ? `Topping up ${p.name}`
-                                    : `Reserving a seat in ${p.name}`,
+                                    ? `Adding capital to ${p.name}`
+                                    : `Holding a seat in ${p.name}`,
                                   { duration: 1600 },
                                 );
                               }}
@@ -158,11 +160,11 @@ export default function Packages() {
                             >
                               {isSubscribed ? (
                                 <>
-                                  <BadgeCheck className="h-4 w-4" /> Subscribed. Top Up
+                                  <BadgeCheck className="h-4 w-4" /> Active. Add Capital
                                 </>
                               ) : (
                                 <>
-                                  Invest Now <ArrowRight className="h-4 w-4" />
+                                  Take Position <ArrowRight className="h-4 w-4" />
                                 </>
                               )}
                             </span>
