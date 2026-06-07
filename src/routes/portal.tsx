@@ -21,7 +21,6 @@ import { playTing, playTap, playTierChord } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
 import { recordDeposit, recordWithdraw } from "@/lib/history";
 import { consumeFirstDepositGift } from "@/lib/firstDeposit";
-import { availableBalance } from "@/lib/balance";
 import { FirstDepositGift } from "@/components/FirstDepositGift";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
@@ -48,12 +47,7 @@ export default function Portal() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  const [balance, setBalance] = useState(0);
-  useEffect(() => {
-    setBalance(availableBalance());
-    const id = window.setInterval(() => setBalance(availableBalance()), 2000);
-    return () => window.clearInterval(id);
-  }, []);
+  const balance = 40459;
   const asset = {
     key: "BTC" as const,
     label: "Bitcoin",
