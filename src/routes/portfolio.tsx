@@ -13,7 +13,6 @@ import { ReceiptReactions } from "@/components/ReceiptReactions";
 import { PayoutCalendar } from "@/components/PayoutCalendar";
 import { useUser } from "@/context/UserContext";
 import { listDeposits, listWithdraws, type Deposit, type Withdraw } from "@/lib/history";
-import { availableBalance } from "@/lib/balance";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 
 function fmtDate(t: number) {
@@ -31,24 +30,16 @@ export default function Portfolio() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [withdraws, setWithdraws] = useState<Withdraw[]>([]);
   const [receiptIdx, setReceiptIdx] = useState(0);
-  const [base, setBase] = useState(0);
-  const { value: balance } = useBalancePulse({
-    initial: base,
-    minStep: base > 0 ? 3 : 0,
-    maxStep: base > 0 ? 18 : 0,
-  });
+  const { value: balance } = useBalancePulse({ initial: 40459 });
 
   useEffect(() => {
     const read = () => {
       setDeposits(listDeposits());
       setWithdraws(listWithdraws());
-      setBase(availableBalance());
     };
     read();
-    const id = window.setInterval(read, 3000);
     window.addEventListener("focus", read);
     return () => {
-      window.clearInterval(id);
       window.removeEventListener("focus", read);
     };
   }, []);

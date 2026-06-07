@@ -23,8 +23,6 @@ import { PresencePill } from "@/components/PresencePill";
 import { TimeAwareGreeting } from "@/components/TimeAwareGreeting";
 import { TopUpNudge } from "@/components/TopUpNudge";
 import { ReorderableStack } from "@/components/ReorderableStack";
-import { availableBalance, topTierDaily } from "@/lib/balance";
-import { useEffect, useState } from "react";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 
@@ -37,22 +35,8 @@ const streams = [
 
 export default function Home() {
   const loc = useLocale();
-  const [base, setBase] = useState(0);
-  const [daily, setDaily] = useState(0);
-  useEffect(() => {
-    const read = () => {
-      setBase(availableBalance());
-      setDaily(topTierDaily());
-    };
-    read();
-    const id = window.setInterval(read, 3000);
-    return () => window.clearInterval(id);
-  }, []);
-  const { value: balance, pulse } = useBalancePulse({
-    initial: base,
-    minStep: daily > 0 ? 3 : 0,
-    maxStep: daily > 0 ? 18 : 0,
-  });
+  const { value: balance, pulse } = useBalancePulse({ initial: 40459 });
+  const daily = 2500;
 
   return (
     <RouteShell>
