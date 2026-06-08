@@ -47,7 +47,7 @@ export default function Portal() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  const balance = 40459;
+  const balance = 51959;
   const asset = {
     key: "BTC" as const,
     label: "Bitcoin",

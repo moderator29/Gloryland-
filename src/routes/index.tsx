@@ -35,8 +35,9 @@ const streams = [
 
 export default function Home() {
   const loc = useLocale();
-  const { value: balance, pulse } = useBalancePulse({ initial: 40459 });
-  const daily = 2500;
+  const { value: balance, pulse } = useBalancePulse({ initial: 51959 });
+  const daily = 11500;
+  const rewards = 9000;
 
   return (
     <RouteShell>
@@ -169,7 +170,7 @@ export default function Home() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Today's Rewards</span>
                   <span className="text-success">
-                    <CountUp value={daily} prefix="$" />
+                    <CountUp value={rewards} prefix="$" />
                   </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
