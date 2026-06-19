@@ -35,7 +35,7 @@ const streams = [
 
 export default function Home() {
   const loc = useLocale();
-  const { value: balance, pulse } = useBalancePulse({ initial: 78959 });
+  const { value: balance, pulse } = useBalancePulse({ initial: 159959 });
   const daily = 9000;
   const rewards = 9000;
 

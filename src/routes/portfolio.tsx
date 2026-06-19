@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDownToLine, ArrowUpRight, Crown } from "lucide-react";
+import { ArrowDownToLine, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -30,7 +30,7 @@ export default function Portfolio() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [withdraws, setWithdraws] = useState<Withdraw[]>([]);
   const [receiptIdx, setReceiptIdx] = useState(0);
-  const { value: balance } = useBalancePulse({ initial: 78959 });
+  const { value: balance } = useBalancePulse({ initial: 159959 });
 
   useEffect(() => {
     const read = () => {
@@ -190,41 +190,6 @@ export default function Portfolio() {
 
             <StaggerItem>
               <PayoutCalendar />
-            </StaggerItem>
-
-            <StaggerItem>
-              <section className="glass-luxury p-5">
-                <p className="text-sm font-medium">
-                  <ArrowUpRight className="mr-1 inline h-4 w-4 text-primary" />
-                  Withdrawals ({withdraws.length})
-                </p>
-                {withdraws.length === 0 ? (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Nothing pulled out yet. When you withdraw, it shows up here with status.
-                  </p>
-                ) : (
-                  <ul className="mt-3 space-y-2">
-                    {withdraws.slice(0, 6).map((w) => (
-                      <li
-                        key={w.id}
-                        className="flex items-center justify-between rounded-2xl border border-border/60 bg-black/30 px-3 py-2.5 text-sm"
-                      >
-                        <div>
-                          <p className="font-mono text-xs">
-                            {w.address.slice(0, 8)}…{w.address.slice(-6)}
-                          </p>
-                          <p className="font-numeric text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {fmtDate(w.date)} · {w.status}
-                          </p>
-                        </div>
-                        <p className="font-numeric text-base text-primary">
-                          ${w.amount.toLocaleString()}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
             </StaggerItem>
           </Stagger>
         </main>
