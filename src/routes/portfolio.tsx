@@ -12,7 +12,7 @@ import { Receipt } from "@/components/Receipt";
 import { ReceiptReactions } from "@/components/ReceiptReactions";
 import { PayoutCalendar } from "@/components/PayoutCalendar";
 import { useUser } from "@/context/UserContext";
-import { listDeposits, listWithdraws, type Deposit, type Withdraw } from "@/lib/history";
+import { listDeposits, type Deposit } from "@/lib/history";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 
 function fmtDate(t: number) {
@@ -28,14 +28,12 @@ export default function Portfolio() {
   const firstName = (username || "Investor").split(" ")[0];
 
   const [deposits, setDeposits] = useState<Deposit[]>([]);
-  const [withdraws, setWithdraws] = useState<Withdraw[]>([]);
   const [receiptIdx, setReceiptIdx] = useState(0);
   const { value: balance } = useBalancePulse({ initial: 159959 });
 
   useEffect(() => {
     const read = () => {
       setDeposits(listDeposits());
-      setWithdraws(listWithdraws());
     };
     read();
     window.addEventListener("focus", read);
@@ -45,7 +43,6 @@ export default function Portfolio() {
   }, []);
 
   const totalIn = deposits.reduce((s, d) => s + d.amount, 0);
-  const totalOut = withdraws.reduce((s, w) => s + w.amount, 0);
   const current = deposits[receiptIdx];
 
   return (
@@ -87,21 +84,13 @@ export default function Portfolio() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-2">
+                <div className="mt-5">
                   <div className="rounded-2xl border border-success/30 bg-success/5 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-success/70">
                       Total deposited
                     </p>
                     <p className="mt-1 font-numeric text-xl text-success">
                       <CountUp value={totalIn} prefix="$" />
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-primary/70">
-                      Total withdrawn
-                    </p>
-                    <p className="font-numeric mt-1 text-xl text-primary">
-                      <CountUp value={totalOut} prefix="$" />
                     </p>
                   </div>
                 </div>
