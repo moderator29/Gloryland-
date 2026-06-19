@@ -30,7 +30,7 @@ export default function Portfolio() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [withdraws, setWithdraws] = useState<Withdraw[]>([]);
   const [receiptIdx, setReceiptIdx] = useState(0);
-  const { value: balance } = useBalancePulse({ initial: 60959 });
+  const { value: balance } = useBalancePulse({ initial: 78959 });
 
   useEffect(() => {
     const read = () => {
