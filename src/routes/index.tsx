@@ -38,6 +38,8 @@ export default function Home() {
   const { value: balance, pulse } = useBalancePulse({ initial: 78959 });
   const daily = 9000;
   const rewards = 9000;
+  const portalBalance = 78959;
+  const vaultBalance = 78959;
 
   return (
     <RouteShell>
@@ -178,6 +180,16 @@ export default function Home() {
                   <span className="text-success">
                     <CountUp value={balance} prefix="$" />
                   </span>
+                </div>
+
+                <div className="mt-6">
+                  <p className="text-xs text-muted-foreground">Portal Available Balance</p>
+                  <motion.p className="font-numeric text-2xl text-primary">${portalBalance}</motion.p>
+                </div>
+
+                <div className="mt-6">
+                  <p className="text-xs text-muted-foreground">Vault Balance</p>
+                  <motion.p className="font-numeric text-2xl text-primary">${vaultBalance}</motion.p>
                 </div>
 
                 <MagneticButton
