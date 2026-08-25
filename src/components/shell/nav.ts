@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Terminal,
   Landmark,
   Layers,
   Gift,
@@ -23,6 +24,7 @@ export const NAV: NavGroup[] = [
     heading: "Overview",
     items: [
       { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
+      { to: "/app/desk", label: "Desk", icon: Terminal },
       { to: "/app/vaults", label: "Vaults", icon: Landmark },
       { to: "/app/tiers", label: "Tiers", icon: Layers },
       { to: "/app/rewards", label: "Rewards", icon: Gift },
@@ -45,7 +47,7 @@ export const NAV: NavGroup[] = [
 /** The four surfaces that get a slot in the mobile tab bar. */
 export const MOBILE_TABS: NavItem[] = [
   { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
+  { to: "/app/desk", label: "Desk", icon: Terminal },
   { to: "/app/vaults", label: "Vaults", icon: Landmark },
-  { to: "/app/tiers", label: "Tiers", icon: Layers },
   { to: "/app/rewards", label: "Rewards", icon: Gift },
 ];

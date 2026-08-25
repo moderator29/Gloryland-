@@ -15,19 +15,19 @@ export function MobileTabs() {
   const reduce = useReducedMotion();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-[rgba(8,11,22,0.92)] backdrop-blur-xl lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 lg:hidden"
+      style={{ paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pt-1.5">
+      <div className="raised pointer-events-auto flex items-center gap-1 rounded-full p-1.5">
         {MOBILE_TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
-                isActive ? "text-[var(--accent-hi)]" : "text-[var(--text-low)]"
+              `relative flex min-h-[46px] items-center justify-center gap-2 rounded-full px-3.5 transition-colors ${
+                isActive ? "text-[#04101f]" : "text-[var(--text-mid)]"
               }`
             }
           >
@@ -35,15 +35,36 @@ export function MobileTabs() {
               <>
                 {isActive && (
                   <motion.span
-                    layoutId="tab-active"
-                    className="absolute inset-x-3 top-0 h-[2px] rounded-full bg-[var(--accent)]"
+                    layoutId="tab-capsule"
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: "linear-gradient(180deg, var(--accent-hi), var(--accent))",
+                      boxShadow: "0 6px 18px -6px rgba(46,139,255,0.75)",
+                    }}
                     transition={
-                      reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }
+                      reduce ? { duration: 0 } : { type: "spring", stiffness: 440, damping: 36 }
                     }
                   />
                 )}
-                <Icon className="h-[19px] w-[19px]" strokeWidth={isActive ? 2.2 : 1.8} />
-                {label}
+                <Icon
+                  className="relative h-[18px] w-[18px] shrink-0"
+                  strokeWidth={isActive ? 2.3 : 1.8}
+                />
+                <AnimatePresence initial={false}>
+                  {isActive && (
+                    <motion.span
+                      key="lbl"
+                      initial={reduce ? false : { width: 0, opacity: 0 }}
+                      animate={{ width: "auto", opacity: 1 }}
+                      exit={reduce ? undefined : { width: 0, opacity: 0 }}
+                      transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="relative overflow-hidden whitespace-nowrap text-[13px] font-semibold"
+                    >
+                      {label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <span className="sr-only">{label}</span>
               </>
             )}
           </NavLink>

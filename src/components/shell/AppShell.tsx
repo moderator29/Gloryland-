@@ -6,6 +6,7 @@ import { Sidebar } from "./Sidebar";
 import { MobileTabs, MobileMenuButton } from "./MobileNav";
 import { Ambience } from "./Ambience";
 import { AccountMenu } from "./AccountMenu";
+import { MarketTicker } from "@/features/market";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const COLLAPSE_KEY = "rgl_sidebar_collapsed";
@@ -53,7 +54,9 @@ export function AppShell() {
         style={{ paddingLeft: "var(--rail, 0px)" }}
       >
         {/* the rail offset only exists at lg and up; set via a style tag below */}
-        <style>{`@media (min-width:1024px){:root{--rail:${collapsed ? 76 : 244}px}}@media (max-width:1023px){:root{--rail:0px}}`}</style>
+        <style>{`@media (min-width:1024px){:root{--rail:${collapsed ? 96 : 256}px}}@media (max-width:1023px){:root{--rail:0px}}`}</style>
+
+        <MarketTicker />
 
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--line)] bg-[rgba(5,7,15,0.82)] px-4 backdrop-blur-xl sm:px-6">
           <MobileMenuButton />

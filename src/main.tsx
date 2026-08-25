@@ -32,6 +32,7 @@ const Risk = lazy(() => import("./routes/legal/risk"));
 
 /* Application */
 const Home = lazy(() => import("./routes/app/home"));
+const Desk = lazy(() => import("./routes/app/desk"));
 const Vaults = lazy(() => import("./routes/app/vaults"));
 const VaultNew = lazy(() => import("./routes/app/vault-new"));
 const VaultDetail = lazy(() => import("./routes/app/vault-detail"));
@@ -132,6 +133,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="desk"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Desk />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="vaults"
                   element={
                     <Suspense fallback={<RouteFallback />}>
@@ -206,7 +215,7 @@ function App() {
               </Route>
 
               {/* Legacy paths from the previous product */}
-              <Route path="/portal" element={<Navigate to="/app" replace />} />
+              <Route path="/portal" element={<Navigate to="/app/desk" replace />} />
               <Route path="/portfolio" element={<Navigate to="/app/vaults" replace />} />
               <Route path="/packages" element={<Navigate to="/app/tiers" replace />} />
               <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
