@@ -2,10 +2,10 @@ import React, { Suspense, lazy, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { AppProvider } from "./context/AppContext";
 import { UserProvider } from "./context/UserContext";
 import { MotionProvider } from "./context/MotionContext";
 import { LoginGate } from "./components/LoginGate";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { BottomNav } from "./components/BottomNav";
 import { SiteFooter } from "./components/SiteFooter";
@@ -138,16 +138,16 @@ function App() {
   return (
     <UserProvider>
       <MotionProvider>
-        <AppProvider>
-          <GlobalFilters />
-          <CurtainReveal />
-          <LoginGate>
-            <BrowserRouter>
+        <GlobalFilters />
+        <CurtainReveal />
+        <LoginGate>
+          <BrowserRouter>
+            <ErrorBoundary>
               <AnimatedRoutes />
               <Analytics />
-            </BrowserRouter>
-          </LoginGate>
-        </AppProvider>
+            </ErrorBoundary>
+          </BrowserRouter>
+        </LoginGate>
       </MotionProvider>
     </UserProvider>
   );

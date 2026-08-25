@@ -1,4 +1,4 @@
-const CACHE = "hal-shell-v2";
+const CACHE = "hal-shell-v3";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
@@ -14,19 +14,6 @@ self.addEventListener("activate", (e) => {
   );
   self.clients.claim();
 });
-
-self.addEventListener("sync", (e) => {
-  if (e.tag === "ec-deposit-sync") {
-    e.waitUntil(replayDeposits());
-  }
-});
-
-async function replayDeposits() {
-  const all = await self.clients.matchAll({ includeUncontrolled: true });
-  for (const c of all) {
-    c.postMessage({ type: "ec-deposit-replay" });
-  }
-}
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;

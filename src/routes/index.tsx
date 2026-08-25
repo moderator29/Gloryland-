@@ -19,6 +19,7 @@ import { Ticker } from "@/components/Ticker";
 import { Sparkline } from "@/components/Sparkline";
 import { BrandLockup } from "@/components/BrandLogo";
 import { RevenueStreams } from "@/components/RevenueStreams";
+import { StreamMarquee } from "@/components/StreamMarquee";
 import { ScrollParallax } from "@/components/ScrollParallax";
 import { LiveWithdrawals } from "@/components/LiveWithdrawals";
 import { ReferralCard } from "@/components/ReferralCard";
@@ -40,7 +41,7 @@ import { useBalancePulse } from "@/hooks/useBalancePulse";
 /** Small labelled figure used in the portfolio card. */
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="track-navy min-w-0 rounded-xl border border-[#24406f]/45 p-3">
+    <div className="embossed min-w-0 rounded-xl border border-border/60 bg-black/30 p-3">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="font-numeric mt-1 truncate text-lg">${value.toLocaleString()}</p>
     </div>
@@ -76,7 +77,7 @@ export default function Home() {
             {/* Crest */}
             <StaggerItem>
               <SpotlightCard>
-                <section className="glass-luxury marble-vein aurora-border px-6 py-8 text-center">
+                <section className="glass-luxury marble-vein aurora-border px-4 py-8 text-center sm:px-6">
                   <ScrollParallax range={24}>
                     <BrandLockup size={124} />
                   </ScrollParallax>
@@ -92,7 +93,11 @@ export default function Home() {
                     </span>
                   </div>
 
-                  <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  <div className="mt-6">
+                    <StreamMarquee />
+                  </div>
+
+                  <p className="mx-auto mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground">
                     A managed portfolio built on catalogue income. Members hold a share of the
                     revenue and take a payout every day.
                   </p>

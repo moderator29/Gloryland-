@@ -23,11 +23,10 @@ export function BrandMark({ size = 40, className = "", glow = false }: MarkProps
       {glow && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 scale-150"
+          className="pointer-events-none absolute inset-0 -z-10 scale-125"
           style={{
-            background:
-              "radial-gradient(circle at 50% 50%, rgba(201,162,39,0.28), transparent 66%)",
-            filter: "blur(10px)",
+            background: "radial-gradient(circle at 50% 42%, rgba(232,194,92,0.2), transparent 62%)",
+            filter: "blur(6px)",
           }}
         />
       )}
@@ -36,6 +35,7 @@ export function BrandMark({ size = 40, className = "", glow = false }: MarkProps
         alt={`${BRAND_FULL} crest`}
         width={size}
         className="block h-auto w-full select-none"
+        style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.55))" }}
         draggable={false}
       />
     </span>

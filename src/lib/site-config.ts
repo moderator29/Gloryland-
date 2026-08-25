@@ -13,13 +13,13 @@ export const BRAND_DOMAIN = "halcyon.investments";
 export const BRAND_SLUG = "halcyon-investments";
 
 export const PACKAGES = [
-  { name: "Starter Plan", price: 40000, daily: 10000, spots: 20, taken: 14 },
-  { name: "Bronze Plan", price: 60000, daily: 15000, spots: 30, taken: 15 },
-  { name: "Silver Plan", price: 80000, daily: 20000, spots: 20, taken: 10 },
-  { name: "Gold Plan", price: 100000, daily: 22000, spots: 30, taken: 19 },
-  { name: "Legendary Plan", price: 200000, daily: 50000, spots: 30, taken: 22 },
-  { name: "Immortal Plan", price: 300000, daily: 68000, spots: 20, taken: 12 },
-  { name: "Platinum Plan", price: 500000, daily: 150000, spots: 30, taken: 17 },
+  { name: "Starter Plan", price: 40000, daily: 2000, spots: 20, taken: 14 },
+  { name: "Bronze Plan", price: 60000, daily: 3000, spots: 30, taken: 15 },
+  { name: "Silver Plan", price: 80000, daily: 4000, spots: 20, taken: 10 },
+  { name: "Gold Plan", price: 100000, daily: 8000, spots: 30, taken: 19 },
+  { name: "Legendary Plan", price: 200000, daily: 10000, spots: 30, taken: 22 },
+  { name: "Immortal Plan", price: 300000, daily: 20000, spots: 20, taken: 12 },
+  { name: "Platinum Plan", price: 500000, daily: 30000, spots: 30, taken: 17 },
 ] as const;
 
 /**
