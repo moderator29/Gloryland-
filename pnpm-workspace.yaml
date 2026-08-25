@@ -1,0 +1,14 @@
+# pnpm refuses to install when a dependency ships a build script that has been
+# neither approved nor declined, and it exits non zero rather than warning.
+# esbuild is the compiler Vite runs on and genuinely needs its postinstall to
+# link the platform binary, so it is approved here.
+#
+# Two keys because two major versions read different ones: pnpm 11 reads
+# allowBuilds, pnpm 10 reads onlyBuiltDependencies. Both are listed so the
+# install behaves the same locally and on the deploy runner. There is no
+# packages key because this is a single package repository, not a workspace.
+allowBuilds:
+  esbuild: true
+
+onlyBuiltDependencies:
+  - esbuild
