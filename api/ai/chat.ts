@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { MODEL, MAX_TOKENS, STYLES, systemPrompt, validate, rateLimit, type Style } from "./_shared";
+import {
+  MODEL,
+  MAX_TOKENS,
+  STYLES,
+  systemPrompt,
+  validate,
+  rateLimit,
+  type Style,
+} from "./_shared";
 
 /**
  * Streaming chat endpoint for both AI surfaces.
@@ -33,7 +41,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const limited = rateLimit(String(caller).split(",")[0].trim());
   if (!limited.ok) {
     res.setHeader("Retry-After", String(limited.retryAfter ?? 60));
-    return res.status(429).json({ error: "rate_limited", message: "Too many requests. Try again shortly." });
+    return res
+      .status(429)
+      .json({ error: "rate_limited", message: "Too many requests. Try again shortly." });
   }
 
   const body = (req.body ?? {}) as {
@@ -47,7 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!checked.ok) return res.status(400).json({ error: "bad_request", message: checked.error });
 
   const kind = body.kind === "support" ? "support" : "copilot";
-  const style: Style = typeof body.style === "string" && body.style in STYLES ? (body.style as Style) : "balanced";
+  const style: Style =
+    typeof body.style === "string" && body.style in STYLES ? (body.style as Style) : "balanced";
   const snapshot = typeof body.snapshot === "string" ? body.snapshot.slice(0, 2000) : undefined;
 
   try {

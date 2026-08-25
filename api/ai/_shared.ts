@@ -88,7 +88,9 @@ export function systemPrompt(kind: "copilot" | "support", style: Style, snapshot
 }
 
 /** Reject oversized or malformed conversations before they reach the model. */
-export function validate(messages: unknown): { ok: true; messages: WireMessage[] } | { ok: false; error: string } {
+export function validate(
+  messages: unknown,
+): { ok: true; messages: WireMessage[] } | { ok: false; error: string } {
   if (!Array.isArray(messages)) return { ok: false, error: "messages must be an array" };
   if (messages.length === 0) return { ok: false, error: "messages is empty" };
   if (messages.length > 40) return { ok: false, error: "conversation is too long" };
@@ -99,12 +101,14 @@ export function validate(messages: unknown): { ok: true; messages: WireMessage[]
     if (!m || typeof m !== "object") return { ok: false, error: "malformed message" };
     const { role, content } = m as { role?: unknown; content?: unknown };
     if (role !== "user" && role !== "assistant") return { ok: false, error: "invalid role" };
-    if (typeof content !== "string" || !content.trim()) return { ok: false, error: "empty content" };
+    if (typeof content !== "string" || !content.trim())
+      return { ok: false, error: "empty content" };
     total += content.length;
     if (total > 60_000) return { ok: false, error: "conversation is too large" };
     out.push({ role, content });
   }
-  if (out[out.length - 1].role !== "user") return { ok: false, error: "last message must be from the user" };
+  if (out[out.length - 1].role !== "user")
+    return { ok: false, error: "last message must be from the user" };
   return { ok: true, messages: out };
 }
 
@@ -117,7 +121,8 @@ export function rateLimit(key: string, limit = 20, windowMs = 60_000) {
     hits.set(key, { n: 1, until: now + windowMs });
     return { ok: true, remaining: limit - 1 };
   }
-  if (rec.n >= limit) return { ok: false, remaining: 0, retryAfter: Math.ceil((rec.until - now) / 1000) };
+  if (rec.n >= limit)
+    return { ok: false, remaining: 0, retryAfter: Math.ceil((rec.until - now) / 1000) };
   rec.n += 1;
   return { ok: true, remaining: limit - rec.n };
 }

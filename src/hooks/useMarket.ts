@@ -141,7 +141,6 @@ export function useMarket(pollMs = 60_000): MarketState {
       stop();
       document.removeEventListener("visibilitychange", onVis);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollMs]);
 
   return { coins, loading, stale, at, refresh: load };

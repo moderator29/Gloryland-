@@ -41,6 +41,8 @@ const Rewards = lazy(() => import("./routes/app/rewards"));
 const AnalyticsPage = lazy(() => import("./routes/app/analytics"));
 const Insights = lazy(() => import("./routes/app/insights"));
 const Activity = lazy(() => import("./routes/app/activity"));
+const Copilot = lazy(() => import("./routes/app/copilot"));
+const Support = lazy(() => import("./routes/app/support"));
 const Settings = lazy(() => import("./routes/app/settings"));
 const NotFound = lazy(() => import("./routes/not-found"));
 
@@ -201,6 +203,22 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Activity />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="copilot"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Copilot />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="support"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Support />
                     </Suspense>
                   }
                 />
