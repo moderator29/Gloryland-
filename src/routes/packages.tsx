@@ -49,7 +49,7 @@ export default function Packages() {
         <main className="mx-auto max-w-2xl px-5 py-6">
           <header className="mb-6">
             <div className="gold-ribbon-hr mb-4 !w-24" />
-            <span className="chip">Investment Dossier</span>
+            <span className="chip-navy uppercase tracking-widest">Investment Dossier</span>
             <h1 className="mt-3 font-display text-4xl">
               Choose Your <em className="not-italic text-gradient-gold">Tier</em>
             </h1>
@@ -201,10 +201,7 @@ function SpotsBar({ pct, isFull }: { pct: number; isFull: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10% 0px" });
   return (
-    <div
-      ref={ref}
-      className="embossed relative mt-2 h-1.5 overflow-hidden rounded-full bg-black/40"
-    >
+    <div ref={ref} className="track-navy relative mt-2 h-1.5 overflow-hidden rounded-full">
       <motion.div
         className="h-full rounded-full"
         initial={{ width: 0 }}

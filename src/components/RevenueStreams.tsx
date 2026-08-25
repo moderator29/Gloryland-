@@ -39,7 +39,7 @@ export function RevenueStreams() {
             transition={{ duration: 0.45, delay: 0.04 * i, ease: [0.22, 1, 0.36, 1] }}
             className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-black/40 p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-black/60"
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-transform group-hover:scale-105">
+            <span className="plate-navy grid h-9 w-9 shrink-0 place-items-center rounded-xl text-primary transition-transform group-hover:scale-105">
               <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </span>
             <div className="min-w-0">

@@ -212,7 +212,7 @@ export default function Portal() {
                   <Upload className="h-4 w-4 text-primary" /> Pull Earnings
                 </div>
 
-                <div className="embossed mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-black/40 p-1">
+                <div className="track-navy mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-[#24406f]/50 p-1">
                   {(["USD", "BTC"] as const).map((m) => (
                     <button
                       key={m}

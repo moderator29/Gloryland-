@@ -33,7 +33,7 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
                 {BRAND_NAME.toUpperCase()}
               </span>
               <BadgeCheck
-                className="h-3.5 w-3.5 fill-primary text-[#1a1305] sm:h-4 sm:w-4"
+                className="h-3.5 w-3.5 fill-[#24406f] text-[#e8c25c] sm:h-4 sm:w-4"
                 strokeWidth={2.5}
               />
             </span>

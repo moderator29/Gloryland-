@@ -40,7 +40,7 @@ import { useBalancePulse } from "@/hooks/useBalancePulse";
 /** Small labelled figure used in the portfolio card. */
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="embossed min-w-0 rounded-xl border border-border/60 bg-black/30 p-3">
+    <div className="track-navy min-w-0 rounded-xl border border-[#24406f]/45 p-3">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="font-numeric mt-1 truncate text-lg">${value.toLocaleString()}</p>
     </div>
@@ -86,7 +86,7 @@ export default function Home() {
                       <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.9} />
                       Private Placement
                     </span>
-                    <span className="chip">
+                    <span className="chip-navy uppercase tracking-widest">
                       <AudioLines className="h-3 w-3 text-primary" strokeWidth={1.9} />
                       Music Royalties
                     </span>
@@ -180,7 +180,7 @@ export default function Home() {
                     to={to}
                     className="group flex flex-col items-center gap-2 rounded-2xl border border-primary/25 bg-black/40 py-4 backdrop-blur-xl transition-all hover:border-primary/55 hover:bg-black/55"
                   >
-                    <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary/30 bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                    <span className="plate-navy grid h-10 w-10 place-items-center rounded-xl text-primary transition-transform group-hover:scale-105">
                       <Icon className="h-5 w-5" strokeWidth={1.8} />
                     </span>
                     <span className="text-xs font-semibold tracking-wide text-white/90">

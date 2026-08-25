@@ -55,7 +55,7 @@ export default function Portfolio() {
             <StaggerItem>
               <header className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="chip">
+                  <p className="chip-navy uppercase tracking-widest">
                     <Crown className="h-3 w-3 text-primary" />
                     Portfolio
                   </p>
