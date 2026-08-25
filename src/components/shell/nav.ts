@@ -11,6 +11,7 @@ import {
   Receipt,
   LifeBuoy,
   Settings,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,7 +53,10 @@ export const NAV: NavGroup[] = [
   },
   {
     heading: "Account",
-    items: [{ to: "/app/settings", label: "Settings", icon: Settings }],
+    items: [
+      { to: "/app/circle", label: "Circle", icon: UsersRound },
+      { to: "/app/settings", label: "Settings", icon: Settings },
+    ],
   },
 ];
 

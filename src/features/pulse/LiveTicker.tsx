@@ -9,11 +9,13 @@ import {
   Gift,
   Layers,
   Sparkles,
+  Users,
   Vault,
   Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { LedgerEvent, Snapshot } from "@/domain/ledger";
+import { sampleActivity, describeSample } from "./sampleActivity";
 import { tierById } from "@/domain/tiers";
 import { money, relative } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -113,6 +115,19 @@ function useSecond(enabled: boolean): number {
 
 function buildItems(snap: Snapshot, now: number): TickerItem[] {
   const items: TickerItem[] = [];
+
+  // Illustrative platform activity, interleaved so the band has motion before
+  // the platform has traffic. Everything below this block derives from the
+  // member's own ledger. See sampleActivity.ts for what this is and is not.
+  for (const s of sampleActivity(8, now)) {
+    items.push({
+      id: s.id,
+      icon: Users,
+      label: `${s.name}, ${s.city}`,
+      value: `${describeSample(s)} ${money(s.amount)}`,
+      tone: s.kind === "claimed" ? "gain" : "plain",
+    });
+  }
 
   // 1. What is accruing right at this moment.
   if (snap.dailyRate > 0) {

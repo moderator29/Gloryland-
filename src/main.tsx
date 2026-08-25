@@ -45,6 +45,7 @@ const Signal = lazy(() => import("./routes/app/signal"));
 const SignalPost = lazy(() => import("./routes/app/signal-post"));
 const Market = lazy(() => import("./routes/app/market"));
 const MarketDetail = lazy(() => import("./routes/app/market-detail"));
+const Circle = lazy(() => import("./routes/app/circle"));
 const Copilot = lazy(() => import("./routes/app/copilot"));
 const Support = lazy(() => import("./routes/app/support"));
 const TierDetail = lazy(() => import("./routes/app/tier-detail"));
@@ -302,6 +303,14 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <MarketDetail />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="circle"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Circle />
                     </Suspense>
                   }
                 />
