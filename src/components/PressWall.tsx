@@ -1,15 +1,15 @@
 import { motion } from "framer-motion";
 
 const LOGOS = [
-  "NETFLIX",
-  "VOGUE",
-  "VANITY FAIR",
+  "BILLBOARD",
+  "ROLLING STONE",
   "FORBES",
   "BLOOMBERG",
-  "WIRED",
-  "GQ",
-  "ELLE",
+  "PITCHFORK",
   "VARIETY",
+  "MUSIC WEEK",
+  "FINANCIAL TIMES",
+  "NME",
 ];
 
 export function PressWall() {

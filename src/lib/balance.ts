@@ -1,7 +1,7 @@
 import { listDeposits, listWithdraws } from "@/lib/history";
 import { PACKAGES } from "@/lib/site-config";
 
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 export function totalDeposited(): number {
   return listDeposits().reduce((s, d) => s + d.amount, 0);

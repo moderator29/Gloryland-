@@ -33,7 +33,7 @@ export function SpotlightCard({ children, className = "" }: Props) {
         className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-200"
         style={{
           background:
-            "radial-gradient(380px circle at var(--mx) var(--my), rgba(255,215,0,0.16), transparent 50%)",
+            "radial-gradient(380px circle at var(--mx) var(--my), rgba(232,194,92,0.16), transparent 50%)",
           opacity: "var(--mo)",
         }}
       />

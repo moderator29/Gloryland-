@@ -17,7 +17,7 @@ export function TiltCard({ children, className = "", max = 8 }: Props) {
   const sry = useSpring(ry, { stiffness: 240, damping: 20 });
 
   const transform = useMotionTemplate`perspective(1000px) rotateX(${srx}deg) rotateY(${sry}deg)`;
-  const shine = useMotionTemplate`radial-gradient(circle at ${mx}% ${my}%, rgba(252,246,186,0.18), transparent 60%)`;
+  const shine = useMotionTemplate`radial-gradient(circle at ${mx}% ${my}%, rgba(244,227,172,0.18), transparent 60%)`;
 
   const handleMove = (e: MouseEvent<HTMLDivElement>) => {
     const el = ref.current;

@@ -97,8 +97,8 @@ export type Locale = {
   rate: number;
 };
 
-const GEO_KEY = "ec_locale_v1";
-const OVERRIDE_KEY = "ec_currency_override_v1";
+const GEO_KEY = "hal_locale_v1";
+const OVERRIDE_KEY = "hal_currency_override_v1";
 
 function readOverride(): string | null {
   if (typeof window === "undefined") return null;

@@ -1,4 +1,4 @@
-const CACHE = "ec-shell-v1";
+const CACHE = "hal-shell-v1";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

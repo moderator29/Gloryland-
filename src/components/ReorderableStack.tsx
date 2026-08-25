@@ -63,7 +63,7 @@ export function ReorderableStack({ storageKey, items }: Props) {
             value={key}
             dragListener={editing}
             className="relative"
-            whileDrag={{ scale: 1.02, boxShadow: "0 24px 48px -12px rgba(255,215,0,0.35)" }}
+            whileDrag={{ scale: 1.02, boxShadow: "0 24px 48px -12px rgba(232,194,92,0.35)" }}
           >
             {editing && (
               <span className="pointer-events-none absolute -left-1 top-1/2 z-10 -translate-x-full -translate-y-1/2 rounded-full border border-primary/40 bg-black/60 p-1 text-primary backdrop-blur-md">

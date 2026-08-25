@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { PACKAGES } from "@/lib/site-config";
 import { listDeposits } from "@/lib/history";
 
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 function readSubs(): string[] {
   try {

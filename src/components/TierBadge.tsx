@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Crown } from "lucide-react";
 
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 const TIER_RANK: Record<string, number> = {
   "Starter Plan": 1,
@@ -18,7 +18,7 @@ const TIER_GRADIENT: Record<string, string> = {
   "Starter Plan": "linear-gradient(135deg, #cbd5e1, #94a3b8)",
   "Bronze Plan": "linear-gradient(135deg, #fde68a, #a16207)",
   "Silver Plan": "linear-gradient(135deg, #f1f5f9, #94a3b8)",
-  "Gold Plan": "linear-gradient(135deg, #FFF7C2, #FFD700, #B8842B)",
+  "Gold Plan": "linear-gradient(135deg, #F6E7B4, #E8C25C, #8A6A1E)",
   "Legendary Plan": "linear-gradient(135deg, #f3e8ff, #a855f7, #6b21a8)",
   "Immortal Plan": "linear-gradient(135deg, #fee2e2, #ef4444, #7f1d1d)",
   "Platinum Plan": "linear-gradient(135deg, #ffffff, #e0e7ff, #cffafe, #fef3c7)",
@@ -60,7 +60,7 @@ export function TierBadge() {
       transition={{ type: "spring", stiffness: 320, damping: 22 }}
       className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md"
       style={{
-        boxShadow: "0 0 16px -2px rgba(255,215,0,0.5), inset 0 1px 0 rgba(255,247,194,0.25)",
+        boxShadow: "0 0 16px -2px rgba(232,194,92,0.5), inset 0 1px 0 rgba(246,231,180,0.25)",
       }}
     >
       <span

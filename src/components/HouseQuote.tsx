@@ -1,18 +1,16 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import { BRAND_FULL, BRAND_NAME } from "@/lib/site-config";
 
 const QUOTE = "Capital is patient. Returns are daily.";
-const SIGNATURE = "Emilia";
 
-export function FounderQuote() {
+export function HouseQuote() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15% 0px" });
 
   return (
     <div ref={ref} className="glass-luxury relative overflow-hidden p-6">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-        From the Founder
-      </p>
+      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">House Doctrine</p>
       <motion.p
         initial={{ opacity: 0, y: 12 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -23,7 +21,7 @@ export function FounderQuote() {
       </motion.p>
       <div className="mt-5 flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70">
-          Emilia Clarke
+          {BRAND_FULL}
         </span>
         <svg aria-hidden viewBox="0 0 200 56" className="h-10 w-28" style={{ overflow: "visible" }}>
           <motion.path
@@ -38,14 +36,14 @@ export function FounderQuote() {
           />
           <defs>
             <linearGradient id="sig-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#B8842B" />
-              <stop offset="50%" stopColor="#FFD700" />
-              <stop offset="100%" stopColor="#B8842B" />
+              <stop offset="0%" stopColor="#8A6A1E" />
+              <stop offset="50%" stopColor="#E8C25C" />
+              <stop offset="100%" stopColor="#8A6A1E" />
             </linearGradient>
           </defs>
         </svg>
       </div>
-      <p className="mt-1 text-right font-display text-sm italic text-gradient-gold">{SIGNATURE}</p>
+      <p className="mt-1 text-right font-display text-sm italic text-gradient-gold">{BRAND_NAME}</p>
     </div>
   );
 }

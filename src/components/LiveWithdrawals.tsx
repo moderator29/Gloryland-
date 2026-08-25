@@ -123,7 +123,7 @@ export function LiveWithdrawals() {
               transition={{ duration: 0.35 }}
               className="flex items-center gap-3 rounded-2xl border border-border/60 bg-black/40 px-3 py-2"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#BF953F] to-[#B38728] text-[11px] font-bold text-black">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#B3902F] to-[#A07C22] text-[11px] font-bold text-black">
                 {it.name[0]}
               </span>
               <div className="min-w-0 flex-1 text-sm">

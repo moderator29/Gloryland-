@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 import { PACKAGES } from "@/lib/site-config";
 
@@ -70,7 +70,7 @@ export function PayoutCalendar() {
                 className="absolute inset-x-0 bottom-0 h-0.5"
                 style={{
                   background: isToday
-                    ? "linear-gradient(90deg, transparent, #FFD700, transparent)"
+                    ? "linear-gradient(90deg, transparent, #E8C25C, transparent)"
                     : "transparent",
                 }}
               />

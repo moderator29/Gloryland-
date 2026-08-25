@@ -12,7 +12,7 @@ export function ComparisonDrawer() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="btn-aurora-outline inline-flex items-center gap-1.5 text-xs"
+        className="btn-aurora-outline inline-flex items-center gap-1.5 px-5 py-2.5 text-xs"
         aria-label="Compare tiers"
       >
         <ChevronUp className="h-3.5 w-3.5" /> Compare

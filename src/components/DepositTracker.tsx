@@ -65,7 +65,7 @@ export function DepositTracker({
         <motion.div
           className="h-full rounded-full"
           style={{
-            background: "linear-gradient(to right, #BF953F, #FCF6BA, #B38728)",
+            background: "linear-gradient(to right, #B3902F, #F4E3AC, #A07C22)",
           }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}

@@ -11,7 +11,7 @@ export type Snapshot = {
 
 type ChartPoint = { t: number; p: number };
 
-const SNAP_KEY = "ec_btc_snap_v1";
+const SNAP_KEY = "hal_btc_snap_v1";
 const CHART_KEY = (w: Window) => `ec_btc_chart_${w}_v1`;
 const WINDOW_DAYS: Record<Window, string> = {
   "1D": "1",

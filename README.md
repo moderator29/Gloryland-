@@ -1,4 +1,4 @@
-Dark, gold themed investor portal. A founder dashboard, six investment tiers, and a BTC deposit and withdraw flow with QR, confetti, sound, locale aware totals, and a PWA shell.
+Halcyon Investments. A dark, gold themed investor portal: crest branded home, seven investment tiers, and a BTC deposit and withdraw flow with QR, confetti, sound, locale aware totals, and a PWA shell.
 
 Built with React 19, Vite, TypeScript, Tailwind, Radix UI, Framer Motion, and React Router.
 

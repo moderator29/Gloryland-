@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { playTap } from "@/lib/sound";
 import { tap as hapticTap } from "@/lib/haptic";
 
-const KEY = "ec_receipt_reactions_v1";
+const KEY = "hal_receipt_reactions_v1";
 
 type Reactions = Record<string, string[]>;
 

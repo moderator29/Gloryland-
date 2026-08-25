@@ -17,7 +17,7 @@ import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { playTap, playTierChord } from "@/lib/sound";
 import { tap as hapticTap } from "@/lib/haptic";
 
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 export default function Packages() {
   const [subscribed, setSubscribed] = useState<string[]>([]);
@@ -54,7 +54,7 @@ export default function Packages() {
               Choose Your <em className="not-italic text-gradient-gold">Tier</em>
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Daily payouts. Pull anytime. Twenty seats per tier.
+              Daily payouts. Pull anytime. Limited seats per tier.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <TierQuiz />
@@ -72,7 +72,7 @@ export default function Packages() {
                 <StaggerItem key={p.name}>
                   <TiltCard>
                     <article
-                      className={`glass-luxury marble-vein corner-fold asym-radius card-stack relative p-5 ${isSubscribed ? "ring-1 ring-success/50" : ""} ${isFull ? "opacity-80" : ""}`}
+                      className={`glass-luxury marble-vein asym-radius relative p-5 transition-transform ${isSubscribed ? "ring-1 ring-success/50" : ""} ${isFull ? "opacity-80" : ""}`}
                     >
                       {!isFull && <TierEmber tier={p.name} />}
                       <div className="relative">
@@ -211,7 +211,7 @@ function SpotsBar({ pct, isFull }: { pct: number; isFull: boolean }) {
         animate={{ width: inView ? `${pct}%` : 0 }}
         transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
         style={{
-          background: isFull ? "#ef4444" : "linear-gradient(to right, #BF953F, #FCF6BA, #B38728)",
+          background: isFull ? "#ef4444" : "linear-gradient(to right, #B3902F, #F4E3AC, #A07C22)",
         }}
       />
       {!isFull && (
@@ -224,7 +224,7 @@ function SpotsBar({ pct, isFull }: { pct: number; isFull: boolean }) {
             ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
           }}
         >
-          <span className="block h-2 w-2 -translate-x-1/2 rounded-full bg-[#FCF6BA] shadow-[0_0_10px_2px_rgba(252,246,186,0.7)]" />
+          <span className="block h-2 w-2 -translate-x-1/2 rounded-full bg-[#F4E3AC] shadow-[0_0_10px_2px_rgba(244,227,172,0.7)]" />
         </motion.span>
       )}
     </div>

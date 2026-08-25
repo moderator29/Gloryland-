@@ -11,7 +11,7 @@ const FAQ = [
   },
   {
     q: "How are daily rewards calculated?",
-    a: "Each tier earns a fixed daily share of the founder's entertainment revenue, capped at twenty seats per tier.",
+    a: "Each tier earns a fixed daily share of the catalogue's music revenue, with a limited number of seats per tier.",
   },
   {
     q: "Which crypto can I send?",
@@ -40,7 +40,7 @@ export function HelpDrawer() {
           hapticTap();
         }}
         title="Help"
-        className="pill-luxury fixed bottom-24 left-4 z-30 h-10 w-10 justify-center !p-0 text-primary"
+        className="pill-luxury fixed bottom-24 right-4 z-30 h-10 w-10 justify-center !p-0 text-primary"
       >
         <HelpCircle className="h-4 w-4" />
       </motion.button>

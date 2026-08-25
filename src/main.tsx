@@ -108,7 +108,7 @@ function AnimatedRoutes() {
 
 function Layout() {
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] pb-20 text-white">
+    <div className="relative min-h-screen bg-[#080d16] pb-20 text-white">
       <BtcTickerBar />
       <Backdrop />
       <FrameLight />

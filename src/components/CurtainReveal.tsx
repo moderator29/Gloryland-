@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { BrandLockup } from "@/components/BrandLogo";
 
-const KEY = "ec_curtain_seen_v1";
+const KEY = "hal_curtain_seen_v1";
 
 export function CurtainReveal() {
   const [open, setOpen] = useState(true);
@@ -34,13 +35,13 @@ export function CurtainReveal() {
             initial={{ x: 0 }}
             animate={{ x: "-100%" }}
             transition={{ duration: 1.1, ease: [0.65, 0, 0.35, 1], delay: 0.5 }}
-            className="absolute inset-y-0 left-0 w-1/2 bg-[#0a0a0a]"
+            className="absolute inset-y-0 left-0 w-1/2 bg-[#080d16]"
           >
             <div
               className="absolute right-0 top-0 h-full w-px"
               style={{
-                background: "linear-gradient(180deg, transparent, #FFD700, transparent)",
-                boxShadow: "0 0 24px 2px rgba(255,215,0,0.6)",
+                background: "linear-gradient(180deg, transparent, #E8C25C, transparent)",
+                boxShadow: "0 0 24px 2px rgba(232,194,92,0.6)",
               }}
             />
           </motion.div>
@@ -48,13 +49,13 @@ export function CurtainReveal() {
             initial={{ x: 0 }}
             animate={{ x: "100%" }}
             transition={{ duration: 1.1, ease: [0.65, 0, 0.35, 1], delay: 0.5 }}
-            className="absolute inset-y-0 right-0 w-1/2 bg-[#0a0a0a]"
+            className="absolute inset-y-0 right-0 w-1/2 bg-[#080d16]"
           >
             <div
               className="absolute left-0 top-0 h-full w-px"
               style={{
-                background: "linear-gradient(180deg, transparent, #FFD700, transparent)",
-                boxShadow: "0 0 24px 2px rgba(255,215,0,0.6)",
+                background: "linear-gradient(180deg, transparent, #E8C25C, transparent)",
+                boxShadow: "0 0 24px 2px rgba(232,194,92,0.6)",
               }}
             />
           </motion.div>
@@ -64,7 +65,7 @@ export function CurtainReveal() {
             transition={{ duration: 1.3, times: [0, 0.4, 1] }}
             className="absolute inset-0 grid place-items-center"
           >
-            <span className="font-display text-4xl text-gradient-gold">Emilia Clarke</span>
+            <BrandLockup size={92} />
           </motion.div>
         </motion.div>
       )}

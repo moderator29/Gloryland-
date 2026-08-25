@@ -1,6 +1,6 @@
 import confetti from "canvas-confetti";
 
-const GOLD = ["#BF953F", "#FCF6BA", "#B38728", "#d4af37", "#fff7d6"];
+const GOLD = ["#B3902F", "#F4E3AC", "#A07C22", "#c9a227", "#f8edc8"];
 
 export function goldBurst(origin?: { x: number; y: number }) {
   const o = origin ?? { x: 0.5, y: 0.55 };

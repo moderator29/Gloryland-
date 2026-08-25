@@ -74,8 +74,8 @@ export function CursorTrail() {
           continue;
         }
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 4);
-        grad.addColorStop(0, `rgba(252,246,186,${0.7 * p.life})`);
-        grad.addColorStop(1, "rgba(212,175,55,0)");
+        grad.addColorStop(0, `rgba(244,227,172,${0.7 * p.life})`);
+        grad.addColorStop(1, "rgba(201,162,39,0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * 4, 0, Math.PI * 2);

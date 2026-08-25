@@ -1,9 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Sparkles, Gem, Wallet2, Crown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Home, Gem, Wallet2, Crown } from "lucide-react";
+import { playTap } from "@/lib/sound";
+import { tap as hapticTap } from "@/lib/haptic";
 
 const items = [
-  { to: "/", label: "Home", icon: Sparkles },
+  { to: "/", label: "Home", icon: Home },
   { to: "/packages", label: "Tiers", icon: Gem },
   { to: "/portal", label: "Portal", icon: Wallet2 },
   { to: "/portfolio", label: "Vault", icon: Crown },
@@ -11,51 +13,66 @@ const items = [
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/80 backdrop-blur-2xl">
-      <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
-      <div className="mx-auto flex max-w-2xl items-center justify-around px-6 pt-2">
+  return (
+    <nav
+      aria-label="Primary"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))]"
+    >
+      <div className="nav-capsule pointer-events-auto flex items-center gap-1.5 p-2">
         {items.map(({ to, label, icon: Icon }) => {
           const active = pathname === to;
           return (
             <Link
               key={to}
               to={to}
-              className="relative flex flex-1 flex-col items-center gap-1 py-2 text-xs"
+              aria-current={active ? "page" : undefined}
+              onClick={() => {
+                playTap();
+                hapticTap();
+              }}
+              className="relative flex items-center justify-center gap-2.5 rounded-full px-5 py-3 transition-colors"
             >
-              <div className="relative grid h-10 w-10 place-items-center">
+              {active && (
+                <motion.span
+                  layoutId="nav-capsule"
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: "linear-gradient(180deg, #f6e8b8 0%, #e8c25c 45%, #c9a227 100%)",
+                    boxShadow:
+                      "0 8px 22px -6px rgba(201,162,39,0.75), inset 0 1px 0 rgba(255,255,255,0.6)",
+                  }}
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+
+              <Icon
+                className={`relative h-6 w-6 shrink-0 transition-colors ${
+                  active ? "text-[#1a1305]" : "text-muted-foreground"
+                }`}
+                strokeWidth={active ? 2.3 : 1.8}
+              />
+
+              <AnimatePresence initial={false}>
                 {active && (
                   <motion.span
-                    layoutId="nav-puck"
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#BF953F]/25 via-[#FCF6BA]/10 to-[#B38728]/25 ring-1 ring-primary/50 shadow-[0_0_20px_-2px_rgba(212,175,55,0.45)]"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
+                    key="label"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "auto", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative overflow-hidden whitespace-nowrap text-sm font-semibold text-[#1a1305]"
+                  >
+                    {label}
+                  </motion.span>
                 )}
-                <motion.span
-                  animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 22 }}
-                  className="relative"
-                >
-                  <Icon
-                    className={`h-5 w-5 transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}
-                    strokeWidth={active ? 2.2 : 1.7}
-                  />
-                </motion.span>
-              </div>
-              <span
-                className={`transition-colors ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}
-              >
-                {label}
-              </span>
+              </AnimatePresence>
+
+              <span className="sr-only">{label}</span>
             </Link>
           );
         })}
       </div>
-
-      <p className="pb-2 pt-1 text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-        Private Portal
-      </p>
     </nav>
   );
 }

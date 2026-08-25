@@ -1,4 +1,14 @@
-import { Crown, Video, Film, Monitor, TrendingUp, ArrowRight, ArrowUp, Upload } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUp,
+  Upload,
+  ShieldCheck,
+  AudioLines,
+  ArrowDownToLine,
+  Gem,
+  Crown,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -7,13 +17,14 @@ import { CountUp } from "@/components/CountUp";
 import { MagneticButton } from "@/components/MagneticButton";
 import { Ticker } from "@/components/Ticker";
 import { Sparkline } from "@/components/Sparkline";
-import { FounderPortrait } from "@/components/FounderPortrait";
+import { BrandLockup } from "@/components/BrandLogo";
+import { RevenueStreams } from "@/components/RevenueStreams";
 import { ScrollParallax } from "@/components/ScrollParallax";
 import { LiveWithdrawals } from "@/components/LiveWithdrawals";
 import { ReferralCard } from "@/components/ReferralCard";
 import { BtcChartCard } from "@/components/BtcChartCard";
-import { FounderQuote } from "@/components/FounderQuote";
-import { FounderTimeline } from "@/components/FounderTimeline";
+import { HouseQuote } from "@/components/HouseQuote";
+import { RevenueTimeline } from "@/components/RevenueTimeline";
 import { PressWall } from "@/components/PressWall";
 import { StatusCard } from "@/components/StatusCard";
 import { SpotlightCard } from "@/components/SpotlightCard";
@@ -26,103 +37,79 @@ import { ReorderableStack } from "@/components/ReorderableStack";
 import { useLocale, formatLocal } from "@/hooks/useLocale";
 import { useBalancePulse } from "@/hooks/useBalancePulse";
 
-const streams = [
-  { icon: Video, label: "NETFLIX DEAL", value: "$18.4M" },
-  { icon: Film, label: "FILM ROYALTIES", value: "$12.1M" },
-  { icon: Monitor, label: "STUDIO CONTRACT", value: "$9.9M" },
-  { icon: TrendingUp, label: "BRAND DEALS", value: "$6.6M" },
-];
+/** Small labelled figure used in the portfolio card. */
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="embossed min-w-0 rounded-xl border border-border/60 bg-black/30 p-3">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="font-numeric mt-1 truncate text-lg">${value.toLocaleString()}</p>
+    </div>
+  );
+}
+
+/** Section heading with a hairline rule, used to separate the page's bands. */
+function SectionLabel({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+        {children}
+      </p>
+      <span className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+      {aside}
+    </div>
+  );
+}
 
 export default function Home() {
   const loc = useLocale();
-  const { value: balance, pulse } = useBalancePulse({ initial: 159959 });
-  const daily = 9000;
-  const rewards = 9000;
+  const { value: balance, pulse } = useBalancePulse({ initial: 0, maxStep: 0 });
+  const daily = 0;
+  const rewards = 0;
 
   return (
     <RouteShell>
       <div className="min-h-screen pb-28">
         <SiteHeader />
 
-        <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
-          <Stagger className="space-y-6">
+        <main className="mx-auto max-w-2xl space-y-7 px-5 py-6">
+          <Stagger className="space-y-7">
+            {/* Crest */}
             <StaggerItem>
               <SpotlightCard>
-                <section className="glass-luxury marble-vein aurora-border p-6 text-center">
-                  <ScrollParallax range={28}>
-                    <FounderPortrait />
+                <section className="glass-luxury marble-vein aurora-border px-6 py-8 text-center">
+                  <ScrollParallax range={24}>
+                    <BrandLockup size={124} />
                   </ScrollParallax>
-                  <h1 className="mt-4 font-display text-3xl text-gradient-gold">Emilia Clarke</h1>
-                  <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                    <Crown className="h-3.5 w-3.5 text-primary" />
-                    Founder & Board Member
+
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                    <span className="pill-luxury text-[11px] text-primary/90">
+                      <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.9} />
+                      Private Placement
+                    </span>
+                    <span className="chip">
+                      <AudioLines className="h-3 w-3 text-primary" strokeWidth={1.9} />
+                      Music Royalties
+                    </span>
                   </div>
 
-                  <div className="mt-6 space-y-2.5">
-                    {streams.map((s) => (
-                      <div
-                        key={s.label}
-                        className="flex items-center justify-between rounded-2xl border border-border/70 bg-black/40 px-4 py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <s.icon className="h-4 w-4 text-primary" strokeWidth={1.8} />
-                          <span className="text-xs tracking-[0.18em] text-muted-foreground">
-                            {s.label}
-                          </span>
-                        </div>
-                        <span className="font-numeric text-base text-primary">{s.value}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    A managed portfolio built on catalogue income. Members hold a share of the
+                    revenue and take a payout every day.
+                  </p>
                 </section>
               </SpotlightCard>
             </StaggerItem>
 
+            {/* Portfolio value, promoted above the fold */}
             <StaggerItem>
-              <PressWall />
-            </StaggerItem>
-
-            <StaggerItem>
-              <Ticker />
-            </StaggerItem>
-
-            <StaggerItem>
-              <FirstDepositGift />
-            </StaggerItem>
-
-            <StaggerItem>
-              <TopUpNudge />
-            </StaggerItem>
-
-            <StaggerItem>
-              <section className="space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
+              <section className="glass-luxury p-6">
+                <div className="mb-4 flex flex-wrap items-center gap-2">
                   <TimeAwareGreeting />
                   <PresencePill />
                 </div>
-                <h2 className="font-display text-5xl leading-[1.05]">
-                  Smart Capital,
-                  <br />
-                  <em className="not-italic text-gradient-gold">Daily Returns</em>
-                </h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Earn your share of Emilia Clarke's entertainment revenue. No registration
-                  required. Just deposit and start earning daily.
-                </p>
-                <MagneticButton
-                  as="link"
-                  to="/packages"
-                  className="btn-foil inline-flex items-center gap-2 px-6 py-3 text-sm"
-                >
-                  Explore Packages <ArrowRight className="h-4 w-4" />
-                </MagneticButton>
-              </section>
-            </StaggerItem>
 
-            <StaggerItem>
-              <section className="glass-luxury p-6">
-                <div className="flex items-start justify-between">
-                  <div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-xs tracking-wider text-muted-foreground">
                       Your Portfolio Value
                     </p>
@@ -142,27 +129,17 @@ export default function Home() {
                       Local: <span className="font-numeric">{formatLocal(balance, loc)}</span>
                     </p>
                   </div>
-                  <div className="w-32">
-                    <Sparkline />
-                  </div>
+                  {balance > 0 && (
+                    <div className="w-32 shrink-0">
+                      <Sparkline />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5 grid grid-cols-3 gap-2">
-                  {[
-                    { l: "Today", v: daily },
-                    { l: "Referral", v: 0 },
-                    { l: "VIP", v: 0 },
-                  ].map((s) => (
-                    <div
-                      key={s.l}
-                      className="embossed min-w-0 rounded-xl border border-border/60 bg-black/30 p-3"
-                    >
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {s.l}
-                      </p>
-                      <p className="font-numeric mt-1 truncate text-lg">${s.v.toLocaleString()}</p>
-                    </div>
-                  ))}
+                  <Stat label="Today" value={daily} />
+                  <Stat label="Referral" value={0} />
+                  <Stat label="VIP" value={0} />
                 </div>
 
                 <div className="my-5 h-px bg-border" />
@@ -190,28 +167,103 @@ export default function Home() {
               </section>
             </StaggerItem>
 
+            {/* Quick actions */}
             <StaggerItem>
-              <div className="flex items-center justify-between px-1">
-                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-                  Live Market
+              <div className="grid grid-cols-3 gap-2.5">
+                {[
+                  { to: "/portal", icon: ArrowDownToLine, label: "Deposit" },
+                  { to: "/packages", icon: Gem, label: "Tiers" },
+                  { to: "/portfolio", icon: Crown, label: "Vault" },
+                ].map(({ to, icon: Icon, label }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    className="group flex flex-col items-center gap-2 rounded-2xl border border-primary/25 bg-black/40 py-4 backdrop-blur-xl transition-all hover:border-primary/55 hover:bg-black/55"
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary/30 bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                      <Icon className="h-5 w-5" strokeWidth={1.8} />
+                    </span>
+                    <span className="text-xs font-semibold tracking-wide text-white/90">
+                      {label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </StaggerItem>
+
+            {/* Where the money comes from */}
+            <StaggerItem>
+              <section className="space-y-3">
+                <SectionLabel>Revenue Streams</SectionLabel>
+                <p className="px-1 text-sm leading-relaxed text-muted-foreground">
+                  Nine independent income lines feed the portfolio, so no single release or season
+                  carries the return.
                 </p>
-                <span className="chip">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success pulse-gold" />
-                  Live
-                </span>
-              </div>
-              <div className="mt-2">
+                <RevenueStreams />
+              </section>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Ticker />
+            </StaggerItem>
+
+            <StaggerItem>
+              <FirstDepositGift />
+            </StaggerItem>
+
+            <StaggerItem>
+              <TopUpNudge />
+            </StaggerItem>
+
+            {/* Pitch */}
+            <StaggerItem>
+              <section className="space-y-5">
+                <h2 className="font-display text-5xl leading-[1.05]">
+                  Smart Capital,
+                  <br />
+                  <em className="not-italic text-gradient-gold">Daily Returns</em>
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Earn your share of the catalogue's revenue. No registration required. Just deposit
+                  and start earning daily.
+                </p>
+                <MagneticButton
+                  as="link"
+                  to="/packages"
+                  className="btn-foil inline-flex items-center gap-2 px-6 py-3 text-sm"
+                >
+                  Explore Packages <ArrowRight className="h-4 w-4" />
+                </MagneticButton>
+              </section>
+            </StaggerItem>
+
+            <StaggerItem>
+              <PressWall />
+            </StaggerItem>
+
+            <StaggerItem>
+              <section className="space-y-3">
+                <SectionLabel
+                  aside={
+                    <span className="chip">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success pulse-gold" />
+                      Live
+                    </span>
+                  }
+                >
+                  Live Market
+                </SectionLabel>
                 <BtcChartCard />
-              </div>
+              </section>
             </StaggerItem>
           </Stagger>
 
           <ReorderableStack
-            storageKey="ec_home_order_v1"
+            storageKey="hal_home_order_v1"
             items={[
               { key: "live", node: <LiveWithdrawals /> },
-              { key: "quote", node: <FounderQuote /> },
-              { key: "timeline", node: <FounderTimeline /> },
+              { key: "quote", node: <HouseQuote /> },
+              { key: "timeline", node: <RevenueTimeline /> },
               { key: "referral", node: <ReferralCard /> },
               { key: "status", node: <StatusCard /> },
             ]}

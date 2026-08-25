@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 
 const ITEMS = [
-  "Netflix payout cleared $1.2M to Silver holders",
-  "Brand deal closed: +$480K to portfolio",
-  "Studio royalties confirmed: $2.4M",
-  "Gold tier sold out: 20 of 20 seats",
+  "Touring settlement cleared $1.2M to Silver holders",
+  "Sponsorship renewal closed: +$480K to portfolio",
+  "Streaming royalties confirmed: $2.4M",
+  "Gold tier filling fast: 19 of 30 seats",
   "Daily reward processed: $2,500",
-  "New campaign signed in Q4",
-  "Film slate locked for 2026",
+  "Publishing catalogue acquisition completed",
+  "2026 arena run locked in",
 ];
 
 export function Ticker() {

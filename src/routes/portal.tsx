@@ -24,7 +24,7 @@ import { consumeFirstDepositGift } from "@/lib/firstDeposit";
 import { FirstDepositGift } from "@/components/FirstDepositGift";
 
 const PRESETS = [40000, 20000, 10000, 5000, 3000];
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 export default function Portal() {
   const [searchParams] = useSearchParams();
@@ -47,7 +47,7 @@ export default function Portal() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  const balance = 159959;
+  const balance = 0;
   const asset = {
     key: "BTC" as const,
     label: "Bitcoin",

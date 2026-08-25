@@ -1,12 +1,12 @@
 {
-  "name": "Emilia Clarke Portal",
-  "short_name": "Emilia Clarke",
-  "description": "Invest in entertainment. Earn every day.",
+  "name": "Halcyon Investments",
+  "short_name": "Halcyon",
+  "description": "A managed music royalty portfolio that pays out every day.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#080d16",
+  "theme_color": "#080d16",
   "orientation": "portrait",
   "icons": [
     {

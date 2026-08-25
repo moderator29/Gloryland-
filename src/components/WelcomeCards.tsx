@@ -10,8 +10,9 @@ import {
   ChevronLeft,
   X,
 } from "lucide-react";
+import { BRAND_FULL } from "@/lib/site-config";
 
-const STORAGE_KEY = "ec_welcome_seen_v1";
+const STORAGE_KEY = "hal_welcome_seen_v1";
 
 type Card = {
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -26,10 +27,10 @@ const CARDS: Card[] = [
     eyebrow: "Welcome",
     title: (
       <>
-        Step into <em className="not-italic text-gradient-gold">Emilia Clarke</em>
+        Step into <em className="not-italic text-gradient-gold">{BRAND_FULL}</em>
       </>
     ),
-    body: "An invitation only portal where you earn alongside one of entertainment's biggest names.",
+    body: "An invitation only portal where members earn alongside a working music catalogue.",
   },
   {
     Icon: Clapperboard,
@@ -39,17 +40,17 @@ const CARDS: Card[] = [
         Real Revenue. <em className="not-italic text-gradient-gold">Real Returns.</em>
       </>
     ),
-    body: "Your share of Netflix deals, film royalties, studio contracts and brand partnerships.",
+    body: "Your share of touring, streaming, royalties, publishing and brand partnerships.",
   },
   {
     Icon: Gem,
     eyebrow: "Packages",
     title: (
       <>
-        Six <em className="not-italic text-gradient-gold">Curated Tiers</em>
+        Seven <em className="not-italic text-gradient-gold">Curated Tiers</em>
       </>
     ),
-    body: "From Starter to Immortal. Daily rewards scaled to your investment, capped at twenty seats per tier.",
+    body: "From Starter to Platinum. Daily rewards scaled to your investment, with limited seats per tier.",
   },
   {
     Icon: Wallet2,
@@ -122,13 +123,13 @@ export function WelcomeCards() {
         >
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute -left-32 top-1/4 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,_rgba(212,175,55,0.35),_transparent_60%)] blur-3xl"
+            className="pointer-events-none absolute -left-32 top-1/4 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,_rgba(201,162,39,0.35),_transparent_60%)] blur-3xl"
             animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute -right-32 bottom-10 h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle,_rgba(252,246,186,0.22),_transparent_60%)] blur-3xl"
+            className="pointer-events-none absolute -right-32 bottom-10 h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle,_rgba(244,227,172,0.22),_transparent_60%)] blur-3xl"
             animate={{ x: [0, -50, 0], y: [0, -30, 0] }}
             transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -174,7 +175,7 @@ export function WelcomeCards() {
                   initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="mt-6 grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-[#BF953F]/30 via-[#FCF6BA]/15 to-[#B38728]/30 ring-1 ring-primary/40"
+                  className="mt-6 grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-[#B3902F]/30 via-[#F4E3AC]/15 to-[#A07C22]/30 ring-1 ring-primary/40"
                 >
                   <Icon className="h-9 w-9 text-primary" strokeWidth={1.6} />
                 </motion.div>
@@ -209,7 +210,7 @@ export function WelcomeCards() {
                   </button>
                   <button
                     onClick={next}
-                    className="btn-gold flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm"
+                    className="btn-gold flex flex-1 items-center justify-center gap-2 py-3 text-sm"
                   >
                     {isLast ? "Enter Portal" : "Continue"}
                     <ChevronRight className="h-4 w-4" />

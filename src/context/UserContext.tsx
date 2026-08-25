@@ -6,7 +6,7 @@ type Ctx = {
   logout: () => void;
 };
 
-const USER_KEY = "ec_username_v1";
+const USER_KEY = "hal_username_v1";
 const UserContext = createContext<Ctx | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
@@ -32,7 +32,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setName(null);
     try {
-      localStorage.removeItem("ec_welcome_seen_v1");
+      localStorage.removeItem("hal_welcome_seen_v1");
     } catch {
       /* ignore */
     }

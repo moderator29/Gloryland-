@@ -11,13 +11,13 @@ export function Sparkline({ height = 70 }: { height?: number }) {
         <AreaChart data={POINTS} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="gold-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FCF6BA" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#BF953F" stopOpacity={0} />
+              <stop offset="0%" stopColor="#F4E3AC" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="#B3902F" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gold-stroke" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#BF953F" />
-              <stop offset="50%" stopColor="#FCF6BA" />
-              <stop offset="100%" stopColor="#B38728" />
+              <stop offset="0%" stopColor="#B3902F" />
+              <stop offset="50%" stopColor="#F4E3AC" />
+              <stop offset="100%" stopColor="#A07C22" />
             </linearGradient>
           </defs>
           <Area

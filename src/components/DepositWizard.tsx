@@ -11,7 +11,7 @@ import { playTing, playTap, playTierChord } from "@/lib/sound";
 import { success as hapticSuccess, tap as hapticTap } from "@/lib/haptic";
 
 const STEPS = ["Tier", "Asset", "Address", "Confirm", "Receipt"] as const;
-const SUBS_KEY = "ec_subscribed_plans";
+const SUBS_KEY = "hal_subscribed_plans";
 
 type Props = {
   open: boolean;

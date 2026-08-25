@@ -6,6 +6,7 @@ import { Backdrop } from "@/components/Backdrop";
 import { FrameLight } from "@/components/FrameLight";
 import { playTap, playTing } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
+import { BRAND_FULL } from "@/lib/site-config";
 
 export function LoginGate({ children }: { children: ReactNode }) {
   const { username, setUsername } = useUser();
@@ -33,7 +34,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
   if (username) return <>{children}</>;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#080d16] text-white">
       <Backdrop />
       <FrameLight />
 
@@ -60,16 +61,16 @@ export function LoginGate({ children }: { children: ReactNode }) {
                 initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
                 transition={{ delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#FFD700]/40 via-[#FFF7C2]/20 to-[#B8842B]/40 ring-1 ring-primary/40"
+                className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#E8C25C]/40 via-[#F6E7B4]/20 to-[#8A6A1E]/40 ring-1 ring-primary/40"
               >
                 <Crown className="h-7 w-7 text-primary" strokeWidth={1.6} />
               </motion.div>
 
               <h1 className="mt-5 text-center font-display text-4xl leading-tight">
-                Welcome to <em className="not-italic text-gradient-gold">Emilia Clarke</em>
+                Welcome to <em className="not-italic text-gradient-gold">{BRAND_FULL}</em>
               </h1>
               <p className="mt-2 text-center text-sm text-muted-foreground">
-                The investor portal that pays out daily from real entertainment revenue.
+                The investor portal that pays out daily from real music revenue.
               </p>
 
               <form onSubmit={submit} className="mt-6 space-y-4">
@@ -119,7 +120,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
             </div>
 
             <p className="mt-4 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
-              Founder · Investor · Lifetime Member
+              Member · Investor · Lifetime Access
             </p>
           </motion.div>
         </AnimatePresence>

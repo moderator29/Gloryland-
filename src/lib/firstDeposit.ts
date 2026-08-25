@@ -1,4 +1,4 @@
-const KEY = "ec_first_deposit_used_v1";
+const KEY = "hal_first_deposit_used_v1";
 
 export function consumeFirstDepositGift(): boolean {
   try {

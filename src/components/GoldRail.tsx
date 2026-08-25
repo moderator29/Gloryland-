@@ -27,15 +27,15 @@ export function GoldRail() {
       aria-hidden
       className="pointer-events-none fixed left-0 top-0 z-[55] hidden h-screen w-1 md:block"
       style={{
-        background: "linear-gradient(180deg, transparent, rgba(255,215,0,0.12), transparent)",
+        background: "linear-gradient(180deg, transparent, rgba(232,194,92,0.12), transparent)",
       }}
     >
       <div
         className="absolute left-0 top-0 w-full"
         style={{
           height: `${pct * 100}%`,
-          background: "linear-gradient(180deg, #FFD700, #FFF7C2, #B8842B)",
-          boxShadow: "0 0 14px 1px rgba(255,215,0,0.6)",
+          background: "linear-gradient(180deg, #E8C25C, #F6E7B4, #8A6A1E)",
+          boxShadow: "0 0 14px 1px rgba(232,194,92,0.6)",
         }}
       />
     </div>

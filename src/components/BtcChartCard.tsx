@@ -155,7 +155,7 @@ function BtcChartModal({
         animate={{ y: 0 }}
         exit={{ y: 600 }}
         transition={{ type: "spring", stiffness: 280, damping: 30 }}
-        className="relative max-h-[92vh] w-full max-w-md overflow-auto rounded-t-3xl border border-border/60 bg-[#0a0a0a] p-5 pb-8 shadow-2xl md:rounded-3xl"
+        className="relative max-h-[92vh] w-full max-w-md overflow-auto rounded-t-3xl border border-border/60 bg-[#080d16] p-5 pb-8 shadow-2xl md:rounded-3xl"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -256,7 +256,7 @@ function BtcChartModal({
                 <motion.span
                   layoutId="btc-win"
                   className="absolute inset-0 rounded-xl bg-white/[0.07] ring-1 ring-primary/40"
-                  style={{ boxShadow: "0 0 14px -2px rgba(255,215,0,0.35)" }}
+                  style={{ boxShadow: "0 0 14px -2px rgba(232,194,92,0.35)" }}
                   transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 />
               )}

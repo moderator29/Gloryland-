@@ -9,7 +9,7 @@ export function FrameLight() {
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         style={{
           background:
-            "radial-gradient(120% 60% at 50% -10%, rgba(212,175,55,0.16), transparent 60%), radial-gradient(120% 60% at 50% 110%, rgba(212,175,55,0.12), transparent 60%)",
+            "radial-gradient(120% 60% at 50% -10%, rgba(201,162,39,0.16), transparent 60%), radial-gradient(120% 60% at 50% 110%, rgba(201,162,39,0.12), transparent 60%)",
         }}
       />
     </div>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { generateReferralLink } from "@/hooks/useReferral";
 import { playTap } from "@/lib/sound";
 import { tap as haptic } from "@/lib/haptic";
+import { BRAND_FULL } from "@/lib/site-config";
 
 export function ReferralCard() {
   const [copied, setCopied] = useState(false);
@@ -23,8 +24,8 @@ export function ReferralCard() {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: "Emilia Clarke Portal",
-          text: "Invest in entertainment. Earn every day.",
+          title: `${BRAND_FULL} Portal`,
+          text: "Invest in music royalties. Earn every day.",
           url: link,
         });
       } catch {
@@ -38,7 +39,7 @@ export function ReferralCard() {
   return (
     <div className="glass-luxury aurora-border p-5">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-[#BF953F]/30 via-[#FCF6BA]/15 to-[#B38728]/30 ring-1 ring-primary/40">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-[#B3902F]/30 via-[#F4E3AC]/15 to-[#A07C22]/30 ring-1 ring-primary/40">
           <Gift className="h-5 w-5 text-primary" />
         </div>
         <div>

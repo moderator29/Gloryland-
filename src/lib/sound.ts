@@ -5,8 +5,8 @@ let ambientOn = false;
 
 if (typeof window !== "undefined") {
   try {
-    muted = localStorage.getItem("ec_muted") === "1";
-    ambientOn = localStorage.getItem("ec_ambient") === "1";
+    muted = localStorage.getItem("hal_muted") === "1";
+    ambientOn = localStorage.getItem("hal_ambient") === "1";
   } catch {
     /* ignore */
   }
@@ -27,7 +27,7 @@ function getCtx() {
 export function setMuted(v: boolean) {
   muted = v;
   try {
-    localStorage.setItem("ec_muted", v ? "1" : "0");
+    localStorage.setItem("hal_muted", v ? "1" : "0");
   } catch {
     /* ignore */
   }
@@ -134,7 +134,7 @@ export function startAmbient() {
   ambient = { osc: oscs, gain };
   ambientOn = true;
   try {
-    localStorage.setItem("ec_ambient", "1");
+    localStorage.setItem("hal_ambient", "1");
   } catch {
     /* ignore */
   }
@@ -145,7 +145,7 @@ export function stopAmbient() {
   if (!c || !ambient) {
     ambientOn = false;
     try {
-      localStorage.setItem("ec_ambient", "0");
+      localStorage.setItem("hal_ambient", "0");
     } catch {
       /* ignore */
     }
@@ -161,7 +161,7 @@ export function stopAmbient() {
   }, 1700);
   ambientOn = false;
   try {
-    localStorage.setItem("ec_ambient", "0");
+    localStorage.setItem("hal_ambient", "0");
   } catch {
     /* ignore */
   }

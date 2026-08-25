@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const KEY = "ec_referral_v1";
+const KEY = "hal_referral_v1";
 
 export function useReferral() {
   const [code, setCode] = useState<string | null>(null);
@@ -33,14 +33,14 @@ export function generateReferralLink(): string {
   if (typeof window === "undefined") return "";
   let code = "";
   try {
-    code = localStorage.getItem("ec_my_ref") || "";
+    code = localStorage.getItem("hal_my_ref") || "";
   } catch {
     /* ignore */
   }
   if (!code) {
     code = Math.random().toString(36).slice(2, 8).toUpperCase();
     try {
-      localStorage.setItem("ec_my_ref", code);
+      localStorage.setItem("hal_my_ref", code);
     } catch {
       /* ignore */
     }

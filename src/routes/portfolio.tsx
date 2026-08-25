@@ -29,7 +29,7 @@ export default function Portfolio() {
 
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [receiptIdx, setReceiptIdx] = useState(0);
-  const { value: balance } = useBalancePulse({ initial: 159959 });
+  const { value: balance } = useBalancePulse({ initial: 0, maxStep: 0 });
 
   useEffect(() => {
     const read = () => {
@@ -79,9 +79,11 @@ export default function Portfolio() {
                   <p className="font-numeric text-5xl text-gradient-gold">
                     <CountUp value={balance} prefix="$" decimals={0} />
                   </p>
-                  <div className="w-32">
-                    <Sparkline height={56} />
-                  </div>
+                  {balance > 0 && (
+                    <div className="w-32">
+                      <Sparkline height={56} />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5">

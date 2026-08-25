@@ -26,13 +26,13 @@ export function VaultDial({ trigger }: { trigger: string }) {
               transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-8 rounded-full"
               style={{
-                background: "radial-gradient(circle, rgba(255,215,0,0.6), transparent 70%)",
+                background: "radial-gradient(circle, rgba(232,194,92,0.6), transparent 70%)",
               }}
             />
             <div
               className="absolute left-1/2 top-1/2 h-1 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full"
               style={{
-                background: "linear-gradient(90deg, transparent, #FFD700, transparent)",
+                background: "linear-gradient(90deg, transparent, #E8C25C, transparent)",
               }}
             />
           </div>

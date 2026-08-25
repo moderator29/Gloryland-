@@ -5,7 +5,7 @@ const TIER_COLORS: Record<string, [string, string]> = {
   "Starter Plan": ["#9ca3af", "#e5e7eb"],
   "Bronze Plan": ["#a16207", "#fde68a"],
   "Silver Plan": ["#94a3b8", "#f1f5f9"],
-  "Gold Plan": ["#d4af37", "#fcf6ba"],
+  "Gold Plan": ["#c9a227", "#f4e3ac"],
   "Legendary Plan": ["#9333ea", "#f3e8ff"],
   "Immortal Plan": ["#ef4444", "#fee2e2"],
   "Platinum Plan": ["#cffafe", "#ffffff"],

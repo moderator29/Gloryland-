@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, X } from "lucide-react";
+import { BRAND_FULL } from "@/lib/site-config";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "ec_pwa_dismissed_v1";
+const DISMISS_KEY = "hal_pwa_dismissed_v1";
 
 export function PwaInstall() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -54,12 +55,12 @@ export function PwaInstall() {
             <Download className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium">Install Emilia Clarke</p>
+            <p className="text-sm font-medium">Install {BRAND_FULL}</p>
             <p className="text-[11px] text-muted-foreground">
               One tap. Native feel. Offline ready.
             </p>
           </div>
-          <button onClick={install} className="btn-gold rounded-full px-3 py-1.5 text-xs">
+          <button onClick={install} className="btn-gold px-3 py-1.5 text-xs">
             Install
           </button>
           <button

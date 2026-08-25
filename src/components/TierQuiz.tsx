@@ -85,7 +85,7 @@ export function TierQuiz() {
     <>
       <button
         onClick={start}
-        className="btn-aurora-outline inline-flex items-center gap-1.5 text-xs"
+        className="btn-aurora-outline inline-flex items-center gap-1.5 px-5 py-2.5 text-xs"
       >
         <Wand2 className="h-3.5 w-3.5" />
         Find my tier

@@ -3,6 +3,7 @@ import { Download, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/context/UserContext";
 import { depositRef } from "@/lib/depositRef";
+import { BRAND_NAME, BRAND_SLUG, BRAND_DOMAIN } from "@/lib/site-config";
 
 type Props = {
   plan?: string;
@@ -23,14 +24,14 @@ export function Receipt({ plan, amount, asset, network, txDate }: Props) {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(node, {
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#080d16",
         scale: 2,
         useCORS: true,
       });
       const url = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = url;
-      a.download = `emilia-clarke-receipt-${Date.now()}.png`;
+      a.download = `${BRAND_SLUG}-receipt-${Date.now()}.png`;
       a.click();
       toast.success("Receipt saved.", { duration: 1600 });
     } catch {
@@ -42,7 +43,9 @@ export function Receipt({ plan, amount, asset, network, txDate }: Props) {
     <div className="space-y-3">
       <div ref={ref} className="glass-luxury aurora-border relative overflow-hidden p-6">
         <div className="flex items-center justify-between">
-          <span className="font-display text-xl text-gradient-gold">Emilia Clarke</span>
+          <span className="font-display text-xl tracking-[0.1em] text-gradient-gold">
+            {BRAND_NAME.toUpperCase()}
+          </span>
           <BadgeCheck className="h-5 w-5 text-primary" />
         </div>
         <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
@@ -61,7 +64,7 @@ export function Receipt({ plan, amount, asset, network, txDate }: Props) {
 
         <div className="mt-6 flex items-center justify-between border-t border-border/40 pt-4">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            emiliaclarke.portal
+            {BRAND_DOMAIN}
           </p>
           <p className="font-mono text-[10px] text-muted-foreground">
             #{txDate.getTime().toString(36).toUpperCase()}

@@ -11,7 +11,7 @@ export default function NotFound() {
         transition={{ duration: 0.6 }}
         className="glass-luxury aurora-border w-full max-w-md p-8 text-center"
       >
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#FFD700]/40 via-[#FFF7C2]/20 to-[#B8842B]/40 ring-1 ring-primary/40">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#E8C25C]/40 via-[#F6E7B4]/20 to-[#8A6A1E]/40 ring-1 ring-primary/40">
           <Compass className="h-7 w-7 text-primary" strokeWidth={1.6} />
         </div>
         <h1 className="font-numeric mt-5 text-6xl text-gradient-gold">404</h1>

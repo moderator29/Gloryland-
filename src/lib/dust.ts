@@ -1,6 +1,6 @@
 import confetti from "canvas-confetti";
 
-const GOLD = ["#FFD700", "#FFF7C2", "#E5B947", "#B8842B"];
+const GOLD = ["#E8C25C", "#F6E7B4", "#D8B457", "#8A6A1E"];
 
 export function goldDust(x: number, y: number) {
   confetti({
@@ -24,7 +24,7 @@ const TIER_PALETTE: Record<string, string[]> = {
   "Silver Plan": ["#f1f5f9", "#94a3b8", "#cbd5e1", "#e5e7eb"],
   "Gold Plan": GOLD,
   "Legendary Plan": ["#f3e8ff", "#a855f7", "#6b21a8", "#c084fc"],
-  "Immortal Plan": ["#ffffff", "#FFD700", "#FFF7C2", "#fef3c7"],
+  "Immortal Plan": ["#ffffff", "#E8C25C", "#F6E7B4", "#fef3c7"],
   "Platinum Plan": ["#ffffff", "#cffafe", "#e0e7ff", "#fef3c7", "#f0fdf4"],
 };
 

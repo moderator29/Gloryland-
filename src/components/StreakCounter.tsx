@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Flame } from "lucide-react";
 
-const KEY = "ec_streak_v1";
+const KEY = "hal_streak_v1";
 const DAY = 86_400_000;
 
 type StreakData = { count: number; last: number };

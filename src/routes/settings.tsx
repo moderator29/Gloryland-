@@ -18,7 +18,7 @@ const MOTION_OPTIONS: { value: MotionLevel; label: string; hint: string }[] = [
 
 const CURRENCIES = ["USD", "EUR", "GBP", "BRL", "NGN", "INR", "JPY"];
 
-const CURRENCY_KEY = "ec_currency_override_v1";
+const CURRENCY_KEY = "hal_currency_override_v1";
 
 export default function Settings() {
   const { username, setUsername, logout } = useUser();
@@ -209,7 +209,7 @@ export default function Settings() {
                     hapticTap();
                     logout();
                   }}
-                  className="btn-press-through inline-flex items-center gap-2 text-sm"
+                  className="btn-press-through inline-flex items-center gap-2 px-5 py-2.5 text-sm"
                 >
                   <LogOut className="h-4 w-4" /> Log out
                 </button>

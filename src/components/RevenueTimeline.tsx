@@ -1,16 +1,16 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { Film, Video, Monitor, TrendingUp, Award } from "lucide-react";
+import { Mic2, Handshake, AudioLines, Library, Radio } from "lucide-react";
 
 const EVENTS = [
-  { date: "2026 Q2", icon: Award, label: "Cannes Jury appearance confirmed" },
-  { date: "2026 Q1", icon: TrendingUp, label: "Brand partnership wave 2 signed" },
-  { date: "2025 Q4", icon: Video, label: "Netflix multi season renewal" },
-  { date: "2025 Q3", icon: Film, label: "Sundance feature theatrical run" },
-  { date: "2025 Q2", icon: Monitor, label: "Studio first look deal closed" },
+  { date: "2026 Q2", icon: Mic2, label: "Summer arena run confirmed" },
+  { date: "2026 Q1", icon: Handshake, label: "Sponsorship wave two signed" },
+  { date: "2025 Q4", icon: AudioLines, label: "Streaming catalogue renewal" },
+  { date: "2025 Q3", icon: Library, label: "Publishing rights acquisition closed" },
+  { date: "2025 Q2", icon: Radio, label: "Festival headline slots locked" },
 ];
 
-export function FounderTimeline() {
+export function RevenueTimeline() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-15% 0px" });
 
@@ -26,7 +26,7 @@ export function FounderTimeline() {
           animate={inView ? { scaleY: 1 } : {}}
           transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
           className="absolute left-2 top-1 h-full w-px origin-top"
-          style={{ background: "linear-gradient(180deg, #FFD700, transparent)" }}
+          style={{ background: "linear-gradient(180deg, #E8C25C, transparent)" }}
         />
         <ul className="space-y-4">
           {EVENTS.map((e, i) => {
@@ -41,7 +41,7 @@ export function FounderTimeline() {
               >
                 <span
                   className="absolute -left-[18px] mt-1 grid h-3 w-3 place-items-center rounded-full bg-primary"
-                  style={{ boxShadow: "0 0 12px 2px rgba(255,215,0,0.6)" }}
+                  style={{ boxShadow: "0 0 12px 2px rgba(232,194,92,0.6)" }}
                 />
                 <Icon className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.6} />
                 <div className="flex-1">
