@@ -354,6 +354,252 @@
   }
 }
 
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════════════
+     STRUCTURAL GRAMMAR
+     The surface primitives above say what a thing is made of. These say how
+     the page is composed, and they exist to break one specific habit: a single
+     centred column of identical rounded rectangles, each holding a symmetric
+     grid of tiles under a centred title.
+
+     Four moves replace it.
+       1. .lede      an asymmetric opening. Oversized figure on the left, a
+                     narrow supporting rail on the right at desktop width.
+       2. .band      a section is a horizontal band ruled off from the one
+                     above, not another floating card.
+       3. .bento     inside a band, cells take deliberately unequal spans, so
+                     the grid has a primary, a secondary and small tiles.
+       4. .ledger    data reads as ruled rows behind a vertical accent rail,
+                     never as boxes nested inside boxes.
+
+     Everything collapses to one honest column below the lg breakpoint.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── The opening: asymmetric, never centred ──────────────────────────
+     One column on phones. At lg the figure keeps the elastic column and the
+     supporting numbers move into a fixed narrow rail, divided by a hairline
+     rather than boxed. Items align to the start so the rail reads as a
+     margin note against the figure, not as a matching column. */
+
+  .lede {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1.75rem;
+  }
+  @media (min-width: 1024px) {
+    .lede {
+      grid-template-columns: minmax(0, 1fr) 18rem;
+      gap: 3rem;
+    }
+  }
+
+  .lede-rail {
+    min-width: 0;
+    border-top: 1px solid var(--line);
+  }
+  @media (min-width: 1024px) {
+    .lede-rail {
+      border-top: 0;
+      border-left: 1px solid var(--line);
+      padding-top: 0.375rem;
+      padding-left: 1.5rem;
+    }
+  }
+
+  /* A single supporting number in the rail: technical label, figure opposite.
+     Wraps rather than overflows when a long label meets a long value. */
+  .rail-stat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.375rem 1rem;
+    min-height: 48px;
+    padding: 0.8125rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rail-stat:last-child {
+    border-bottom: 0;
+  }
+
+  /* ── Bands: sections ruled off, not stacked as cards ─────────────────── */
+
+  .band {
+    border-top: 1px solid var(--line);
+    padding-top: 1.5rem;
+  }
+
+  /* Left-aligned section head: a short accent tick, the label, then a
+     hairline running out to the right edge. Replaces the centred title. */
+  .band-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .band-head::before {
+    content: "";
+    flex: none;
+    width: 3px;
+    height: 0.9rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--accent-hi), var(--accent-deep));
+  }
+
+  .band-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--text-hi);
+  }
+
+  /* The rule that carries the eye from the label to the right edge. */
+  .hairline {
+    flex: 1 1 auto;
+    min-width: 1rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line-hi), transparent);
+  }
+
+  /* ── Bento: deliberately unequal cells ───────────────────────────────
+     One column on phones. At lg a twelve column field with a generous row
+     floor, so col-span and row-span utilities can carve out a tall primary,
+     a wide secondary and small tiles that do not match each other. */
+
+  .bento {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.875rem;
+  }
+  @media (min-width: 1024px) {
+    .bento {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-auto-rows: minmax(7rem, auto);
+      gap: 1rem;
+    }
+  }
+
+  /* A cell lays its own content out as a column, so a trailing element can be
+     pushed to the floor of a tall cell with mt-auto. */
+  .bento-cell {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  /* ── Ledger: ruled rows behind an accent rail ────────────────────────
+     The replacement for an .inset grid nested inside a .panel. Rows are
+     separated by hairlines and led by a vertical rail, so a run of data
+     reads as a column in a ledger instead of a tray of boxes. */
+
+  .ledger {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+
+  .rail-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+    min-height: 56px;
+    padding: 0.875rem 0 0.875rem 0.875rem;
+    border-bottom: 1px solid var(--line);
+    transition: background-color 0.16s ease;
+  }
+  .rail-row::before {
+    content: "";
+    position: absolute;
+    inset-block: 0.5rem;
+    left: 0;
+    width: 2px;
+    border-radius: 999px;
+    background: var(--accent);
+    opacity: 0.4;
+    transition: opacity 0.16s ease;
+  }
+  .ledger > .rail-row:last-child {
+    border-bottom: 0;
+  }
+
+  /* Only rows that navigate light up. */
+  a.rail-row:hover,
+  button.rail-row:hover {
+    background: rgba(46, 139, 255, 0.05);
+  }
+  a.rail-row:hover::before,
+  button.rail-row:hover::before {
+    opacity: 1;
+  }
+
+  .rail-row-gain::before {
+    background: var(--gain);
+  }
+  .rail-row-mute::before {
+    background: var(--line-hi);
+    opacity: 1;
+  }
+
+  /* ── Typographic contrast ────────────────────────────────────────────
+     The gap between a figure and its label is the loudest signal on the page,
+     so widen it: labels go small, uppercase and widely tracked against
+     numerals that are allowed to get genuinely large. .tag-micro sits a step
+     below .eyebrow in size and a step above it in contrast, which keeps it
+     legible at that size. */
+
+  .tag-micro {
+    display: block;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  /* The one figure a screen is about. Fluid so it fills the column at 1440
+     and still clears a 360px viewport with room to spare. */
+  .figure-lead {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(2rem, 9vw, 4.5rem);
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+    color: var(--text-hi);
+  }
+
+  /* Value renders its number inside a .tabular span, whose own tracking would
+     otherwise beat the inherited one. Let the figure keep its optical tracking. */
+  .figure-lead .tabular,
+  .figure-mid .tabular {
+    letter-spacing: inherit;
+  }
+
+  /* The same treatment one step down, for the lead figure of a bento cell. */
+  .figure-mid {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--text-hi);
+  }
+}
+
 /* The whole product respects this, JS animations included (see useReducedMotion). */
 @media (prefers-reduced-motion: reduce) {
   *,

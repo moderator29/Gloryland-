@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Download, Lock, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowLeft, Check, Download, Lock, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { playTing } from "@/lib/sound";
 import { useLedger } from "@/hooks/useLedger";
@@ -99,6 +99,20 @@ export default function VaultDetail() {
     nav("/app/vaults");
   };
 
+  /**
+   * Settle and immediately carry principal plus the full term reward into a
+   * fresh term. This is the compounding path: rolling a matured position is
+   * often what crosses a member into the next tier, so the amount is handed
+   * straight to the placement flow rather than left sitting as idle cash.
+   */
+  const onRoll = () => {
+    if (p.claimable > 0) claimRewards(p.id, p.claimable);
+    closePosition(p.id);
+    const carried = Math.round(p.principal + p.accrued);
+    toast.success(`Carrying ${money(carried)} into a new term`);
+    nav(`/app/vaults/new?amount=${carried}&from=${p.id}`);
+  };
+
   return (
     <div className="space-y-6">
       <Link to="/app/vaults" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
@@ -134,13 +148,30 @@ export default function VaultDetail() {
                 Claim {p.claimable >= 0.01 ? money(p.claimable, 2) : ""}
               </button>
               {p.matured && (
-                <button onClick={onSettle} className="btn btn-primary">
-                  <Download className="h-4 w-4" /> Settle vault
-                </button>
+                <>
+                  <button onClick={onSettle} className="btn btn-outline">
+                    <Download className="h-4 w-4" /> Settle to cash
+                  </button>
+                  <button onClick={onRoll} className="btn btn-primary">
+                    <RefreshCw className="h-4 w-4" /> Roll into a new term
+                  </button>
+                </>
               )}
             </div>
           )}
         </div>
+
+        {p.matured && !p.closed && (
+          <div className="inset mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--text-hi)]">Term complete</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-low)]">
+                {money(p.principal + p.accrued)} is ready. Rolling it starts a new {CYCLE_DAYS} day
+                term and counts toward your standing.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6">
           <div className="mb-2 flex justify-between text-xs text-[var(--text-low)]">

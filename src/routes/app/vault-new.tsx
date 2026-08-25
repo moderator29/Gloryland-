@@ -28,6 +28,7 @@ export default function VaultNew() {
   const reduce = useReducedMotion();
   const [params] = useSearchParams();
   const preset = Number(params.get("amount")) || 0;
+  const rolledFrom = params.get("from");
 
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState(preset ? String(preset) : "");
@@ -120,8 +121,16 @@ export default function VaultNew() {
       </Link>
 
       <div>
-        <p className="eyebrow">New position</p>
-        <h1 className="display mt-1 text-2xl sm:text-3xl">Open a vault</h1>
+        <p className="eyebrow">{rolledFrom ? "Rolling over" : "New position"}</p>
+        <h1 className="display mt-1 text-2xl sm:text-3xl">
+          {rolledFrom ? "Carry into a new term" : "Open a vault"}
+        </h1>
+        {rolledFrom && (
+          <p className="chip chip-accent mt-3 !whitespace-normal !py-2 leading-relaxed">
+            Principal and rewards from your matured vault are carried across. The new term starts
+            when you confirm.
+          </p>
+        )}
       </div>
 
       {/* Step rail */}
