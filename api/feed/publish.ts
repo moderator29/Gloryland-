@@ -5,7 +5,9 @@ import { TEMPLATES, makeContext, type Post, type Template } from "./_templates";
  * Signal's publishing endpoint.
  *
  * Intended to be called by a scheduler roughly every three hours. As a Vercel
- * cron entry in vercel.json that is a "crons" array with path
+ * manual or external trigger. Vercel Hobby projects cannot run a schedule
+ * more than once a day, so no schedule is committed here. Point any
+ * external scheduler at this endpoint when you want publishing to run.
  * "/api/feed/publish" and the schedule "0 0,3,6,9,12,15,18,21 * * *",
  * which fires eight times a day and is written longhand because the step form
  * of that expression cannot appear inside a block comment.
@@ -59,7 +61,7 @@ function presentedSecret(req: VercelRequest): string {
   };
   const auth = header("authorization");
   if (auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
-  return header("x-cron-secret").trim();
+  return header("x-publish-secret").trim();
 }
 
 /**
@@ -101,12 +103,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // (a) Shared secret. Without one configured the endpoint stays shut rather
   // than falling open, and the failure names the variable to set.
-  const expected = process.env.CRON_SECRET;
+  const expected = process.env.PUBLISH_SECRET;
   if (!expected) {
     return res.status(503).json({
       error: "not_configured",
       message:
-        "Publishing is not enabled. Set CRON_SECRET in the server environment and send it as a bearer token.",
+        "Publishing is not enabled. Set PUBLISH_SECRET in the server environment and send it as a bearer token.",
     });
   }
 

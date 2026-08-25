@@ -4,11 +4,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/feed/publish",
-      "schedule": "0 0,3,6,9,12,15,18,21 * * *"
-    }
   ]
 }
