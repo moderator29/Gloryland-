@@ -1,14 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Check, Clock, Layers, Search } from "lucide-react";
-import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
-  TIERS,
-  dailyReward,
-  termReward,
-  tierById,
-} from "@/domain/tiers";
+import { CYCLE_DAYS, CYCLE_RETURN, TIERS, dailyReward, termReward, tierById } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
@@ -32,8 +25,8 @@ function NotFound({ id }: { id?: string }) {
         <h1 className="display text-xl">No tier by that name</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-low)]">
           {id ? `"${id}" is not one of the six rungs.` : "That rung does not exist."} The ladder
-          runs from {TIERS[0].name} at {money(TIERS[0].entry)} to{" "}
-          {TIERS[TIERS.length - 1].name} at {money(TIERS[TIERS.length - 1].entry)}.
+          runs from {TIERS[0].name} at {money(TIERS[0].entry)} to {TIERS[TIERS.length - 1].name} at{" "}
+          {money(TIERS[TIERS.length - 1].entry)}.
         </p>
         <Link to="/app/tiers" className="btn btn-secondary mt-6">
           View every tier
@@ -111,7 +104,9 @@ export default function TierDetail() {
         </div>
         <div className="inset p-3.5">
           <p className="eyebrow">Per term</p>
-          <p className="metric mt-1.5 text-lg text-[var(--gain)]">{money(termReward(tier.entry))}</p>
+          <p className="metric mt-1.5 text-lg text-[var(--gain)]">
+            {money(termReward(tier.entry))}
+          </p>
         </div>
         <div className="inset p-3.5">
           <p className="eyebrow">Settlement</p>
@@ -148,8 +143,8 @@ export default function TierDetail() {
                     aria-hidden
                   />
                   <span>
-                    Settlement target moves from {below.settlementHours}h to {tier.settlementHours}h,
-                    which is {hoursSaved}h sooner on a withdrawal request.
+                    Settlement target moves from {below.settlementHours}h to {tier.settlementHours}
+                    h, which is {hoursSaved}h sooner on a withdrawal request.
                   </span>
                 </li>
               )}
@@ -211,7 +206,9 @@ export default function TierDetail() {
             <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">
               You hold {tier.name}. {money(snap.contributed)} contributed to date clears the{" "}
               {money(tier.entry)} entry
-              {snap.tier && snap.tier.id !== tier.id ? `, and your standing is ${snap.tier.name}.` : "."}
+              {snap.tier && snap.tier.id !== tier.id
+                ? `, and your standing is ${snap.tier.name}.`
+                : "."}
             </p>
             {snap.nextTier && (
               <p className="mt-1.5 text-xs text-[var(--text-low)]">
