@@ -1,4 +1,4 @@
-const CACHE = "hal-shell-v1";
+const CACHE = "hal-shell-v2";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
@@ -34,6 +34,21 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
+
+  // App navigations: network first, fall back to the cached shell so the
+  // installed app still boots with no connection.
+  if (req.mode === "navigate") {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          return res;
+        })
+        .catch(() => caches.match("/index.html").then((hit) => hit || caches.match("/"))),
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(req).then((hit) => {

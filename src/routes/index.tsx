@@ -68,7 +68,7 @@ export default function Home() {
 
   return (
     <RouteShell>
-      <div className="min-h-screen pb-28">
+      <div className="min-h-screen pb-6">
         <SiteHeader />
 
         <main className="mx-auto max-w-2xl space-y-7 px-5 py-6">

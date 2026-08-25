@@ -44,7 +44,7 @@ export default function Packages() {
 
   return (
     <RouteShell>
-      <div className="min-h-screen pb-28">
+      <div className="min-h-screen pb-6">
         <SiteHeader showUser={false} />
         <main className="mx-auto max-w-2xl px-5 py-6">
           <header className="mb-6">

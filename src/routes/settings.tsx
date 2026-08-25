@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { useUser } from "@/context/UserContext";
+import { useArmedAction } from "@/hooks/useArmedAction";
 import { useMotionLevel, type MotionLevel } from "@/context/MotionContext";
 import { isMuted, setMuted, startAmbient, stopAmbient, isAmbientOn } from "@/lib/sound";
 import { playTap } from "@/lib/sound";
@@ -22,6 +23,7 @@ const CURRENCY_KEY = "hal_currency_override_v1";
 
 export default function Settings() {
   const { username, setUsername, logout } = useUser();
+  const [logoutArmed, requestLogout] = useArmedAction(logout);
   const { level, setLevel } = useMotionLevel();
   const [name, setName] = useState(username ?? "");
   const [muted, setMutedState] = useState(isMuted());
@@ -55,7 +57,7 @@ export default function Settings() {
 
   return (
     <RouteShell>
-      <div className="min-h-screen pb-28">
+      <div className="min-h-screen pb-6">
         <SiteHeader />
 
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
@@ -207,11 +209,13 @@ export default function Settings() {
                   onClick={() => {
                     playTap();
                     hapticTap();
-                    logout();
+                    requestLogout();
                   }}
-                  className="btn-press-through inline-flex items-center gap-2 px-5 py-2.5 text-sm"
+                  className={`btn-press-through inline-flex items-center gap-2 px-5 py-2.5 text-sm ${
+                    logoutArmed ? "!text-red-400 ring-1 ring-red-500/50" : ""
+                  }`}
                 >
-                  <LogOut className="h-4 w-4" /> Log out
+                  <LogOut className="h-4 w-4" /> {logoutArmed ? "Tap again to confirm" : "Log out"}
                 </button>
               </div>
             </StaggerItem>

@@ -21,6 +21,40 @@ const WINDOW_DAYS: Record<Window, string> = {
   ALL: "max",
 };
 
+// One shared snapshot fetch for every consumer (header bar, cards, portal):
+// concurrent callers await the same request, and results are fresh for 30s.
+let snapInflight: Promise<Snapshot | null> | null = null;
+let snapShared: { t: number; data: Snapshot } | null = null;
+
+async function fetchSnapshotShared(): Promise<Snapshot | null> {
+  if (snapShared && Date.now() - snapShared.t < 30_000) return snapShared.data;
+  if (snapInflight) return snapInflight;
+  snapInflight = (async () => {
+    try {
+      const res = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true",
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const b = data.bitcoin;
+      if (!b) return null;
+      const next: Snapshot = {
+        price: b.usd,
+        change24h: b.usd_24h_change ?? 0,
+        marketCap: b.usd_market_cap ?? 0,
+        vol24h: b.usd_24h_vol ?? 0,
+      };
+      snapShared = { t: Date.now(), data: next };
+      return next;
+    } catch {
+      return null;
+    } finally {
+      snapInflight = null;
+    }
+  })();
+  return snapInflight;
+}
+
 export function useBtcSnapshot(): Snapshot | null {
   const [snap, setSnap] = useState<Snapshot | null>(() => {
     if (typeof window === "undefined") return null;
@@ -38,27 +72,11 @@ export function useBtcSnapshot(): Snapshot | null {
   useEffect(() => {
     let cancelled = false;
     const fetchIt = async () => {
+      const next = await fetchSnapshotShared();
+      if (cancelled || !next) return;
+      setSnap(next);
       try {
-        const res = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true",
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const b = data.bitcoin;
-        if (!b) return;
-        const next: Snapshot = {
-          price: b.usd,
-          change24h: b.usd_24h_change ?? 0,
-          marketCap: b.usd_market_cap ?? 0,
-          vol24h: b.usd_24h_vol ?? 0,
-        };
-        if (cancelled) return;
-        setSnap(next);
-        try {
-          localStorage.setItem(SNAP_KEY, JSON.stringify({ t: Date.now(), data: next }));
-        } catch {
-          /* ignore */
-        }
+        localStorage.setItem(SNAP_KEY, JSON.stringify({ t: Date.now(), data: next }));
       } catch {
         /* ignore */
       }

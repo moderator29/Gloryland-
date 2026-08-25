@@ -23,17 +23,17 @@ export function Backdrop() {
 
       <motion.div
         className="absolute -left-40 top-10 h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle,_rgba(201,162,39,0.18),_transparent_60%)] blur-2xl md:h-[34rem] md:w-[34rem] md:blur-3xl"
-        animate={mobile ? undefined : { x: [0, 120, 0], y: [0, 80, 0] }}
+        animate={mobile ? { x: [0, 40, 0], y: [0, 26, 0] } : { x: [0, 120, 0], y: [0, 80, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute -right-40 top-1/3 h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,_rgba(36,64,111,0.28),_transparent_62%)] blur-2xl md:h-[32rem] md:w-[32rem] md:blur-3xl"
-        animate={mobile ? undefined : { x: [0, -100, 0], y: [0, 60, 0] }}
+        animate={mobile ? { x: [0, -34, 0], y: [0, 20, 0] } : { x: [0, -100, 0], y: [0, 60, 0] }}
         transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-[-8rem] left-1/4 h-[20rem] w-[20rem] rounded-full bg-[radial-gradient(circle,_rgba(36,64,111,0.22),_transparent_60%)] blur-2xl md:h-[28rem] md:w-[28rem] md:blur-3xl"
-        animate={mobile ? undefined : { x: [0, 80, 0], y: [0, -50, 0] }}
+        animate={mobile ? { x: [0, 26, 0], y: [0, -16, 0] } : { x: [0, 80, 0], y: [0, -50, 0] }}
         transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
       />
 

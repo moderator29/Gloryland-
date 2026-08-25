@@ -1,7 +1,17 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Send, Upload, Check, Sparkles, Loader2, CheckCircle2, Wand2 } from "lucide-react";
+import {
+  Copy,
+  Send,
+  Upload,
+  Check,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  Wand2,
+  History,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RouteShell } from "@/components/RouteShell";
@@ -19,11 +29,11 @@ import { goldBurst } from "@/lib/confetti";
 import { tierConfetti } from "@/lib/dust";
 import { playTing, playTap, playTierChord } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
-import { recordDeposit, recordWithdraw } from "@/lib/history";
+import { recordDeposit, recordWithdraw, listWithdraws } from "@/lib/history";
 import { consumeFirstDepositGift } from "@/lib/firstDeposit";
 import { FirstDepositGift } from "@/components/FirstDepositGift";
 
-const PRESETS = [40000, 20000, 10000, 5000, 3000];
+const PRESETS = [40000, 60000, 100000, 200000, 300000, 500000];
 const SUBS_KEY = "hal_subscribed_plans";
 
 export default function Portal() {
@@ -36,6 +46,7 @@ export default function Portal() {
   const [mode, setMode] = useState<"USD" | "BTC">("USD");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [walletAddr, setWalletAddr] = useState("");
+  const lastAddress = useMemo(() => listWithdraws()[0]?.address ?? "", []);
 
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
@@ -156,7 +167,7 @@ export default function Portal() {
 
   return (
     <RouteShell>
-      <div className="min-h-screen pb-28">
+      <div className="min-h-screen pb-6">
         <SiteHeader showUser={false} />
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
           <Stagger className="space-y-6">
@@ -273,9 +284,25 @@ export default function Portal() {
                     onChange={(e) => setWalletAddr(e.target.value)}
                     placeholder="Bitcoin wallet address"
                     disabled={isWithdrawing}
+                    aria-label="Bitcoin wallet address"
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
                   />
                 </label>
+
+                {lastAddress && !walletAddr && (
+                  <button
+                    onClick={() => {
+                      setWalletAddr(lastAddress);
+                      playTap();
+                    }}
+                    className="chip-navy mt-2 max-w-full"
+                  >
+                    <History className="h-3 w-3 shrink-0 text-primary" />
+                    <span className="truncate">
+                      Use last: {lastAddress.slice(0, 10)}…{lastAddress.slice(-6)}
+                    </span>
+                  </button>
+                )}
 
                 {withdrawSuccess && (
                   <div className="mt-4 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-500">

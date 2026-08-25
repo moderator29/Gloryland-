@@ -8,6 +8,7 @@ import { MotionProvider } from "./context/MotionContext";
 import { LoginGate } from "./components/LoginGate";
 import { Toaster } from "sonner";
 import { BottomNav } from "./components/BottomNav";
+import { SiteFooter } from "./components/SiteFooter";
 import { Backdrop } from "./components/Backdrop";
 import { FrameLight } from "./components/FrameLight";
 import { CursorTrail } from "./components/CursorTrail";
@@ -108,13 +109,14 @@ function AnimatedRoutes() {
 
 function Layout() {
   return (
-    <div className="relative min-h-screen bg-[#080d16] pb-20 text-white">
+    <div className="relative min-h-screen bg-[#080d16] text-white">
       <BtcTickerBar />
       <Backdrop />
       <FrameLight />
       <GoldRail />
       <div className="relative z-10">
         <Outlet />
+        <SiteFooter />
       </div>
       <BottomNav />
       <WelcomeCards />

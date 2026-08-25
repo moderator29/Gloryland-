@@ -47,7 +47,7 @@ export default function Portfolio() {
 
   return (
     <RouteShell>
-      <div className="min-h-screen pb-28">
+      <div className="min-h-screen pb-6">
         <SiteHeader />
 
         <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">

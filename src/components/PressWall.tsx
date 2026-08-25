@@ -1,15 +1,14 @@
 import { motion } from "framer-motion";
 
 const LOGOS = [
-  "BILLBOARD",
-  "ROLLING STONE",
-  "FORBES",
-  "BLOOMBERG",
-  "PITCHFORK",
-  "VARIETY",
-  "MUSIC WEEK",
-  "FINANCIAL TIMES",
-  "NME",
+  "DAILY PAYOUTS",
+  "BTC SETTLEMENT",
+  "PRIVATE PLACEMENT",
+  "NINE REVENUE STREAMS",
+  "MEMBERS ONLY",
+  "LIMITED SEATS",
+  "24/7 PORTAL",
+  "GLOBAL ACCESS",
 ];
 
 export function PressWall() {
@@ -17,7 +16,7 @@ export function PressWall() {
   return (
     <div className="relative overflow-hidden py-2">
       <p className="mb-2 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
-        As seen in
+        The Halcyon standard
       </p>
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent" />

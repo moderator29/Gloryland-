@@ -21,6 +21,11 @@ function getCtx() {
     if (!AC) return null;
     ctx = new AC();
   }
+  // Browsers create the context suspended until a user gesture; resume it so
+  // the very first tap is audible rather than silently swallowed.
+  if (ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
   return ctx;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, X } from "lucide-react";
+import { Download, Share, SquarePlus, X } from "lucide-react";
 import { BRAND_FULL } from "@/lib/site-config";
 
 type BeforeInstallPromptEvent = Event & {
@@ -10,8 +10,17 @@ type BeforeInstallPromptEvent = Event & {
 
 const DISMISS_KEY = "hal_pwa_dismissed_v1";
 
+function isIosSafari() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua);
+  const standalone = (navigator as { standalone?: boolean }).standalone === true;
+  return ios && !standalone;
+}
+
 export function PwaInstall() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [ios, setIos] = useState(false);
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -25,7 +34,12 @@ export function PwaInstall() {
       setEvt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    // iOS never fires beforeinstallprompt; surface manual instructions instead.
+    const id = window.setTimeout(() => setIos(isIosSafari()), 4000);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.clearTimeout(id);
+    };
   }, []);
 
   const install = async () => {
@@ -39,7 +53,7 @@ export function PwaInstall() {
     setHidden(true);
   };
 
-  const show = evt && !hidden;
+  const show = (evt || ios) && !hidden;
 
   return (
     <AnimatePresence>
@@ -56,13 +70,22 @@ export function PwaInstall() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">Install {BRAND_FULL}</p>
-            <p className="text-[11px] text-muted-foreground">
-              One tap. Native feel. Offline ready.
-            </p>
+            {evt ? (
+              <p className="text-[11px] text-muted-foreground">
+                One tap. Native feel. Offline ready.
+              </p>
+            ) : (
+              <p className="inline-flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                Tap <Share className="h-3 w-3 text-primary" /> Share, then
+                <SquarePlus className="h-3 w-3 text-primary" /> Add to Home Screen.
+              </p>
+            )}
           </div>
-          <button onClick={install} className="btn-gold px-3 py-1.5 text-xs">
-            Install
-          </button>
+          {evt && (
+            <button onClick={install} className="btn-gold px-3 py-1.5 text-xs">
+              Install
+            </button>
+          )}
           <button
             onClick={dismiss}
             className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:text-primary"

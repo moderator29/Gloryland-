@@ -60,7 +60,7 @@ export function BtcChartCard() {
                 {snap ? fmtUsd(snap.price, snap.price < 1 ? 6 : 0) : "--"}
               </span>
               <span style={{ color: trendColor }} className="font-numeric font-semibold">
-                {snap ? `${up ? "+" : ""}${snap.change24h.toFixed(2)}%` : "--"}
+                {snap ? `${up ? "+" : ""}${snap.change24h.toFixed(2)}%` : "reconnecting…"}
               </span>
             </p>
           </div>

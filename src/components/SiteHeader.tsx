@@ -5,6 +5,7 @@ import { TierBadge } from "@/components/TierBadge";
 import { StreakCounter } from "@/components/StreakCounter";
 import { BrandMark } from "@/components/BrandLogo";
 import { useUser } from "@/context/UserContext";
+import { useArmedAction } from "@/hooks/useArmedAction";
 import { playTap } from "@/lib/sound";
 import { tap as hapticTap } from "@/lib/haptic";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/site-config";
@@ -15,6 +16,7 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ showUser = true }: SiteHeaderProps) {
   const { username, logout } = useUser();
+  const [logoutArmed, requestLogout] = useArmedAction(logout);
 
   const initial = (username || "").trim().charAt(0).toUpperCase() || "•";
 
@@ -86,13 +88,18 @@ export function SiteHeader({ showUser = true }: SiteHeaderProps) {
                 onClick={() => {
                   playTap();
                   hapticTap();
-                  logout();
+                  requestLogout();
                 }}
-                className="group hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-400 sm:flex"
+                className={`group hidden h-8 shrink-0 items-center justify-center gap-1.5 rounded-full transition-all sm:flex ${
+                  logoutArmed
+                    ? "w-auto bg-red-500/15 px-3 text-xs font-semibold text-red-400 ring-1 ring-red-500/40"
+                    : "w-8 text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
+                }`}
                 title="Log out"
-                aria-label="Log out"
+                aria-label={logoutArmed ? "Tap again to log out" : "Log out"}
               >
                 <LogOut className="h-4 w-4" />
+                {logoutArmed && "Sure?"}
               </button>
             </>
           )}

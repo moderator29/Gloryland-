@@ -25,7 +25,7 @@ export function GoldRail() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-[55] hidden h-screen w-1 md:block"
+      className="pointer-events-none fixed left-0 top-0 z-[55] h-screen w-[2px] md:w-1"
       style={{
         background: "linear-gradient(180deg, transparent, rgba(232,194,92,0.12), transparent)",
       }}
