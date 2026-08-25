@@ -1,160 +1,243 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/react";
+
+/**
+ * Vercel's analytics script is served by the platform itself, so requesting it
+ * anywhere else (local preview, a non-Vercel host) resolves to the SPA
+ * fallback and throws. Mount it only where it can actually load.
+ */
+function isVercelHost() {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h !== "localhost" && h !== "127.0.0.1" && !h.endsWith(".local");
+}
+
 import { UserProvider } from "./context/UserContext";
 import { MotionProvider } from "./context/MotionContext";
-import { LoginGate } from "./components/LoginGate";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Toaster } from "sonner";
-import { BottomNav } from "./components/BottomNav";
-import { SiteFooter } from "./components/SiteFooter";
-import { Backdrop } from "./components/Backdrop";
-import { FrameLight } from "./components/FrameLight";
-import { CursorTrail } from "./components/CursorTrail";
-import { WelcomeCards } from "./components/WelcomeCards";
-import { PwaInstall } from "./components/PwaInstall";
-import { Skeleton } from "./components/Skeleton";
-import { GlobalFilters } from "./components/GlobalFilters";
-import { BtcTickerBar } from "./components/BtcTickerBar";
-import { CurtainReveal } from "./components/CurtainReveal";
-import { GoldRail } from "./components/GoldRail";
-import { HelpDrawer } from "./components/HelpDrawer";
-import { VaultDial } from "./components/VaultDial";
-import { Analytics } from "@vercel/analytics/react";
+import { AppShell } from "./components/shell/AppShell";
+import { Gate } from "./components/shell/Gate";
+import { Skeleton } from "./components/system/ui";
 
 import "./index.css";
 
-const Home = lazy(() => import("./routes/index"));
-const Packages = lazy(() => import("./routes/packages"));
-const Portal = lazy(() => import("./routes/portal"));
-const Portfolio = lazy(() => import("./routes/portfolio"));
-const Settings = lazy(() => import("./routes/settings"));
+/* Public */
+const Landing = lazy(() => import("./routes/landing"));
+const Privacy = lazy(() => import("./routes/legal/privacy"));
+const Terms = lazy(() => import("./routes/legal/terms"));
+const Risk = lazy(() => import("./routes/legal/risk"));
+
+/* Application */
+const Home = lazy(() => import("./routes/app/home"));
+const Vaults = lazy(() => import("./routes/app/vaults"));
+const VaultNew = lazy(() => import("./routes/app/vault-new"));
+const VaultDetail = lazy(() => import("./routes/app/vault-detail"));
+const Tiers = lazy(() => import("./routes/app/tiers"));
+const Rewards = lazy(() => import("./routes/app/rewards"));
+const AnalyticsPage = lazy(() => import("./routes/app/analytics"));
+const Insights = lazy(() => import("./routes/app/insights"));
+const Activity = lazy(() => import("./routes/app/activity"));
+const Settings = lazy(() => import("./routes/app/settings"));
 const NotFound = lazy(() => import("./routes/not-found"));
 
+/** Skeleton shaped like the dashboards it stands in for, not a generic spinner. */
 function RouteFallback() {
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-5 py-6">
-      <Skeleton className="h-64" rounded="3xl" />
-      <Skeleton className="h-12" rounded="full" />
-      <Skeleton className="h-40" rounded="3xl" />
-      <Skeleton className="h-40" rounded="3xl" />
+    <div className="space-y-5">
+      <Skeleton className="h-9 w-48" />
+      <Skeleton className="h-44 w-full" />
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <Skeleton className="h-56 w-full" />
     </div>
   );
 }
 
-function AnimatedRoutes() {
-  const location = useLocation();
-  const onPortal = location.pathname === "/portal";
+function PageFallback() {
   return (
-    <>
-      {onPortal && <VaultDial trigger={location.pathname} />}
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Layout />}>
-            <Route
-              index
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Home />
-                </Suspense>
-              }
-            />
-            <Route
-              path="packages"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Packages />
-                </Suspense>
-              }
-            />
-            <Route
-              path="portal"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Portal />
-                </Suspense>
-              }
-            />
-            <Route
-              path="portfolio"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Portfolio />
-                </Suspense>
-              }
-            />
-            <Route
-              path="settings"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Settings />
-                </Suspense>
-              }
-            />
-            <Route
-              path="*"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <NotFound />
-                </Suspense>
-              }
-            />
-          </Route>
-        </Routes>
-      </AnimatePresence>
-    </>
-  );
-}
-
-function Layout() {
-  return (
-    <div className="relative min-h-screen bg-[#080d16] text-white">
-      <BtcTickerBar />
-      <Backdrop />
-      <FrameLight />
-      <GoldRail />
-      <div className="relative z-10">
-        <Outlet />
-        <SiteFooter />
-      </div>
-      <BottomNav />
-      <WelcomeCards />
-      <PwaInstall />
-      <CursorTrail />
-      <HelpDrawer />
-      <Toaster theme="dark" position="top-center" />
+    <div className="min-h-screen bg-[var(--ink-000)] p-8">
+      <Skeleton className="mx-auto h-[70vh] max-w-5xl" />
     </div>
   );
 }
 
 function App() {
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator) || import.meta.env.DEV) {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || import.meta.env.DEV)
       return;
-    }
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
+
   return (
     <UserProvider>
       <MotionProvider>
-        <GlobalFilters />
-        <CurtainReveal />
-        <LoginGate>
-          <BrowserRouter>
-            <ErrorBoundary>
-              <AnimatedRoutes />
-              <Analytics />
-            </ErrorBoundary>
-          </BrowserRouter>
-        </LoginGate>
+        <BrowserRouter>
+          <ErrorBoundary>
+            <Routes>
+              {/* Public marketing and legal */}
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <Landing />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/legal/privacy"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <Privacy />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/legal/terms"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <Terms />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/legal/risk"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <Risk />
+                  </Suspense>
+                }
+              />
+
+              {/* Authenticated application */}
+              <Route
+                path="/app"
+                element={
+                  <Gate>
+                    <AppShell />
+                  </Gate>
+                }
+              >
+                <Route
+                  index
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Home />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="vaults"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Vaults />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="vaults/new"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <VaultNew />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="vaults/:id"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <VaultDetail />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tiers"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Tiers />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="rewards"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Rewards />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="analytics"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <AnalyticsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="insights"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Insights />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="activity"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Activity />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Settings />
+                    </Suspense>
+                  }
+                />
+              </Route>
+
+              {/* Legacy paths from the previous product */}
+              <Route path="/portal" element={<Navigate to="/app" replace />} />
+              <Route path="/portfolio" element={<Navigate to="/app/vaults" replace />} />
+              <Route path="/packages" element={<Navigate to="/app/tiers" replace />} />
+              <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
+
+              <Route
+                path="*"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <NotFound />
+                  </Suspense>
+                }
+              />
+            </Routes>
+          </ErrorBoundary>
+          <Toaster
+            theme="dark"
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: "rgba(24,33,56,0.92)",
+                border: "1px solid rgba(120,170,240,0.26)",
+                color: "#f2f6ff",
+                backdropFilter: "blur(16px)",
+              },
+            }}
+          />
+          {import.meta.env.PROD && isVercelHost() && <Analytics />}
+        </BrowserRouter>
       </MotionProvider>
     </UserProvider>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+ReactDOM.createRoot(document.getElementById("root")!).render(<App />);

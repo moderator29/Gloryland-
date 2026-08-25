@@ -1,12 +1,12 @@
 {
-  "name": "Halcyon Investments",
-  "short_name": "Halcyon",
-  "description": "A managed music royalty portfolio that pays out every day.",
-  "start_url": "/",
+  "name": "Rigel Capital",
+  "short_name": "Rigel",
+  "description": "Private capital platform. Fixed 30-day vault terms, accruing daily.",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#080d16",
-  "theme_color": "#080d16",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
   "orientation": "portrait",
   "icons": [
     {

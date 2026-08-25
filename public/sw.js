@@ -1,4 +1,4 @@
-const CACHE = "hal-shell-v3";
+const CACHE = "rgl-shell-v1";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

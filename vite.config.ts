@@ -17,7 +17,6 @@ export default defineConfig({
         manualChunks: {
           motion: ["framer-motion"],
           charts: ["recharts"],
-          capture: ["html2canvas"],
         },
       },
     },

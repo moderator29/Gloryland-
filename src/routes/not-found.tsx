@@ -1,31 +1,33 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Compass, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Compass } from "lucide-react";
+import { Wordmark } from "@/components/brand/Mark";
+import { Ambience } from "@/components/shell/Ambience";
 
 export default function NotFound() {
   return (
-    <div className="grid min-h-screen place-items-center px-5 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="glass-luxury aurora-border w-full max-w-md p-8 text-center"
-      >
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#E8C25C]/40 via-[#F6E7B4]/20 to-[#8A6A1E]/40 ring-1 ring-primary/40">
-          <Compass className="h-7 w-7 text-primary" strokeWidth={1.6} />
-        </div>
-        <h1 className="font-numeric mt-5 text-6xl text-gradient-gold">404</h1>
-        <h2 className="font-display mt-2 text-2xl">Lost in the vault</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you tried to reach is not part of the portal yet.
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--ink-000)] px-5">
+      <Ambience />
+      <div className="panel-hi edge-light relative z-10 w-full max-w-md p-8 text-center">
+        <Wordmark size={26} stacked />
+        <span className="mx-auto mt-7 grid h-12 w-12 place-items-center rounded-2xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
+          <Compass className="h-5 w-5 text-[var(--accent-hi)]" strokeWidth={1.7} />
+        </span>
+        <p className="metric mt-5 text-4xl">404</p>
+        <h1 className="mt-2 text-lg font-semibold text-[var(--text-hi)]">
+          Nothing at this address
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
+          The page you were looking for has moved or never existed.
         </p>
-        <Link
-          to="/"
-          className="btn-foil mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Home
-        </Link>
-      </motion.div>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Link to="/app" className="btn btn-primary">
+            <ArrowLeft className="h-4 w-4" /> Back to portal
+          </Link>
+          <Link to="/" className="btn btn-outline">
+            Public site
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
