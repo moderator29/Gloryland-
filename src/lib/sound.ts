@@ -79,21 +79,21 @@ export function playTap() {
   osc.stop(now + 0.15);
 }
 
+/** One chord per rung, rising with rank so progression is audible. */
 const TIER_CHORDS: Record<string, number[]> = {
-  "Starter Plan": [220, 277, 330],
-  "Bronze Plan": [247, 311, 370],
-  "Silver Plan": [262, 330, 392],
-  "Gold Plan": [294, 370, 440],
-  "Legendary Plan": [330, 415, 494],
-  "Immortal Plan": [392, 494, 587],
-  "Platinum Plan": [523, 659, 784, 988],
+  core: [220, 277, 330],
+  signal: [247, 311, 370],
+  vector: [262, 330, 392],
+  apex: [294, 370, 440],
+  meridian: [330, 415, 494],
+  sovereign: [392, 494, 587, 740],
 };
 
 export function playTierChord(tier: string) {
   if (muted) return;
   const c = getCtx();
   if (!c) return;
-  const chord = TIER_CHORDS[tier] ?? TIER_CHORDS["Gold Plan"];
+  const chord = TIER_CHORDS[tier] ?? TIER_CHORDS.core;
   const now = c.currentTime;
   chord.forEach((freq, i) => {
     const osc = c.createOscillator();

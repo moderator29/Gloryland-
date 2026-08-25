@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { playTing } from "@/lib/sound";
 import { Gift, Send, Wallet } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { claimRewards, recordWithdrawal } from "@/domain/ledger";
@@ -20,6 +21,7 @@ export default function Rewards() {
     const eligible = snap.activePositions.filter((p) => p.claimable >= 0.01);
     if (!eligible.length) return;
     eligible.forEach((p) => claimRewards(p.id, p.claimable));
+    playTing();
     toast.success(
       `${money(claimable, 2)} claimed across ${eligible.length} vault${eligible.length === 1 ? "" : "s"}`,
     );

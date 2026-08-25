@@ -5,6 +5,7 @@ import {
   Layers,
   Gift,
   Radio,
+  CandlestickChart,
   Sparkles,
   ChartLine,
   Receipt,
@@ -30,6 +31,7 @@ export const NAV: NavGroup[] = [
       { to: "/app/vaults", label: "Vaults", icon: Landmark },
       { to: "/app/tiers", label: "Tiers", icon: Layers },
       { to: "/app/rewards", label: "Rewards", icon: Gift },
+      { to: "/app/market", label: "Markets", icon: CandlestickChart },
     ],
   },
   {

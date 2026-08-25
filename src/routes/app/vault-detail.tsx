@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Check, Download, Lock, Sparkles, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { playTing } from "@/lib/sound";
 import { useLedger } from "@/hooks/useLedger";
 import { claimRewards, closePosition, DAY_MS } from "@/domain/ledger";
 import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
@@ -87,6 +88,7 @@ export default function VaultDetail() {
 
   const onClaim = () => {
     claimRewards(p.id, p.claimable);
+    playTing();
     toast.success(`${money(p.claimable, 2)} moved to available balance`);
   };
 

@@ -1,110 +1,14 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight, Lock, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, ChevronRight, Compass, Lock, Scale } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
-import {
-  TIERS,
-  CYCLE_DAYS,
-  CYCLE_RETURN,
-  dailyReward,
-  termReward,
-  type Tier,
-} from "@/domain/tiers";
+import { TIERS, CYCLE_DAYS, CYCLE_RETURN, dailyReward } from "@/domain/tiers";
 import { Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-/** Detail drawer: the deeper layer, opened by choosing a rung. */
-function TierSheet({ tier, held, onClose }: { tier: Tier; held: boolean; onClose: () => void }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: reduce ? 0 : 0.18 }}
-    >
-      <div className="absolute inset-0 bg-black/72 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${tier.name} tier detail`}
-        className="raised relative max-h-[88vh] w-full overflow-y-auto rounded-t-3xl p-6 sm:max-w-lg sm:rounded-3xl"
-        initial={reduce ? false : { y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={reduce ? undefined : { y: 40, opacity: 0 }}
-        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 34 }}
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="eyebrow">
-              Tier {tier.rank} of {TIERS.length}
-            </p>
-            <h2 className="display mt-1 text-2xl">{tier.name}</h2>
-          </div>
-          <button onClick={onClose} className="btn btn-ghost !px-2" aria-label="Close">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <p className="mt-3 text-sm leading-relaxed text-[var(--text-mid)]">{tier.blurb}</p>
-
-        <div className="mt-5 grid grid-cols-3 gap-2.5">
-          <div className="inset p-3">
-            <p className="eyebrow">Entry</p>
-            <p className="metric mt-1 text-base">{money(tier.entry)}</p>
-          </div>
-          <div className="inset p-3">
-            <p className="eyebrow">Per day</p>
-            <p className="metric mt-1 text-base text-[var(--gain)]">
-              {money(dailyReward(tier.entry), 2)}
-            </p>
-          </div>
-          <div className="inset p-3">
-            <p className="eyebrow">Per term</p>
-            <p className="metric mt-1 text-base text-[var(--gain)]">
-              {money(termReward(tier.entry))}
-            </p>
-          </div>
-        </div>
-
-        <h3 className="eyebrow mt-6">Includes</h3>
-        <ul className="mt-2.5 space-y-2">
-          {tier.benefits.map((b) => (
-            <li key={b} className="flex items-start gap-2.5 text-sm text-[var(--text)]">
-              <Check
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]"
-                strokeWidth={3}
-              />
-              {b}
-            </li>
-          ))}
-          <li className="flex items-start gap-2.5 text-sm text-[var(--text)]">
-            <Check
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]"
-              strokeWidth={3}
-            />
-            Settlement target {tier.settlementHours}h
-          </li>
-        </ul>
-
-        <Link
-          to={`/app/vaults/new?amount=${tier.entry}`}
-          onClick={onClose}
-          className="btn btn-primary mt-6 w-full"
-        >
-          {held ? `Open another ${tier.name} vault` : `Enter ${tier.name} at ${money(tier.entry)}`}
-        </Link>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 export default function Tiers() {
   const snap = useLedger();
-  const [open, setOpen] = useState<Tier | null>(null);
   const reduce = useReducedMotion();
   const currentRank = snap.tier?.rank ?? 0;
 
@@ -148,6 +52,41 @@ export default function Tiers() {
         )}
       </section>
 
+      {/* Ways in */}
+      <section className="grid gap-2.5 sm:grid-cols-2" aria-label="Tier tools">
+        <Link
+          to="/app/tiers/match"
+          className="group flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(17,24,41,0.5)] p-4 transition-colors hover:border-[rgba(46,139,255,0.4)] hover:bg-[rgba(46,139,255,0.06)]"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.08)]">
+            <Compass className="h-4 w-4 text-[var(--accent-hi)]" strokeWidth={1.9} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-[var(--text-hi)]">Tier Match</span>
+            <span className="mt-0.5 block text-xs text-[var(--text-low)]">
+              Four questions, one suggested rung
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-low)]" aria-hidden />
+        </Link>
+
+        <Link
+          to="/app/tiers/compare"
+          className="group flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(17,24,41,0.5)] p-4 transition-colors hover:border-[rgba(46,139,255,0.4)] hover:bg-[rgba(46,139,255,0.06)]"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.08)]">
+            <Scale className="h-4 w-4 text-[var(--accent-hi)]" strokeWidth={1.9} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-[var(--text-hi)]">Compare tiers</span>
+            <span className="mt-0.5 block text-xs text-[var(--text-low)]">
+              See only what changes between two rungs
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-low)]" aria-hidden />
+        </Link>
+      </section>
+
       {/* Ladder */}
       <ol className="relative space-y-3 pl-8">
         <span className="absolute bottom-6 left-[11px] top-6 w-px bg-[var(--line)]" aria-hidden />
@@ -170,13 +109,15 @@ export default function Tiers() {
                       ? "border-[var(--accent)] bg-[var(--ink-100)] text-[var(--accent-hi)]"
                       : "border-[var(--line-hi)] bg-[var(--ink-100)] text-[var(--text-low)]"
                 }`}
+                aria-hidden
               >
                 {held ? <Check className="h-3 w-3" strokeWidth={3.5} /> : t.rank}
               </span>
 
-              <button
-                onClick={() => setOpen(t)}
-                className={`w-full rounded-2xl border p-5 text-left transition-colors ${
+              <Link
+                to={`/app/tiers/${t.id}`}
+                aria-label={`${t.name}, tier ${t.rank} of ${TIERS.length}, entry ${money(t.entry)}`}
+                className={`block w-full rounded-2xl border p-5 text-left transition-colors ${
                   isNext
                     ? "border-[rgba(46,139,255,0.4)] bg-[rgba(46,139,255,0.07)]"
                     : "border-[var(--line)] bg-[rgba(17,24,41,0.5)] hover:border-[var(--line-hi)]"
@@ -199,22 +140,16 @@ export default function Tiers() {
                       </p>
                     </div>
                     {!held && !isNext && currentRank > 0 && (
-                      <Lock className="h-3.5 w-3.5 text-[var(--text-low)]" />
+                      <Lock className="h-3.5 w-3.5 text-[var(--text-low)]" aria-hidden />
                     )}
-                    <ChevronRight className="h-4 w-4 text-[var(--text-low)]" />
+                    <ChevronRight className="h-4 w-4 text-[var(--text-low)]" aria-hidden />
                   </div>
                 </div>
-              </button>
+              </Link>
             </motion.li>
           );
         })}
       </ol>
-
-      <AnimatePresence>
-        {open && (
-          <TierSheet tier={open} held={currentRank >= open.rank} onClose={() => setOpen(null)} />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

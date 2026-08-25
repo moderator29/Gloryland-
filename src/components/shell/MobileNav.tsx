@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Wordmark } from "@/components/brand/Mark";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { NAV, MOBILE_TABS } from "./nav";
+import { playTap } from "@/lib/sound";
 
 /**
  * Mobile navigation is two pieces: a bottom tab bar for the four surfaces a
@@ -25,6 +26,7 @@ export function MobileTabs() {
             key={to}
             to={to}
             end={end}
+            onClick={() => playTap()}
             className={({ isActive }) =>
               `relative flex min-h-[46px] items-center justify-center gap-2 rounded-full px-3.5 transition-colors ${
                 isActive ? "text-[#04101f]" : "text-[var(--text-mid)]"

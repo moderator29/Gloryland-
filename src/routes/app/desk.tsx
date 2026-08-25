@@ -1,21 +1,27 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Copy, Check, Plus, Send, Wallet, ArrowUpRight, QrCode } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Plus,
+  Send,
+  Wallet,
+  ArrowUpRight,
+  QrCode,
+  Wand2,
+  Layers,
+  Scale,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLedger } from "@/hooks/useLedger";
 import { recordWithdrawal } from "@/domain/ledger";
-import { MarketPanel } from "@/features/market";
+import { MarketPanel, ASSETS, CoinLogo } from "@/features/market";
+import { useMarket } from "@/hooks/useMarket";
 import { Value } from "@/components/system/Value";
 import { Metric, SectionHeader, NavRow } from "@/components/system/ui";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-
-const FUNDING = [
-  { asset: "BTC", network: "Bitcoin", address: "bc1q9agcjeu40pmtv00dvclkpld0msdkk305z89nx2" },
-  { asset: "ETH", network: "Ethereum", address: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72" },
-  { asset: "USDT", network: "TRC-20", address: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE" },
-] as const;
 
 /**
  * The Desk is where a member acts: fund an account, move value out, and read
@@ -24,7 +30,8 @@ const FUNDING = [
 export default function Desk() {
   const snap = useLedger();
   const reduce = useReducedMotion();
-  const [funding, setFunding] = useState<(typeof FUNDING)[number]>(FUNDING[0]);
+  const [funding, setFunding] = useState(ASSETS[0]);
+  const { coins } = useMarket();
   const [copied, setCopied] = useState(false);
   const [amt, setAmt] = useState("");
   const [addr, setAddr] = useState("");
@@ -33,7 +40,7 @@ export default function Desk() {
     try {
       await navigator.clipboard.writeText(funding.address);
       setCopied(true);
-      toast.success(`${funding.asset} address copied`);
+      toast.success(`${funding.symbol} address copied`);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       toast.error("Could not copy. Select the address and copy it manually.");
@@ -62,9 +69,14 @@ export default function Desk() {
 
   return (
     <div className="space-y-6">
-      <motion.div {...rise(0)}>
-        <p className="eyebrow">Command</p>
-        <h1 className="display mt-1 text-2xl sm:text-3xl">Desk</h1>
+      <motion.div {...rise(0)} className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">Command</p>
+          <h1 className="display mt-1 text-2xl sm:text-3xl">Desk</h1>
+        </div>
+        <Link to="/app/vaults/new" className="btn btn-secondary !py-2 !text-[13px]">
+          <Wand2 className="h-4 w-4" /> Guided deposit
+        </Link>
       </motion.div>
 
       {/* Balances */}
@@ -86,26 +98,50 @@ export default function Desk() {
         <motion.section {...rise(2)} className="panel p-5">
           <SectionHeader title="Fund account" hint="Send to the address below, then open a vault" />
 
-          <div className="grid grid-cols-3 gap-2">
-            {FUNDING.map((f) => (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {ASSETS.map((f) => (
               <button
-                key={f.asset}
+                key={f.id}
                 onClick={() => {
                   setFunding(f);
                   setCopied(false);
                 }}
-                aria-pressed={funding.asset === f.asset}
-                className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  funding.asset === f.asset
+                aria-pressed={funding.id === f.id}
+                className={`flex min-h-[54px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  funding.id === f.id
                     ? "border-[rgba(46,139,255,0.45)] bg-[rgba(46,139,255,0.12)]"
                     : "border-[var(--line)] hover:border-[var(--line-hi)]"
                 }`}
               >
-                <p className="text-sm font-semibold text-[var(--text-hi)]">{f.asset}</p>
-                <p className="mt-0.5 text-[10px] text-[var(--text-low)]">{f.network}</p>
+                <CoinLogo asset={f} size={24} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[var(--text-hi)]">
+                    {f.symbol}
+                  </span>
+                  <span className="block truncate text-[10px] text-[var(--text-low)]">
+                    {f.short}
+                  </span>
+                </span>
               </button>
             ))}
           </div>
+
+          {(() => {
+            const c = coins.find((x) => x.id === funding.id);
+            return c ? (
+              <p className="tabular mt-3 text-xs text-[var(--text-mid)]">
+                1 {funding.symbol} = {money(c.price, funding.priceDecimals)}
+                <span
+                  className={
+                    c.change24h >= 0 ? "ml-2 text-[var(--gain)]" : "ml-2 text-[var(--loss)]"
+                  }
+                >
+                  {c.change24h >= 0 ? "+" : ""}
+                  {c.change24h.toFixed(2)}%
+                </span>
+              </p>
+            ) : null;
+          })()}
 
           <div className="inset mt-3 p-3.5">
             <p className="eyebrow flex items-center gap-1.5">

@@ -41,9 +41,20 @@ const Rewards = lazy(() => import("./routes/app/rewards"));
 const AnalyticsPage = lazy(() => import("./routes/app/analytics"));
 const Insights = lazy(() => import("./routes/app/insights"));
 const Activity = lazy(() => import("./routes/app/activity"));
+const Signal = lazy(() => import("./routes/app/signal"));
+const SignalPost = lazy(() => import("./routes/app/signal-post"));
+const Market = lazy(() => import("./routes/app/market"));
+const MarketDetail = lazy(() => import("./routes/app/market-detail"));
 const Copilot = lazy(() => import("./routes/app/copilot"));
 const Support = lazy(() => import("./routes/app/support"));
-const Settings = lazy(() => import("./routes/app/settings"));
+const TierDetail = lazy(() => import("./routes/app/tier-detail"));
+const TierCompare = lazy(() => import("./routes/app/tier-compare"));
+const TierMatch = lazy(() => import("./routes/app/tier-match"));
+const Settings = lazy(() => import("./routes/app/settings/index"));
+const SettingsProfile = lazy(() => import("./routes/app/settings/profile"));
+const SettingsAppearance = lazy(() => import("./routes/app/settings/appearance"));
+const SettingsNotifications = lazy(() => import("./routes/app/settings/notifications"));
+const SettingsData = lazy(() => import("./routes/app/settings/data"));
 const NotFound = lazy(() => import("./routes/not-found"));
 
 /** Skeleton shaped like the dashboards it stands in for, not a generic spinner. */
@@ -175,6 +186,30 @@ function App() {
                   }
                 />
                 <Route
+                  path="tiers/compare"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <TierCompare />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tiers/match"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <TierMatch />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tiers/:tierId"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <TierDetail />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="rewards"
                   element={
                     <Suspense fallback={<RouteFallback />}>
@@ -203,6 +238,70 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Activity />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings/profile"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <SettingsProfile />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings/appearance"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <SettingsAppearance />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings/notifications"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <SettingsNotifications />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings/data"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <SettingsData />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="signal"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Signal />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="signal/:postId"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <SignalPost />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="market"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Market />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="market/:assetId"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <MarketDetail />
                     </Suspense>
                   }
                 />
