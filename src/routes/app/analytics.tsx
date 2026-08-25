@@ -51,17 +51,13 @@ export default function Analytics() {
         </Metric>
       </div>
 
-      <section id="perf-panel" className="panel p-5">
+      <div id="perf-panel">
         <PerformanceChart events={snap.events} days={range} />
-      </section>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="panel p-5">
-          <RewardsChart events={snap.events} days={range} />
-        </section>
-        <section className="panel p-5">
-          <AllocationChart snapshot={snap} />
-        </section>
+        <RewardsChart events={snap.events} days={range} />
+        <AllocationChart snapshot={snap} />
       </div>
     </div>
   );

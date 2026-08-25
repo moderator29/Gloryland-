@@ -46,7 +46,7 @@ export default function Desk() {
   const submit = () => {
     if (!canWithdraw) return;
     recordWithdrawal(value, addr.trim());
-    toast.success(`Withdrawal of ${money(value, 2)} submitted`);
+    toast.success(`Withdrawal of ${money(value, 2)} recorded`);
     setAmt("");
     setAddr("");
   };

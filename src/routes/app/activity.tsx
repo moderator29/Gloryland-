@@ -37,8 +37,8 @@ function describe(e: LedgerEvent) {
     case "withdraw":
       return {
         icon: ArrowUpRight,
-        title: "Withdrawal sent",
-        detail: `${e.address.slice(0, 10)}…${e.address.slice(-6)}`,
+        title: "Withdrawal recorded",
+        detail: `To ${e.address.slice(0, 10)}…${e.address.slice(-6)}`,
         amount: e.amount,
         tone: "text-[var(--text-hi)]",
         sign: "−",

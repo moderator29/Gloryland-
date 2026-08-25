@@ -1,12 +1,13 @@
 import { Outlet, useLocation, Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { MobileTabs, MobileMenuButton } from "./MobileNav";
 import { Ambience } from "./Ambience";
 import { AccountMenu } from "./AccountMenu";
 import { MarketTicker } from "@/features/market";
+import { LocalLedgerNotice } from "./LocalLedgerNotice";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const COLLAPSE_KEY = "rgl_sidebar_collapsed";
@@ -27,7 +28,21 @@ function Page({ children }: { children: React.ReactNode }) {
 }
 
 export function AppShell() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Navigating used to leave focus where the link had been and carry the old
+  // scroll position into the new route. Reset both, and move focus to the
+  // heading so assistive technology announces where it landed.
+  useLayoutEffect(() => {
+    if (hash) return;
+    window.scrollTo(0, 0);
+    const heading = mainRef.current?.querySelector<HTMLElement>("h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }, [pathname, hash]);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -56,6 +71,7 @@ export function AppShell() {
         {/* the rail offset only exists at lg and up; set via a style tag below */}
         <style>{`@media (min-width:1024px){:root{--rail:${collapsed ? 96 : 256}px}}@media (max-width:1023px){:root{--rail:0px}}`}</style>
 
+        <LocalLedgerNotice />
         <MarketTicker />
 
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--line)] bg-[rgba(5,7,15,0.82)] px-4 backdrop-blur-xl sm:px-6">
@@ -70,7 +86,14 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 px-4 pb-28 pt-6 sm:px-6 lg:pb-10">
+        <a
+          href="#app-main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[var(--accent)] focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#04101f]"
+        >
+          Skip to content
+        </a>
+
+        <main ref={mainRef} id="app-main" className="flex-1 px-4 pb-28 pt-6 sm:px-6 lg:pb-10">
           <div className="mx-auto w-full max-w-6xl">
             <AnimatePresence mode="wait">
               <Page key={pathname}>

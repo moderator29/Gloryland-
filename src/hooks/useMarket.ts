@@ -108,6 +108,9 @@ export function useMarket(pollMs = 60_000): MarketState {
   const [loading, setLoading] = useState(!initial);
   const [stale, setStale] = useState(false);
 
+  // Derived from the timestamp rather than from captured state: reading `coins`
+  // here would close over the first render's empty array and `stale` would
+  // never become true after a failed refresh.
   const load = async () => {
     const next = await fetchMarket();
     if (next) {
@@ -115,8 +118,7 @@ export function useMarket(pollMs = 60_000): MarketState {
       setAt(shared?.at ?? Date.now());
       setStale(false);
     } else {
-      // Keep the last good figures on screen rather than blanking the panel.
-      setStale(coins.length > 0);
+      setStale((prevStale) => prevStale || (shared?.coins.length ?? 0) > 0);
     }
     setLoading(false);
   };

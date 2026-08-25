@@ -32,7 +32,7 @@ export default function Rewards() {
   const submitWithdraw = () => {
     if (!canWithdraw) return;
     recordWithdrawal(withdrawValue, addr.trim());
-    toast.success(`Withdrawal of ${money(withdrawValue, 2)} submitted`);
+    toast.success(`Withdrawal of ${money(withdrawValue, 2)} recorded`);
     setAmt("");
   };
 
