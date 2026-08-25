@@ -4,6 +4,7 @@ import { ArrowRight, Crown, BadgeCheck, Sparkles } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { Backdrop } from "@/components/Backdrop";
 import { FrameLight } from "@/components/FrameLight";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { playTap, playTing } from "@/lib/sound";
 import { tap as hapticTap, success as hapticSuccess } from "@/lib/haptic";
 import { BRAND_FULL } from "@/lib/site-config";
@@ -12,6 +13,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
   const { username, setUsername } = useUser();
   const [name, setName] = useState("");
   const [entering, setEntering] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     setName("");
@@ -42,10 +44,10 @@ export function LoginGate({ children }: { children: ReactNode }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={entering ? "entering" : "gate"}
-            initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -24, filter: "blur(8px)" }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            initial={reduced ? false : { opacity: 0, y: 28, filter: "blur(8px)" }}
+            animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={reduced ? { opacity: 1 } : { opacity: 0, y: -24, filter: "blur(8px)" }}
+            transition={reduced ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-md"
           >
             <div className="glass-luxury aurora-border relative overflow-hidden p-8">
@@ -58,9 +60,13 @@ export function LoginGate({ children }: { children: ReactNode }) {
               </div>
 
               <motion.div
-                initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
+                initial={reduced ? false : { scale: 0.6, opacity: 0, rotate: -8 }}
                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                transition={{ delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                transition={
+                  reduced
+                    ? { duration: 0 }
+                    : { delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                }
                 className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[#E8C25C]/40 via-[#F6E7B4]/20 to-[#8A6A1E]/40 ring-1 ring-primary/40"
               >
                 <Crown className="h-7 w-7 text-primary" strokeWidth={1.6} />
@@ -85,6 +91,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Marcus"
                       maxLength={28}
+                      aria-label="Your Name"
                       className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
                     />
                   </div>
@@ -100,8 +107,8 @@ export function LoginGate({ children }: { children: ReactNode }) {
                     <>
                       Entering portal
                       <motion.span
-                        animate={{ x: [0, 4, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity }}
+                        animate={reduced ? { x: 0 } : { x: [0, 4, 0] }}
+                        transition={reduced ? { duration: 0 } : { duration: 0.6, repeat: Infinity }}
                       >
                         <ArrowRight className="h-4 w-4" />
                       </motion.span>

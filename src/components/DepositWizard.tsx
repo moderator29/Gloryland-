@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { Bitcoin, ChevronRight, ChevronLeft, Copy, Check, X, Send, Sparkles } from "lucide-react";
@@ -12,6 +12,52 @@ import { success as hapticSuccess, tap as hapticTap } from "@/lib/haptic";
 
 const STEPS = ["Tier", "Asset", "Address", "Confirm", "Receipt"] as const;
 const SUBS_KEY = "hal_subscribed_plans";
+
+function useDialogA11y(active: boolean, onClose: () => void) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!active) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusables = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    focusables()[0]?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      const current = document.activeElement;
+      if (e.shiftKey && (current === first || !dialog.contains(current))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (current === last || !dialog.contains(current))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [active]);
+
+  return dialogRef;
+}
 
 type Props = {
   open: boolean;
@@ -29,6 +75,7 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
   const [copied, setCopied] = useState(false);
   const [tracking, setTracking] = useState(false);
   const [done, setDone] = useState(false);
+  const dialogRef = useDialogA11y(open, onClose);
 
   useEffect(() => {
     if (!open) {
@@ -97,6 +144,10 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
           onClick={onClose}
         >
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Deposit wizard"
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 600 }}
             animate={{ y: 0 }}
@@ -111,6 +162,7 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
               </span>
               <button
                 onClick={onClose}
+                aria-label="Close"
                 className="grid h-9 w-9 place-items-center rounded-full border border-border/60 text-muted-foreground hover:text-primary"
               >
                 <X className="h-4 w-4" />
@@ -180,6 +232,7 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
                           value={amount}
                           onChange={(e) => setAmount(Number(e.target.value) || 0)}
                           inputMode="decimal"
+                          aria-label="Amount (USD)"
                           className="flex-1 bg-transparent text-base outline-none"
                         />
                       </div>
@@ -288,6 +341,7 @@ export function DepositWizard({ open, onClose, defaultPlan, defaultAmount }: Pro
                 <button
                   onClick={prev}
                   disabled={step === 0}
+                  aria-label="Back"
                   className="grid h-11 w-11 place-items-center rounded-full border border-border/60 bg-black/40 text-muted-foreground hover:text-primary disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />

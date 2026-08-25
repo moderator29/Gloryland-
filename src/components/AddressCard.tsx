@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Check, QrCode, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
@@ -12,6 +12,52 @@ function truncate(addr: string, head = 6, tail = 6) {
   return `${addr.slice(0, head)}...${addr.slice(-tail)}`;
 }
 
+function useDialogA11y(active: boolean, onClose: () => void) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!active) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusables = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    focusables()[0]?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      const current = document.activeElement;
+      if (e.shiftKey && (current === first || !dialog.contains(current))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (current === last || !dialog.contains(current))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [active]);
+
+  return dialogRef;
+}
+
 export function AddressCard({
   address = BTC_WALLET,
   label = "BTC Wallet",
@@ -23,6 +69,7 @@ export function AddressCard({
 }) {
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const dialogRef = useDialogA11y(qrOpen, () => setQrOpen(false));
 
   const copy = async () => {
     await navigator.clipboard.writeText(address);
@@ -70,6 +117,7 @@ export function AddressCard({
               hapticTap();
             }}
             title="Show QR"
+            aria-label="Show QR code"
             className="grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-black/30 text-muted-foreground transition-colors hover:text-primary"
           >
             <QrCode className="h-4 w-4" />
@@ -77,6 +125,7 @@ export function AddressCard({
           <button
             onClick={copy}
             title="Copy address"
+            aria-label="Copy address"
             className="grid h-9 w-9 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/40 transition-transform active:scale-95"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -109,6 +158,10 @@ export function AddressCard({
             onClick={() => setQrOpen(false)}
           >
             <motion.div
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${label} QR code`}
               onClick={(e) => e.stopPropagation()}
               initial={{ y: 24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

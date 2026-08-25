@@ -1,5 +1,6 @@
 import { motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const parent: Variants = {
   hidden: { opacity: 0 },
@@ -19,16 +20,23 @@ const child: Variants = {
 };
 
 export function Stagger({ children, className }: { children: ReactNode; className?: string }) {
+  const reduced = useReducedMotion();
   return (
-    <motion.div variants={parent} initial="hidden" animate="show" className={className}>
+    <motion.div
+      variants={parent}
+      initial={reduced ? false : "hidden"}
+      animate="show"
+      className={className}
+    >
       {children}
     </motion.div>
   );
 }
 
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
+  const reduced = useReducedMotion();
   return (
-    <motion.div variants={child} className={className}>
+    <motion.div variants={reduced ? undefined : child} className={className}>
       {children}
     </motion.div>
   );

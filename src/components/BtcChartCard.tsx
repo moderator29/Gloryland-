@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { ArrowUp, ArrowDown, X, ChevronRight } from "lucide-react";
@@ -26,6 +26,52 @@ function fmtCompact(n: number) {
   }).format(n);
 }
 
+function useDialogA11y(active: boolean, onClose: () => void) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!active) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusables = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    focusables()[0]?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      const current = document.activeElement;
+      if (e.shiftKey && (current === first || !dialog.contains(current))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (current === last || !dialog.contains(current))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [active]);
+
+  return dialogRef;
+}
+
 export function BtcChartCard() {
   const snap = useBtcSnapshot();
   const [open, setOpen] = useState(false);
@@ -44,6 +90,7 @@ export function BtcChartCard() {
           playTap();
           hapticTap();
         }}
+        aria-label="Expand Bitcoin price chart"
         className="glass-luxury relative block w-full overflow-hidden p-4 text-left transition-transform active:scale-[0.99]"
       >
         <div className="flex items-center gap-3">
@@ -125,6 +172,7 @@ function BtcChartModal({
 }) {
   const [win, setWin] = useState<Window>("1D");
   const { points, loading } = useBtcChart(win);
+  const dialogRef = useDialogA11y(true, onClose);
 
   const stats = useMemo(() => {
     if (!points || points.length === 0) return null;
@@ -150,6 +198,10 @@ function BtcChartModal({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Bitcoin price chart"
         onClick={(e) => e.stopPropagation()}
         initial={{ y: 600 }}
         animate={{ y: 0 }}
@@ -170,6 +222,7 @@ function BtcChartModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="grid h-9 w-9 place-items-center rounded-full border border-border/60 text-muted-foreground hover:text-primary"
           >
             <X className="h-4 w-4" />
