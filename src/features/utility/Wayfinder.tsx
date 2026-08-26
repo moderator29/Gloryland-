@@ -152,8 +152,16 @@ export function Wayfinder({ className = "" }: WayfinderProps) {
   }, [open]);
 
   // Focus goes back where it came from, so closing help does not lose the page.
+  // Guarded on having actually been open, or the first render would pull focus
+  // to the trigger on every page load.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) return;
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
     trigger.current?.focus({ preventScroll: true });
   }, [open]);
 

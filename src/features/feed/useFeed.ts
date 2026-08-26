@@ -6,12 +6,14 @@ import {
   likeCount,
   listBookmarks,
   loadPosts,
+  mergePosts,
   seedIfEmpty,
   subscribe,
   toggleBookmark,
   toggleLike,
   type Post,
 } from "@/domain/feed";
+import { nextRelease, rollingFeed } from "@/domain/schedule";
 
 /**
  * React bindings over the Signal store.
@@ -22,21 +24,63 @@ import {
  * cleaned up on unmount.
  */
 
-/** Every published post, newest first, seeded on first mount. */
-export function useFeedPosts(): { posts: Post[]; ready: boolean } {
+/** How often the feed checks whether the next scheduled post is due. */
+const RELEASE_TICK_MS = 30_000;
+
+/**
+ * Bring the store up to date with the publishing schedule.
+ *
+ * `rollingFeed` returns only the posts whose publish time has actually
+ * arrived, so calling this repeatedly reveals the day one post at a time
+ * rather than dumping tomorrow's copy on screen. `mergePosts` is keyed by id,
+ * so a post that is already stored is not duplicated and a member's bookmark
+ * on it survives.
+ */
+function syncSchedule(): void {
+  seedIfEmpty();
+  mergePosts(rollingFeed());
+}
+
+/**
+ * Every published post, newest first.
+ *
+ * The evergreen starter set is seeded once, and the daily schedule is layered
+ * on top of it. A timer re-checks for a due post rather than the page needing
+ * a refresh, and the tab firing `visibilitychange` catches up a browser that
+ * was in the background while several posts came due.
+ */
+export function useFeedPosts(): { posts: Post[]; ready: boolean; next: Post | null } {
   const [posts, setPosts] = useState<Post[]>(() => loadPosts());
+  const [next, setNext] = useState<Post | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Seeding writes through the store, which emits, so the read below is the
-    // authoritative one either way.
-    seedIfEmpty();
+    const tick = () => {
+      // Syncing writes through the store, which emits, so the subscription
+      // below is what actually moves state. `next` has no store to emit from.
+      syncSchedule();
+      setNext(nextRelease());
+    };
+
+    tick();
     setPosts(loadPosts());
     setReady(true);
-    return subscribe(() => setPosts(loadPosts()));
+
+    const unsubscribe = subscribe(() => setPosts(loadPosts()));
+    const timer = window.setInterval(tick, RELEASE_TICK_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      unsubscribe();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
-  return { posts, ready };
+  return { posts, ready, next };
 }
 
 /** Saved posts only, kept in sync with the same store. */

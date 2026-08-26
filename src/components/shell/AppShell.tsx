@@ -8,6 +8,8 @@ import { Ambience } from "./Ambience";
 import { AccountMenu } from "./AccountMenu";
 import { MarketTicker } from "@/features/market";
 import { LocalLedgerNotice } from "./LocalLedgerNotice";
+import { Aperture } from "@/features/onboarding";
+import { InstallPrompt, ScrollRail, Wayfinder } from "@/features/utility";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const COLLAPSE_KEY = "rgl_sidebar_collapsed";
@@ -61,6 +63,8 @@ export function AppShell() {
 
   return (
     <div className="relative min-h-screen bg-[var(--ink-000)]">
+      {/* Played once a session, before anything else is readable. */}
+      <Aperture />
       <Ambience />
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
@@ -71,12 +75,14 @@ export function AppShell() {
         {/* the rail offset only exists at lg and up; set via a style tag below */}
         <style>{`@media (min-width:1024px){:root{--rail:${collapsed ? 96 : 256}px}}@media (max-width:1023px){:root{--rail:0px}}`}</style>
 
+        <ScrollRail />
         <LocalLedgerNotice />
         <MarketTicker />
 
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--line)] bg-[rgba(5,7,15,0.82)] px-4 backdrop-blur-xl sm:px-6">
           <MobileMenuButton />
           <div className="ml-auto flex items-center gap-2">
+            <Wayfinder />
             <Link to="/app/vaults/new" className="btn btn-primary !py-2 !text-[13px]">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Vault</span>
@@ -100,6 +106,9 @@ export function AppShell() {
                 <Outlet />
               </Page>
             </AnimatePresence>
+            {/* Asked below the content rather than over it, so it never
+                interrupts what the member came to read. */}
+            <InstallPrompt className="mt-8" />
           </div>
         </main>
       </div>

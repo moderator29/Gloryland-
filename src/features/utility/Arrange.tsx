@@ -127,7 +127,7 @@ export function Arrange({
     setAnnouncement("Layout reset to the default order.");
   };
 
-  // Keep the keyboard where it was. If the button just used has reached a end
+  // Keep the keyboard where it was. If the button just used has reached an end
   // stop and gone disabled, hand focus to its opposite rather than the body.
   useEffect(() => {
     const p = pending.current;

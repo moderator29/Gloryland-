@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Bookmark, Inbox, Rss } from "lucide-react";
+import { Bookmark, Clock, Inbox, Rss } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
 import { Skeleton } from "@/components/system/ui";
 import { POST_KINDS, type PostKind } from "@/domain/feed";
+import { POSTS_PER_DAY } from "@/domain/schedule";
 import { FeedFilters, PostCard, VerifiedMark, useBookmarks, useFeedPosts } from "@/features/feed";
 import type { FeedFilter } from "@/features/feed";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -20,7 +21,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 const LIST_ID = "signal-feed";
 
 export default function Signal() {
-  const { posts, ready } = useFeedPosts();
+  const { posts, ready, next } = useFeedPosts();
   const saved = useBookmarks();
   const reduce = useReducedMotion();
   const [view, setView] = useState<"feed" | "saved">("feed");
@@ -71,7 +72,16 @@ export default function Signal() {
           <p className="eyebrow">Posts</p>
           <p className="metric tabular mt-0.5 text-base">{posts.length}</p>
         </div>
+        <div className="inset shrink-0 px-3 py-2 text-center">
+          <p className="eyebrow">Per day</p>
+          <p className="metric tabular mt-0.5 text-base">{POSTS_PER_DAY}</p>
+        </div>
       </section>
+
+      {/* The channel publishes through the day rather than all at once, so the
+          member gets to see that there is more coming instead of assuming the
+          feed has gone quiet. Hidden once the day's run is exhausted. */}
+      {next && <NextUp at={next.publishedAt} />}
 
       {/* View switch. Two states, so a pair of pressed buttons is clearer
           than a tablist with one panel. */}
@@ -141,6 +151,30 @@ export default function Signal() {
         </motion.div>
       )}
     </div>
+  );
+}
+
+/**
+ * A quiet line telling the member when the next post is due.
+ *
+ * The time is formatted in the member's own locale rather than a countdown,
+ * because a ticking clock on a reading surface pulls attention away from what
+ * is already published.
+ */
+function NextUp({ at }: { at: number }) {
+  const time = new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return (
+    <p className="inset flex items-center gap-2 px-3.5 py-2.5 text-xs text-[var(--text-low)]">
+      <Clock
+        className="h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]"
+        strokeWidth={1.9}
+        aria-hidden="true"
+      />
+      <span>
+        Next post due around <span className="tabular text-[var(--text-hi)]">{time}</span>. The desk
+        publishes through the day.
+      </span>
+    </p>
   );
 }
 

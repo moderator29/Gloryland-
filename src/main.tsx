@@ -41,6 +41,7 @@ const Rewards = lazy(() => import("./routes/app/rewards"));
 const AnalyticsPage = lazy(() => import("./routes/app/analytics"));
 const Insights = lazy(() => import("./routes/app/insights"));
 const Activity = lazy(() => import("./routes/app/activity"));
+const OrientationRoute = lazy(() => import("./routes/app/orientation"));
 const Signal = lazy(() => import("./routes/app/signal"));
 const SignalPost = lazy(() => import("./routes/app/signal-post"));
 const Market = lazy(() => import("./routes/app/market"));
@@ -327,6 +328,14 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Support />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="orientation"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <OrientationRoute />
                     </Suspense>
                   }
                 />

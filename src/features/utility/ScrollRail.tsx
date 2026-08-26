@@ -59,7 +59,7 @@ export function ScrollRail({ height = 2, position = "top", className = "" }: Scr
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none fixed inset-x-0 z-[60] ${
+      className={`pointer-events-none fixed inset-x-0 z-[45] ${
         position === "top" ? "top-0" : "bottom-0"
       } ${className}`}
       style={{ height }}

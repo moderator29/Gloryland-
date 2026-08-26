@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Clock, Compass, Layers, Rocket } from "lucide-react";
@@ -275,13 +275,19 @@ export default function OrientationRoute() {
 
   const last = STEPS.length - 1;
 
-  const markDone = () => {
+  const markDone = useCallback(() => {
     try {
       localStorage.setItem(ORIENTATION_KEY, String(Date.now()));
     } catch {
       /* a blocked store only means orientation offers itself again */
     }
-  };
+  }, []);
+
+  // Reaching the closing panel counts as having read it. Someone who navigates
+  // away from here rather than pressing Finish should not be asked again.
+  useEffect(() => {
+    if (step === last) markDone();
+  }, [step, last, markDone]);
 
   const skip = () => {
     markDone();
@@ -292,6 +298,8 @@ export default function OrientationRoute() {
     setDir(next > step ? 1 : -1);
     setStep(Math.max(0, Math.min(last, next)));
   };
+
+  const StepIcon = STEPS[step].icon;
 
   const panelMotion = reduce
     ? {}
@@ -333,7 +341,8 @@ export default function OrientationRoute() {
             />
           ))}
         </div>
-        <p className="eyebrow mt-2.5" role="status" aria-live="polite">
+        <p className="eyebrow mt-2.5 flex items-center gap-1.5" role="status" aria-live="polite">
+          <StepIcon className="h-3 w-3 text-[var(--accent-hi)]" aria-hidden="true" />
           Step {step + 1} of {STEPS.length}. {STEPS[step].label}
         </p>
       </div>

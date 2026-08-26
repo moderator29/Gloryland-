@@ -117,7 +117,7 @@ export function InstallPrompt({ className = "" }: InstallPromptProps) {
       {show && (
         <motion.aside
           aria-label="Install Rigel"
-          className={`raised fixed inset-x-3 bottom-24 z-40 rounded-2xl p-4 sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[22rem] ${className}`}
+          className={`raised fixed bottom-24 left-3 right-[4.5rem] z-40 rounded-2xl p-4 sm:bottom-6 sm:left-6 sm:right-auto sm:w-[22rem] ${className}`}
           initial={reduce ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? undefined : { opacity: 0, y: 16 }}
