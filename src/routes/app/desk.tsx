@@ -147,7 +147,7 @@ export default function Desk() {
             <p className="eyebrow flex items-center gap-1.5">
               <QrCode className="h-3 w-3" /> {funding.network} address
             </p>
-            <p className="mt-2 break-all font-mono text-[11px] leading-relaxed text-[var(--text)]">
+            <p className="machine mt-2 text-[11px] leading-relaxed text-[var(--text)]">
               {funding.address}
             </p>
             <button onClick={copyAddress} className="btn btn-secondary mt-3 w-full !py-2 !text-xs">

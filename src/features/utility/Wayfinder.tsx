@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Compass, LifeBuoy, Search, X } from "lucide-react";
@@ -174,103 +175,109 @@ export function Wayfinder({ className = "" }: WayfinderProps) {
         aria-label="Open help"
         aria-haspopup="dialog"
         aria-expanded={open}
-        className={`raised fixed bottom-24 right-4 z-40 grid h-11 w-11 place-items-center rounded-full text-[var(--accent-hi)] transition-colors hover:text-[var(--text-hi)] sm:bottom-6 ${className}`}
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(5,7,15,0.5)] text-[var(--text-mid)] transition-colors hover:border-[var(--line-hi)] hover:text-[var(--accent-hi)] ${className}`}
       >
-        <Compass className="h-5 w-5" strokeWidth={1.8} />
+        <Compass className="h-[18px] w-[18px]" strokeWidth={1.8} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-50 bg-[rgba(5,7,15,0.72)]"
-              initial={reduce ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reduce ? undefined : { opacity: 0 }}
-              transition={{ duration: reduce ? 0 : 0.18 }}
-              onClick={close}
-              aria-hidden="true"
-            />
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.div
+                className="fixed inset-0 z-50 bg-[rgba(5,7,15,0.72)]"
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduce ? undefined : { opacity: 0 }}
+                transition={{ duration: reduce ? 0 : 0.18 }}
+                onClick={close}
+                aria-hidden="true"
+              />
 
-            <motion.div
-              ref={panel}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Help"
-              className="raised fixed inset-x-0 bottom-0 z-50 flex max-h-[86vh] flex-col rounded-t-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[26rem] sm:rounded-l-2xl sm:rounded-tr-none"
-              initial={reduce ? false : { opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0, y: 24 }}
-              transition={{ duration: reduce ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] p-4">
-                <div className="min-w-0">
-                  <p className="eyebrow">Wayfinder</p>
-                  <h2 className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]">
-                    How this works
-                  </h2>
+              <motion.div
+                ref={panel}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Help"
+                className="raised fixed inset-x-0 bottom-0 z-50 flex max-h-[86vh] flex-col rounded-t-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[26rem] sm:rounded-l-2xl sm:rounded-tr-none"
+                initial={reduce ? false : { opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: 24 }}
+                transition={{ duration: reduce ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] p-4">
+                  <div className="min-w-0">
+                    <p className="eyebrow">Wayfinder</p>
+                    <h2 className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]">
+                      How this works
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={close}
+                    aria-label="Close help"
+                    className="btn btn-ghost shrink-0 px-2 py-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={close}
-                  aria-label="Close help"
-                  className="btn btn-ghost shrink-0 px-2 py-2"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
 
-              <div className="border-b border-[var(--line)] p-4">
-                <label htmlFor="rgl-wayfinder-search" className="sr-only">
-                  Search help
-                </label>
-                <div className="inset flex items-center gap-2.5 px-3 py-2.5">
-                  <Search className="h-4 w-4 shrink-0 text-[var(--text-low)]" aria-hidden="true" />
-                  <input
-                    ref={search}
-                    id="rgl-wayfinder-search"
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search questions"
-                    className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-low)]"
-                  />
+                <div className="border-b border-[var(--line)] p-4">
+                  <label htmlFor="rgl-wayfinder-search" className="sr-only">
+                    Search help
+                  </label>
+                  <div className="inset flex items-center gap-2.5 px-3 py-2.5">
+                    <Search
+                      className="h-4 w-4 shrink-0 text-[var(--text-low)]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={search}
+                      id="rgl-wayfinder-search"
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search questions"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-low)]"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="no-bar min-h-0 flex-1 overflow-y-auto p-4">
-                {results.length === 0 ? (
-                  <p className="px-1 py-6 text-center text-sm text-[var(--text-low)]">
-                    Nothing here matches that. Support can take the question directly.
-                  </p>
-                ) : (
-                  <ul className="space-y-3">
-                    {results.map((e) => (
-                      <li key={e.id} className="panel p-3.5">
-                        <h3 className="text-sm font-semibold text-[var(--text-hi)]">{e.q}</h3>
-                        {e.a.map((line, i) => (
-                          <p
-                            key={i}
-                            className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-mid)]"
-                          >
-                            {line}
-                          </p>
-                        ))}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+                <div className="no-bar min-h-0 flex-1 overflow-y-auto p-4">
+                  {results.length === 0 ? (
+                    <p className="px-1 py-6 text-center text-sm text-[var(--text-low)]">
+                      Nothing here matches that. Support can take the question directly.
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {results.map((e) => (
+                        <li key={e.id} className="panel p-3.5">
+                          <h3 className="text-sm font-semibold text-[var(--text-hi)]">{e.q}</h3>
+                          {e.a.map((line, i) => (
+                            <p
+                              key={i}
+                              className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-mid)]"
+                            >
+                              {line}
+                            </p>
+                          ))}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
 
-              <div className="border-t border-[var(--line)] p-4">
-                <Link to="/app/support" onClick={close} className="btn btn-secondary w-full">
-                  <LifeBuoy className="h-4 w-4" /> Ask Support
-                </Link>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                <div className="border-t border-[var(--line)] p-4">
+                  <Link to="/app/support" onClick={close} className="btn btn-secondary w-full">
+                    <LifeBuoy className="h-4 w-4" /> Ask Support
+                  </Link>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 }

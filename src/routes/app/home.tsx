@@ -324,13 +324,13 @@ export default function Home() {
           <p className="eyebrow">{greeting()}</p>
           <h1 className="display mt-1.5 text-2xl sm:text-3xl">{username || "Member"}</h1>
 
-          <p className="tag-micro mt-8">Portfolio value</p>
-          <p className="figure-lead mt-3">
+          <p className="tag-micro mt-5 sm:mt-8">Portfolio value</p>
+          <p className="figure-lead mt-2 sm:mt-3">
             <Value value={snap.portfolioValue} decimals={2} />
           </p>
-          <Explain id="portfolioValue" className="mt-2" />
+          <Explain id="portfolioValue" className="mt-1.5" />
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
             <span className={`chip ${snap.netGain >= 0 ? "chip-gain" : ""}`}>
               <TrendingUp className="h-3 w-3" />
               {money(snap.netGain, 2)} ({pct(snap.returnPct)})
@@ -343,7 +343,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 sm:mt-4">
             <Cadence />
             <Concurrent />
           </div>

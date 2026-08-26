@@ -97,7 +97,7 @@ export function FeedFilters({
       aria-label="Filter posts by kind"
       aria-orientation="horizontal"
       onKeyDown={onKeyDown}
-      className={`no-bar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 ${className}`}
+      className={`no-bar fade-x -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 ${className}`}
     >
       {options.map((o, i) => {
         const selected = o.id === value;

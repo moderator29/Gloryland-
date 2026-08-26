@@ -57,24 +57,29 @@ export default function Signal() {
       </header>
 
       {/* Publisher card: who writes this, stated once at the top. */}
-      <section className="panel edge-light flex flex-wrap items-center gap-4 p-4 sm:p-5">
-        <Mark size={44} className="shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-base font-semibold text-[var(--text-hi)]">
-            Rigel
-            <VerifiedMark size={16} />
-          </p>
-          <p className="mt-0.5 text-xs text-[var(--text-low)]">
-            The only account that publishes here. Members read, save and share.
-          </p>
+      <section className="panel edge-light flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+        <div className="flex min-w-0 flex-1 items-center gap-3.5">
+          <Mark size={44} className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-base font-semibold text-[var(--text-hi)]">
+              Rigel
+              <VerifiedMark size={16} />
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-low)]">
+              The only account that publishes here. Members read, save and share.
+            </p>
+          </div>
         </div>
-        <div className="inset shrink-0 px-3 py-2 text-center">
-          <p className="eyebrow">Posts</p>
-          <p className="metric tabular mt-0.5 text-base">{posts.length}</p>
-        </div>
-        <div className="inset shrink-0 px-3 py-2 text-center">
-          <p className="eyebrow">Per day</p>
-          <p className="metric tabular mt-0.5 text-base">{POSTS_PER_DAY}</p>
+
+        <div className="flex shrink-0 gap-2">
+          <div className="inset flex-1 px-3 py-2 text-center sm:flex-none">
+            <p className="eyebrow">Posts</p>
+            <p className="metric tabular mt-0.5 text-base">{posts.length}</p>
+          </div>
+          <div className="inset flex-1 px-3 py-2 text-center sm:flex-none">
+            <p className="eyebrow">Per day</p>
+            <p className="metric tabular mt-0.5 text-base">{POSTS_PER_DAY}</p>
+          </div>
         </div>
       </section>
 
