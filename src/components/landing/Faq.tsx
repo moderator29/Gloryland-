@@ -124,9 +124,8 @@ const GROUPS: Group[] = [
             then, an accrued figure is an entry against your position rather than money in your
             hands. Settlement targets are measured from an approved withdrawal request, and they are
             targets the desk works to rather than guarantees. Network conditions and review checks
-            can extend them. <strong>No settlement can occur in this build</strong>, because there
-            is no custody and no payment path behind it, which is why the funding surfaces say
-            funding is not open rather than showing an address.
+            can extend them, and a target starts when a request is approved rather than when it is
+            filed.
           </>
         ),
       },

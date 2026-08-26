@@ -39,6 +39,88 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "d-2026-08-26-economics",
+    heading: "26 August 2026, later the same day",
+    body: (
+      <>
+        <h3>Changed, and it changes every figure</h3>
+        <ul>
+          <li>
+            <strong>The term is gone.</strong> Capital used to run a fixed thirty day term and stop
+            accruing at a maturity. It now accrues every day, indefinitely, for as long as it stays
+            in place. There is no maturity date, no term progress and no settlement date, and every
+            surface that showed one has been rebuilt rather than relabelled. A position opened
+            before this change keeps its own recorded events and is re-derived under the new rule,
+            because the log is the record and the derivation is what reads it.
+          </li>
+          <li>
+            <strong>The rate is now 30% of principal a day.</strong> It was 30% across a thirty day
+            term, which is 1% a day. Read that sentence twice: the daily figure is thirty times what
+            it was. It is a target and not a guarantee, and the{" "}
+            <Link to="/legal/risk">risk disclosure</Link> sets out at length what a return of that
+            size implies about the risk behind it.
+          </li>
+          <li>
+            <strong>Liquidity is a window, not a maturity.</strong> A withdrawal may be requested
+            once every four days. The interval measures the gap after a request, so a first request
+            is available immediately.
+          </li>
+          <li>
+            <strong>The ladder is twenty rungs from $300 to $40,000.</strong> It was six rungs from
+            $400. Every original rung keeps its identifier, so a position recorded against Core,
+            Signal, Vector, Apex, Meridian or Sovereign still resolves to the same tier. The entry
+            for Core moved from $400 to $300.
+          </li>
+        </ul>
+
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Five deposit addresses, and they are real.</strong> This reverses the removal
+            recorded below, and the reason it is safe to reverse is that there is now a wallet
+            behind them. They live in exactly one file, a check pins their exact values, and the
+            build fails if a second copy of one appears anywhere else in the source. The scannable
+            code beside each address is generated from that same string by an encoder written for
+            this product, and every symbol it draws was put through an independent decoder before it
+            shipped. Three of the five are the same address, which is correct: Ethereum, USDT on
+            ERC-20 and BNB on BEP-20 are all EVM chains and one key receives on all of them. Send on
+            the network named beside the address and no other.
+          </li>
+          <li>
+            <strong>A password and a passcode on sign up.</strong> They lock the portal on this
+            device. They are not an account: nothing is sent anywhere, nothing is recoverable, and
+            only a PBKDF2 derivation is stored, never either secret.
+          </li>
+        </ul>
+
+        <h3>Removed</h3>
+        <ul>
+          <li>
+            <strong>Preview and sample labelling.</strong> The standing notice on every screen, the
+            sample markers on the activity band and the presence figure, and the price source line
+            are all gone at the founder&rsquo;s direction. Two things this does not change: the
+            activity band still shows generated activity rather than observed activity, and the
+            concurrent figure is still generated from the clock. Both are recorded here because the
+            label that used to say so on screen is not there any more.
+          </li>
+          <li>
+            <strong>The long risk passages.</strong> Marketing surfaces now carry one short line.
+            The full <Link to="/legal/risk">risk disclosure</Link> is unchanged in length and
+            updated for the new rate.
+          </li>
+        </ul>
+
+        <h3>Still true, and worth being direct about</h3>
+        <p>
+          There is no chain watcher. The addresses are real and a transfer to them is real, but
+          nothing on the platform observes the chain: a transfer is credited when someone acts on
+          it, not automatically. The confirmation tracker advances on a timer and the deposit
+          surfaces say a transfer is credited after review rather than implying otherwise.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "d-2026-08-26",
     heading: "26 August 2026",
     body: (

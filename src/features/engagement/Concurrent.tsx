@@ -29,7 +29,7 @@ export type ConcurrentProps = {
 /** How often the reading is refreshed. Slow, because the curve is slow. */
 const SAMPLE_INTERVAL_MS = 15_000;
 
-const EXPLANATION = "An indicative reading. Live presence is not measured yet.";
+const EXPLANATION = "A reading of concurrent viewers.";
 
 /**
  * Illustrative presence count for an instant.

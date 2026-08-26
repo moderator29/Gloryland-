@@ -112,7 +112,7 @@ const SURFACES: Surface[] = [
     icon: ChartSpline,
     kicker: "Telemetry",
     title: "Charts drawn from your own ledger",
-    body: "Maturity calendars, projection curves and portfolio breakdowns computed from your positions, so what matures and when is answered before the next tranche is committed.",
+    body: "Withdrawal calendars, accrual curves and portfolio breakdowns computed from your positions, so what a position adds a day and when the next window opens are answered before the next tranche is committed.",
     span: "lg:col-span-5",
   },
   {
@@ -165,17 +165,17 @@ const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Lock,
     title: "It will not act without an instruction you gave",
-    body: "One mechanism writes to your ledger unprompted, and it only exists where you armed it: a relay carries a matured term into the next one. It states before you arm it that it will write without asking again, it runs the next time you open Rigel after maturity rather than while you are away, it is never backdated, and it can be disarmed at any point before it fires. Nothing else renews, reallocates or settles by itself.",
+    body: "One mechanism writes to your ledger unprompted, and it only exists where you armed it: a relay folds accrued reward back into principal so the larger principal earns. It states before you arm it that it will write without asking again, it runs the next time you open Rigel rather than while you are away, it is never backdated, and it can be disarmed at any point. Nothing else renews, reallocates or closes by itself.",
   },
   {
     icon: Fingerprint,
-    title: "It will not hold a secret it could lose",
-    body: "There is no password, no recovery question and no stored credential, because there is no account server to hold one. Your identity and your ledger live in your own browser, and the security page reads that storage back to you key by key rather than asking you to take it on trust.",
+    title: "It will not claim a lock it does not have",
+    body: "The password and passcode you set lock this browser. They are derived with PBKDF2 and only the derivation is stored, so neither secret is written anywhere in a form that can be read back. What they are not is an account: there is no server holding them, there is no recovery, and the sign up step says exactly that in those words rather than implying protection the build cannot provide.",
   },
   {
     icon: Network,
-    title: "It will not take money it cannot hold",
-    body: "This build ships with no deposit address at all. There is no custody behind it, so the funding surfaces say funding is not open instead of printing a string that looks like a destination. An interface that shows an address it does not control is how people lose money they cannot get back.",
+    title: "It will not print an address it does not control",
+    body: "The five deposit addresses in this product are the platform's own. They live in one file, a check pins their exact values, and the build fails if a second copy of one appears anywhere else. The scannable code beside each address is generated from that same string and was put through a real decoder before it shipped, so what the camera reads and what the eye reads cannot drift apart.",
   },
   {
     icon: ShieldCheck,
@@ -489,7 +489,7 @@ export default function Landing() {
             label="Questions"
             index="07"
             title="Everything worth asking before you place capital."
-            lead="Including where the record actually lives today, what happens if you do nothing at maturity, and what this product is not."
+            lead="Including where the record actually lives today, what happens if you do nothing, and what this product is not."
           />
 
           <div className="mt-10 max-w-3xl sm:mt-14">
