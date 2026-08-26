@@ -88,7 +88,7 @@ fresh external capital: available is not debited, contributed rises, and the
 portfolio doubles. The product's own most prominent prompt to redeploy idle cash
 therefore reproduces exactly the defect `ledger.check.ts` case 2 exists to
 prevent.
-`BUILD NOW`: `src/features/engagement/Redeploy.tsx` line 73,
+`SHIPPED`: `Redeploy.tsx` now links with `source=balance`, and `vault-new.tsx` treats both a roll and an explicit balance source as `fromAvailable`.
 `src/routes/app/vault-new.tsx` lines 44 to 49
 
 **A8. Enforce, at write time, that a balance funded placement cannot exceed
@@ -414,7 +414,7 @@ account" and "Send to the address below", and three of the five are the same
 address, which is a well known Ethereum documentation example. Anyone who follows
 the instruction loses their money irreversibly, and the nearest warning is a
 dismissible banner at the top of the page.
-`BUILD NOW`: `src/features/market/assets.ts` lines 40, 52, 64, 76, 88,
+`SHIPPED`: `src/features/market/assets.ts`. Addresses are read from the environment and are null unless configured; the Desk, market detail and placement flow show an honest "funding is not open" state instead.
 `src/routes/app/desk.tsx` lines 146 to 157, `src/routes/app/vault-new.tsx` lines 313 to 320
 
 **E6. Remove the invented member activity from the live band.** `buildItems`
@@ -423,7 +423,7 @@ opened a Vector vault $3,000") into the same scrolling band as the member's own
 real ledger events, with no visual distinction beyond the icon. The component's
 own doc comment eight lines above says "There are no other members on this band,
 no invented figures and no filler".
-`BUILD NOW`: `src/features/pulse/LiveTicker.tsx` lines 25 to 32 versus 126 to 134,
+`SHIPPED`, by labelling rather than removal: the founder asked for illustrative activity until there is real traffic, so each generated item now carries a visible Sample marker in `LiveTicker.tsx`, the stale doc comment is corrected, and the `Standards` line no longer makes a claim the same page contradicts.
 `src/features/pulse/sampleActivity.ts`
 
 **E7. The Discipline list on the landing page claims capabilities that do not
@@ -475,7 +475,7 @@ worked example says "$X of lifetime contribution clears the entry". As of today
 standing is measured on `Math.max(contributed, peakDeployed)`. Explain exists
 specifically so a member can check a figure, so a wrong formula there is worse
 than no formula.
-`BUILD NOW`: `src/features/explain/definitions.ts` lines 208 to 224 and 468 to 478,
+`SHIPPED`: `src/features/explain/definitions.ts` and `Provenance.tsx` state the real derivation, and `insights.ts` no longer prints arithmetic that does not add up.
 `src/features/explain/Provenance.tsx` lines 343 to 375,
 `src/features/ladder/Ladder.tsx` line 94, `src/features/ladder/plan.ts` lines 120 to 131
 
@@ -886,7 +886,7 @@ regression test for any of the bugs in this document. Adding Vitest and porting
 `src/lib/site-config.ts` and `src/lib/depositRef.ts` are imported by nothing but
 each other, and `src/assets/halcyon-crest.png`, `halcyon-lockup.png` and
 `halcyon-logo-master.jpg` are referenced by nothing at all.
-`BUILD NOW`: the paths above
+`SHIPPED`: all seven files and all three images removed across two commits.
 
 **K7. `src/lib/site-config.ts` still contains the predecessor's entire
 economics.** It exports `BRAND_NAME = "Halcyon"`, a hardcoded `BTC_RATE_USD =
@@ -894,7 +894,7 @@ economics.** It exports `BRAND_NAME = "Halcyon"`, a hardcoded `BTC_RATE_USD =
 size (5% a day at $40,000 rising to 6% a day at $500,000) with fabricated
 scarcity counts (`spots: 20, taken: 14`). It is dead code and it is a loaded gun
 pointed at the one rate rule. Delete it first.
-`BUILD NOW`: `src/lib/site-config.ts`
+`SHIPPED`: `src/lib/site-config.ts` is gone. The income categories worth keeping already live on the landing page in this product's voice.
 
 **K8. `wrangler.jsonc` is a leftover from a template.** It names the project
 "tanstack-start-app" and points `main` at `src/server.ts`, which does not exist.
@@ -919,7 +919,7 @@ distinction in the ledger.
 `npx eslint .` reports them in `src/features/echelon/Schedule.tsx` and
 `src/features/echelon/plan.ts`, all auto fixable. The rest of the repository is
 clean apart from seven react-refresh warnings that are structural and harmless.
-`BUILD NOW`: `src/features/echelon/`
+`SHIPPED`: `npx eslint src/` reports zero errors.
 
 **K12. Continuous integration that runs check, typecheck and lint on every
 push.** All three commands exist and pass today, and nothing enforces that they
@@ -957,7 +957,7 @@ and a full `routes/app/echelon.tsx` all exist, and none of them is mounted in
 execution path is not. It also still needs `echelon.open`, `Position.started` and
 `Snapshot.scheduled` in the ledger before a leg can be recorded with a future
 start date.
-`BUILD NOW`: `src/features/echelon/`, `src/routes/app/echelon.tsx`,
+`SHIPPED`: mounted at `/app/echelon` with a nav row, and `peakDeployedOf` was extracted into `src/domain/ledger.ts` so the planner and the ledger cannot disagree about the standing a plan reaches. The future dated start is still not modelled, so legs are planned and placed rather than scheduled.
 `src/main.tsx`, `src/domain/ledger.ts`
 
 **L3. Course, a schedule of placements the member fills by hand.** Landed during
@@ -1020,10 +1020,10 @@ Ten things, ranked. Not features that would be nice, but the absences that
 currently decide what Rigel can and cannot be.
 
 **1. Anywhere for a dollar to actually go.** There is no custody, no settlement,
-no chain watcher and no payment path. Five real addresses are printed on screen
-under an instruction to send funds to them, and nothing is watching any of them.
-Until this exists, every other number in the product is a rehearsal, and the
-addresses are an active hazard rather than a placeholder.
+no chain watcher and no payment path. The addresses that used to be printed on
+screen are gone, so the interface no longer invites anyone to send funds into
+nothing, but until this exists every other number in the product is a rehearsal
+and the funding surfaces have to keep saying so.
 
 **2. An account server, so identity and the ledger survive one browser.** The
 whole product is a single event log in `localStorage`. Clear site data and the
@@ -1066,13 +1066,12 @@ and every one of them is behind the Gate on a client rendered route, so none of
 it is reachable by search. It is the only continuously produced asset the product
 has and it is invisible.
 
-**9. Echelon's execution path.** The planner, the comparison arithmetic, the
-schedule component and an entire route are written, and none of it is mounted or
-reachable, and the ledger still has no `echelon.open` event, no
-`Position.started` and no `Snapshot.scheduled`. A member can plan a staggered
-placement and then has to open six positions by hand on six different days. This
-is the largest piece of finished thinking in the repository with no way to use
-it.
+**9. A future dated placement.** Echelon is now mounted and reachable, but the
+ledger still has no way to record a leg that starts later: there is no
+`echelon.open`, no `Position.started` and no `Snapshot.scheduled`. A member can
+plan a staggered placement and then has to open six positions by hand on six
+different days, which is the same gap Course has. Both instruments are complete
+as planners and neither can commit a date.
 
 **10. A migration plan for the event log.** The persisted array has no schema
 version, no member identifier and no conflict rule, so the day a server exists
