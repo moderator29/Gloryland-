@@ -23,7 +23,7 @@
  * pull a component into a module that is meant to be arithmetic.
  */
 
-import { DAY_MS } from "@/domain/ledger";
+import { DAY_MS, peakDeployedOf } from "@/domain/ledger";
 import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, type Tier } from "@/domain/tiers";
 import { MINIMUM_PLACEMENT, maxParts, stagger, type StaggerLeg } from "@/features/ladder/plan";
 import { days, money } from "@/components/system/format";
@@ -248,18 +248,9 @@ export type Steady = {
  * reads as if both were running at once.
  */
 function peakOf(legs: EchelonLeg[]): number {
-  const steps = [
-    ...legs.map((l) => ({ at: l.opensAt, delta: l.amount })),
-    ...legs.map((l) => ({ at: l.maturesAt, delta: -l.amount })),
-  ].sort((a, b) => a.at - b.at || a.delta - b.delta);
-
-  let running = 0;
-  let peak = 0;
-  for (const s of steps) {
-    running += s.delta;
-    if (running > peak) peak = running;
-  }
-  return peak;
+  return peakDeployedOf(
+    legs.map((l) => ({ at: l.opensAt, amount: l.amount, endsAt: l.maturesAt })),
+  );
 }
 
 /* ── The accrual series ─────────────────────────────────────────────────── */

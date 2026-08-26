@@ -362,6 +362,30 @@ function accruedAt(principal: number, openedAt: number, now: number, closedAt?: 
   return principal * DAILY_RATE * days;
 }
 
+/**
+ * The most capital deployed at one instant across a set of spans.
+ *
+ * Exported because a planner needs to know what standing a plan would reach
+ * before any of it exists in the log, and two implementations of this would
+ * eventually disagree. The tie break is the point: a term that settles at the
+ * same instant another opens must lower the running total first, otherwise
+ * that instant reads as if both were running and the peak lands at the sum.
+ */
+export function peakDeployedOf(spans: { at: number; amount: number; endsAt: number }[]): number {
+  const steps = [
+    ...spans.map((s) => ({ at: s.at, delta: s.amount })),
+    ...spans.map((s) => ({ at: s.endsAt, delta: -s.amount })),
+  ].sort((a, b) => a.at - b.at || a.delta - b.delta);
+
+  let running = 0;
+  let peak = 0;
+  for (const step of steps) {
+    running += step.delta;
+    if (running > peak) peak = running;
+  }
+  return peak;
+}
+
 /** Upper bound on a generated schedule, so an open ended course terminates. */
 const MAX_LEGS = 60;
 
@@ -494,23 +518,15 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   // The most principal that was ever deployed at one instant. Replayed rather
   // than accumulated, because a position that closed must lower the running
   // total before the next open raises it again.
-  let running = 0;
-  let peakDeployed = 0;
-  const timeline = [
-    ...opens.map((o) => ({ at: o.at, delta: o.amount })),
-    ...closes.map((c) => ({
-      at: c.at,
-      delta: -(opens.find((o) => o.id === c.positionId)?.amount ?? 0),
+  // A position that never closed is still running, so its span ends at the
+  // far future rather than at a date that would lower the peak early.
+  const peakDeployed = peakDeployedOf(
+    opens.map((o) => ({
+      at: o.at,
+      amount: o.amount,
+      endsAt: closedAtById.get(o.id) ?? Number.MAX_SAFE_INTEGER,
     })),
-  ]
-    // A roll settles and re-places in the same instant. Closing first is what
-    // stops that instant reading as if both terms were open at once, which
-    // would put the peak at the sum of the two rather than the larger.
-    .sort((a, b) => a.at - b.at || a.delta - b.delta);
-  for (const step of timeline) {
-    running += step.delta;
-    if (running > peakDeployed) peakDeployed = running;
-  }
+  );
 
   // Relays. The latest instruction per position wins, so a member can arm,
   // change mode and disarm without the log needing anything removed from it.

@@ -29,7 +29,7 @@ const STANDARDS: string[] = [
   `One rate across every tier, 1% daily for ${CYCLE_DAYS} days`,
   `Settlement targets published, from ${FASTEST_SETTLEMENT} hours`,
   "Risk stated plainly, not buried",
-  "No figure shown that the ledger cannot produce",
+  "Every figure of yours derived, anything illustrative labelled",
 ];
 
 export function Standards({ duration = 44, className = "" }: StandardsProps) {

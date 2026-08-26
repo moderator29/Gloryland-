@@ -12,6 +12,7 @@ import {
   Wand2,
   Layers,
   Scale,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLedger } from "@/hooks/useLedger";
@@ -37,6 +38,7 @@ export default function Desk() {
   const [addr, setAddr] = useState("");
 
   const copyAddress = async () => {
+    if (!funding.address) return;
     try {
       await navigator.clipboard.writeText(funding.address);
       setCopied(true);
@@ -143,18 +145,39 @@ export default function Desk() {
             ) : null;
           })()}
 
-          <div className="inset mt-3 p-3.5">
-            <p className="eyebrow flex items-center gap-1.5">
-              <QrCode className="h-3 w-3" /> {funding.network} address
-            </p>
-            <p className="machine mt-2 text-[11px] leading-relaxed text-[var(--text)]">
-              {funding.address}
-            </p>
-            <button onClick={copyAddress} className="btn btn-secondary mt-3 w-full !py-2 !text-xs">
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : "Copy address"}
-            </button>
-          </div>
+          {/* No address is shown unless one is actually configured. There is no
+              custody behind this build, so a copyable string here would be a
+              destination that nobody owns. */}
+          {funding.address ? (
+            <div className="inset mt-3 p-3.5">
+              <p className="eyebrow flex items-center gap-1.5">
+                <QrCode className="h-3 w-3" /> {funding.network} address
+              </p>
+              <p className="machine mt-2 text-[11px] leading-relaxed text-[var(--text)]">
+                {funding.address}
+              </p>
+              <button
+                onClick={copyAddress}
+                className="btn btn-secondary mt-3 w-full !py-2 !text-xs"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy address"}
+              </button>
+            </div>
+          ) : (
+            <div className="inset mt-3 flex items-start gap-2.5 p-3.5">
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warn)]"
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
+              <p className="text-xs leading-relaxed text-[var(--text-low)]">
+                Funding is not open in this build. There is no wallet behind the product yet and no
+                address that could receive a transfer, so none is shown. You can still open a vault
+                and watch a term run against your own ledger.
+              </p>
+            </div>
+          )}
 
           <Link to="/app/vaults/new" className="btn btn-primary mt-3 w-full">
             <Plus className="h-4 w-4" /> Open a vault

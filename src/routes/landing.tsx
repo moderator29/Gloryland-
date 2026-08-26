@@ -147,32 +147,32 @@ const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: ScrollText,
     title: "It will not edit history",
-    body: "Deposits, daily accrual, requests and settlements are appended as entries. Corrections are new entries too, so the record of a mistake survives the fix.",
-  },
-  {
-    icon: Lock,
-    title: "It will not send value somewhere new",
-    body: "Capital leaves only to destinations registered in advance, and a newly added destination waits behind a hold window before it can be used.",
-  },
-  {
-    icon: Fingerprint,
-    title: "It will not trust an unknown device",
-    body: "Actions that move value are tied to devices you have approved. An unrecognised device is enrolled through an existing one before it can act at all.",
-  },
-  {
-    icon: SquareStack,
-    title: "It will not let one role do everything",
-    body: "Internal roles carry the narrowest permissions that let them work, and no single role can both create a payout and approve it.",
-  },
-  {
-    icon: Network,
-    title: "It will not share a credential across a boundary",
-    body: "The systems holding key material are isolated from the systems serving the application, with nothing reused across that line.",
+    body: "Placements, claims, settlements and instructions are appended as entries and nothing is ever removed. Corrections are new entries too, so the record of a mistake survives the fix.",
   },
   {
     icon: Check,
-    title: "It will not act on your behalf",
-    body: "Nothing renews, reallocates or reinvests by itself. Every movement of capital starts from an instruction you gave, including the ones you might have wanted automated.",
+    title: "It will not print a figure it cannot derive",
+    body: "Every number on your surfaces is replayed from your own entries by one function. Where the product shows illustrative activity rather than observed activity, it is labelled in place.",
+  },
+  {
+    icon: SquareStack,
+    title: "It will not pay more for size",
+    body: `Core and Sovereign earn the identical ${TERM_RATE} across ${CYCLE_DAYS} days. A larger position buys a faster settlement target and more tooling, and nothing else.`,
+  },
+  {
+    icon: Lock,
+    title: "It will not act without an instruction you gave",
+    body: "Nothing renews or reallocates on its own. A relay only runs where you armed one, it says before you arm it that it will write without asking again, and it can be disarmed at any point before it fires.",
+  },
+  {
+    icon: Fingerprint,
+    title: "It will not hold a secret it could lose",
+    body: "There is no password, no recovery question and no stored credential, because there is no account server to hold one. Your identity and your ledger live in your own browser, and the product says so on the screens where it matters.",
+  },
+  {
+    icon: Network,
+    title: "It will not take money it cannot hold",
+    body: "No deposit address is shown until there is custody behind it. An interface that displays a destination it does not control is how people lose funds, so this one shows none.",
   },
   {
     icon: ShieldCheck,
@@ -180,7 +180,6 @@ const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
     body: "No licence, insurer, auditor, regulator, custodian or press mention is claimed anywhere on this site, because none has been published as a document you could verify.",
   },
 ];
-
 export default function Landing() {
   return (
     <div className="min-h-screen bg-[var(--ink-000)] text-[var(--text)]">

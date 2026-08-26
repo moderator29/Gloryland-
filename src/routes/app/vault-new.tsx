@@ -42,11 +42,12 @@ export default function VaultNew() {
       }
     })();
   const rolledFrom = params.get("from");
-  // A roll settles an existing term and re-places the same capital, so it is
-  // funded from the balance rather than from money arriving from outside. The
-  // ledger has to know the difference, otherwise the same capital is counted
-  // twice and tier standing climbs on money that was only deposited once.
-  const fromBalance = rolledFrom !== null;
+  // Two paths place capital that is already in the account: a roll, which
+  // settles a term and re-places it, and redeploying idle cash. Both must be
+  // marked, otherwise the same capital is counted twice and tier standing
+  // climbs on money that was only ever deposited once. Anything else is money
+  // arriving from outside and does raise contribution.
+  const fromBalance = rolledFrom !== null || params.get("source") === "balance";
   // A leg is only marked filled by the placement that fills it, written in the
   // same commit, so the schedule can never claim a leg that has no position.
   const courseId = params.get("course");
@@ -71,6 +72,7 @@ export default function VaultNew() {
   const valid = value >= minimum && tier !== null;
 
   const copyAddress = async () => {
+    if (!meta.address) return;
     try {
       await navigator.clipboard.writeText(meta.address);
       setCopied(true);
@@ -315,14 +317,28 @@ export default function VaultNew() {
                 </div>
               </div>
 
-              <p className="eyebrow mt-4">{meta.network} address</p>
-              <p className="inset mt-2 break-all p-3 font-mono text-[11px] leading-relaxed text-[var(--text)]">
-                {meta.address}
-              </p>
-              <button onClick={copyAddress} className="btn btn-secondary mt-2.5 w-full">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied" : "Copy address"}
-              </button>
+              {/* Absent unless a real address is configured. There is no custody
+                  behind this build, so a string here would be a destination
+                  nobody owns, and the step below still records the placement
+                  against the member's own ledger. */}
+              {meta.address ? (
+                <>
+                  <p className="eyebrow mt-4">{meta.network} address</p>
+                  <p className="machine inset mt-2 p-3 text-[11px] leading-relaxed text-[var(--text)]">
+                    {meta.address}
+                  </p>
+                  <button onClick={copyAddress} className="btn btn-secondary mt-2.5 w-full">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copied" : "Copy address"}
+                  </button>
+                </>
+              ) : (
+                <p className="inset mt-4 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
+                  Funding is not open in this build. There is no wallet behind the product yet and
+                  no address that could receive a transfer, so none is shown. Continuing still opens
+                  the term against your own ledger so you can watch it run.
+                </p>
+              )}
             </section>
 
             <section className="panel p-5">

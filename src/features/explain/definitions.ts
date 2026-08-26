@@ -197,7 +197,7 @@ const REGISTRY: Record<FigureId, Definition> = {
       "Deployed principal is the sum of principal across vaults that are still open.",
       "Unclaimed rewards is lifetime accrued less everything already claimed, floored at zero.",
       "Available cash is settled money that has not been withdrawn.",
-      "Withdrawn money is not counted. It has left the portfolio, and it is added back only when measuring net gain against lifetime contribution.",
+      "Withdrawn money is not counted. It has left the portfolio, and it is added back only when measuring net gain against the capital you brought in.",
     ],
     caveats: [
       "Settling a vault does not move the total. The principal simply stops counting as deployed and starts counting as available.",
@@ -208,12 +208,14 @@ const REGISTRY: Record<FigureId, Definition> = {
   standing: {
     id: "standing",
     label: "Standing",
-    short: "The rung of the ladder your lifetime contribution has reached.",
-    formula: "standing = the highest tier whose entry your lifetime contribution clears",
+    short: "The rung of the ladder your standing figure has reached.",
+    formula: "standing = max(capital brought in, most ever deployed at once)",
     how: [
-      "Lifetime contribution is the sum of every open event's amount, including vaults you have since settled.",
-      `The ladder is walked in order and the highest entry the total clears wins: ${LADDER}.`,
-      "Because it is measured on contribution rather than on current balance, standing does not fall when you settle a position or withdraw cash.",
+      "Capital brought in is the sum of every placement funded from outside the account. A placement funded from your own balance is excluded, because that money was already counted when it first arrived.",
+      "Most ever deployed at once replays your opens and settlements in order and records the highest total that was running at any single instant.",
+      "Standing is the greater of the two. Taking the greater is what lets a member who compounds keep climbing, since a rolled term brings in no new capital, while neither figure can be inflated by moving the same money in a circle.",
+      `The ladder is walked in order and the highest entry that standing clears wins: ${LADDER}.`,
+      "Because neither figure falls, standing does not drop when you settle a position or withdraw cash.",
       "Progress to the next rung is the distance travelled from your current entry toward the next entry, as a fraction of the gap between them.",
     ],
     caveats: [
@@ -467,13 +469,13 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
 
     case "standing": {
       if (principal < ENTRY.entry) {
-        return `${lead}${money(principal)} of lifetime contribution sits below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so standing reads as unranked.`;
+        return `${lead}a standing of ${money(principal)} sits below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so it reads as unranked.`;
       }
       const up = nextTier(tier.id);
       const tail = up
         ? `, with ${money(Math.max(0, up.entry - principal))} of further contribution to ${up.name}`
         : ", the top of the ladder";
-      return `${lead}${money(principal)} of lifetime contribution clears the ${money(tier.entry)} entry for ${tier.name}${tail}.`;
+      return `${lead}a standing of ${money(principal)} clears the ${money(tier.entry)} entry for ${tier.name}${tail}.`;
     }
 
     case "settlementTarget": {

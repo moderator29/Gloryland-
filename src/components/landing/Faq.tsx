@@ -135,9 +135,11 @@ const GROUPS: Group[] = [
         a: (
           <>
             Nothing happens, which is the design. A matured position stops accruing and waits. It
-            does not roll into a new term, it does not reallocate and it does not settle itself. It
-            holds principal plus reward until you claim, settle or open a new term. Capital that is
-            not inside a term is not accruing, so leaving it there is a decision with a cost.
+            does not reallocate and it does not settle itself, and it holds principal plus reward
+            until you claim, settle or open a new term. The one exception is a relay, which only
+            runs on a position where you armed one and which tells you, before you arm it, that it
+            will write to your ledger without asking again. Capital that is not inside a term is not
+            accruing, so leaving it there is a decision with a cost.
           </>
         ),
       },

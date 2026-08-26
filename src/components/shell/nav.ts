@@ -14,6 +14,7 @@ import {
   UsersRound,
   CalendarRange,
   Route,
+  AlignVerticalDistributeCenter,
   Compass,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +38,7 @@ export const NAV: NavGroup[] = [
       { to: "/app/rewards", label: "Yield", icon: Gift },
       { to: "/app/horizon", label: "Horizon", icon: CalendarRange },
       { to: "/app/course", label: "Course", icon: Route },
+      { to: "/app/echelon", label: "Echelon", icon: AlignVerticalDistributeCenter },
       { to: "/app/market", label: "Markets", icon: CandlestickChart },
     ],
   },

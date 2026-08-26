@@ -57,6 +57,7 @@ export default function MarketDetail() {
   const tint = up ? "var(--gain)" : "var(--loss)";
 
   const copyAddress = async () => {
+    if (!meta.address) return;
     try {
       await navigator.clipboard.writeText(meta.address);
       setCopied(true);
@@ -223,29 +224,41 @@ export default function MarketDetail() {
       <section className="panel p-5">
         <p className="eyebrow">Fund with {meta.symbol}</p>
         <p className="mt-1.5 text-xs text-[var(--text-low)]">{meta.network}</p>
-        <p className="inset mt-3 break-all p-3 font-mono text-[11px] leading-relaxed text-[var(--text)]">
-          {meta.address}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={copyAddress} className="btn btn-secondary flex-1">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={copied ? "y" : "n"}
-                initial={reduce ? false : { opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
-                transition={{ duration: reduce ? 0 : 0.14 }}
-                className="inline-flex items-center gap-2"
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied" : "Copy address"}
-              </motion.span>
-            </AnimatePresence>
-          </button>
-          <Link to="/app/vaults/new" className="btn btn-primary flex-1">
-            Open a vault
-          </Link>
-        </div>
+        {/* Absent unless a real address is configured. There is no custody
+                  behind this build, so a string here would be a destination
+                  nobody owns. */}
+        {meta.address ? (
+          <>
+            <p className="inset mt-3 break-all p-3 font-mono text-[11px] leading-relaxed text-[var(--text)]">
+              {meta.address}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={copyAddress} className="btn btn-secondary flex-1">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={copied ? "y" : "n"}
+                    initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
+                    transition={{ duration: reduce ? 0 : 0.14 }}
+                    className="inline-flex items-center gap-2"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copied" : "Copy address"}
+                  </motion.span>
+                </AnimatePresence>
+              </button>
+              <Link to="/app/vaults/new" className="btn btn-primary flex-1">
+                Open a vault
+              </Link>
+            </div>
+          </>
+        ) : (
+          <p className="inset mt-3 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
+            Funding is not open in this build. There is no wallet behind the product yet and no
+            address that could receive a transfer, so none is shown.
+          </p>
+        )}
       </section>
 
       <p className="pb-2 text-center text-[11px] text-[var(--text-low)]">

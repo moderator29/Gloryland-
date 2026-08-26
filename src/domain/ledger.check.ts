@@ -221,8 +221,16 @@ console.log("\n9. Courses");
 {
   const courseSet = (at: number, legs: number, every = 7, amount = 400): LedgerEvent =>
     ({
-      id: "cs", kind: "course.set", at, courseId: "c1", amount, everyDays: every,
-      legs, startAt: at, asset: "USDT", network: "TRC20",
+      id: "cs",
+      kind: "course.set",
+      at,
+      courseId: "c1",
+      amount,
+      everyDays: every,
+      legs,
+      startAt: at,
+      asset: "USDT",
+      network: "TRC20",
     }) as LedgerEvent;
   const fill = (id: string, at: number, leg: number, positionId: string): LedgerEvent =>
     ({ id, kind: "course.fill", at, courseId: "c1", leg, positionId }) as LedgerEvent;
@@ -259,7 +267,10 @@ console.log("\n9. Courses");
 
   // Stopping ends it without deleting the history.
   const stopped = derive(
-    [courseSet(T0, 25), { id: "st", kind: "course.stop", at: day(20), courseId: "c1" } as LedgerEvent],
+    [
+      courseSet(T0, 25),
+      { id: "st", kind: "course.stop", at: day(20), courseId: "c1" } as LedgerEvent,
+    ],
     day(30),
   );
   is("no longer active", stopped.activeCourse, null);
@@ -272,7 +283,10 @@ console.log("\n9. Courses");
 
   // A later instruction replaces the terms without a second course appearing.
   const changed = derive(
-    [courseSet(T0, 25), { ...(courseSet(day(10), 12, 14, 1000) as object), id: "cs2" } as LedgerEvent],
+    [
+      courseSet(T0, 25),
+      { ...(courseSet(day(10), 12, 14, 1000) as object), id: "cs2" } as LedgerEvent,
+    ],
     day(10),
   );
   is("still one course", changed.courses.length, 1);

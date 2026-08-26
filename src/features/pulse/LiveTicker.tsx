@@ -24,11 +24,17 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 /**
  * The live band.
  *
- * Every item on it is the member's own. Accrual comes from the daily rate the
- * ledger derives, events come from the ledger itself, countdowns come from
- * recorded maturity dates and standing comes from lifetime contribution. There
- * are no other members on this band, no invented figures and no filler: an
- * empty ledger shows an invitation rather than manufactured motion.
+ * Two kinds of item share it, and they are not interchangeable.
+ *
+ * The member's own: accrual from the daily rate the ledger derives, events
+ * from the ledger itself, countdowns from recorded maturity dates, standing
+ * from the derived standing figure. Every one of those is real.
+ *
+ * And illustrative platform activity, which is generated rather than observed,
+ * because the platform has no traffic to show yet. Those items carry a visible
+ * sample marker, because a name and a city read as a person and a member
+ * should never have to guess which half of the band is theirs. See
+ * sampleActivity.ts, which is the only file that produces them.
  */
 
 type TickerItem = {
@@ -37,6 +43,8 @@ type TickerItem = {
   label: string;
   value: string;
   tone: "accent" | "gain" | "warn" | "plain";
+  /** Generated rather than observed, and marked as such on screen. */
+  sample?: boolean;
 };
 
 const TONE: Record<TickerItem["tone"], string> = {
@@ -127,9 +135,9 @@ function useSecond(enabled: boolean): number {
 function buildItems(snap: Snapshot, now: number): TickerItem[] {
   const items: TickerItem[] = [];
 
-  // Illustrative platform activity, interleaved so the band has motion before
-  // the platform has traffic. Everything below this block derives from the
-  // member's own ledger. See sampleActivity.ts for what this is and is not.
+  // Illustrative platform activity, so the band has motion before the platform
+  // has traffic. Marked, because everything below this block is the member's
+  // own and the two must be told apart at a glance.
   for (const s of sampleActivity(8, now)) {
     items.push({
       id: s.id,
@@ -137,6 +145,7 @@ function buildItems(snap: Snapshot, now: number): TickerItem[] {
       label: `${s.name}, ${s.city}`,
       value: `${describeSample(s)} ${money(s.amount)}`,
       tone: s.kind === "claimed" ? "gain" : "plain",
+      sample: true,
     });
   }
 
@@ -218,6 +227,14 @@ function Item({ item }: { item: TickerItem }) {
     <span className="min-h-[36px] mr-2 inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-3 py-1.5">
       <Icon className={`h-3.5 w-3.5 shrink-0 ${TONE[item.tone]}`} strokeWidth={1.9} />
       <span className="whitespace-nowrap text-[12px] text-[var(--text-mid)]">{item.label}</span>
+      {item.sample && (
+        <span
+          className="whitespace-nowrap rounded border border-[var(--line)] px-1 py-px text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-low)]"
+          title="Generated for illustration, not observed activity"
+        >
+          Sample
+        </span>
+      )}
       <span className={`tabular whitespace-nowrap text-[12px] font-semibold ${TONE[item.tone]}`}>
         {item.value}
       </span>

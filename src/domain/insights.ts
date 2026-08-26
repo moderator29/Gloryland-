@@ -196,11 +196,9 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
       id: "tier-proximity",
       kind: "milestone",
       title: `${money(toNext)} from ${next.name}`,
-      body: `Lifetime contribution stands at ${money(
-        num(snap.contributed),
-      )} against the ${money(next.entry)} ${next.name} entry. ${money(
-        toNext,
-      )} more unlocks ${next.settlementHours}h settlement.`,
+      body: `Your standing is ${money(num(snap.standing))} against the ${money(
+        next.entry,
+      )} ${next.name} entry. ${money(toNext)} more unlocks ${next.settlementHours}h settlement.`,
       action: { label: "See the ladder", to: "/app/tiers" },
       priority: P.tier,
     });

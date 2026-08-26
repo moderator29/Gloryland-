@@ -344,9 +344,21 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
       const opens = s.events.filter((e) => e.kind === "open").length;
       return [
         {
-          label: "Lifetime contribution",
-          detail: `${opens} open event${opens === 1 ? "" : "s"}, summed. Settled vaults stay in the total.`,
+          label: "Capital brought in",
+          detail: `From ${opens} placement${opens === 1 ? "" : "s"}. Anything funded from your own balance is left out, because it was counted when it first arrived.`,
           value: money(s.contributed),
+        },
+        {
+          label: "Most ever deployed at once",
+          detail:
+            "Your opens and settlements replayed in order, taking the highest total running at any one instant.",
+          value: money(s.peakDeployed),
+        },
+        {
+          label: "Standing is the greater of the two",
+          detail:
+            "Taking the greater lets compounding keep climbing, and stops the same money buying a rung twice.",
+          value: money(s.standing),
         },
         {
           label: "The ladder",
@@ -362,13 +374,13 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
         {
           label: "Distance to next",
           detail: s.nextTier
-            ? `Further contribution required to reach ${s.nextTier.name}.`
+            ? `Further standing required to reach ${s.nextTier.name}.`
             : "There is no rung above this one.",
           value: s.nextTier ? money(s.toNextTier) : "top rung",
         },
         {
           label: "Standing",
-          detail: "Measured on contribution, so it does not fall when you settle or withdraw.",
+          detail: "Neither input falls, so standing never drops when you settle or withdraw.",
           value: s.tier ? s.tier.name : "Unranked",
           tone: "accent",
         },

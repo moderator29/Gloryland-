@@ -70,7 +70,7 @@ export function Redeploy({ snap, className = "" }: RedeployProps) {
           </div>
 
           <Link
-            to={`/app/vaults/new?amount=${placeable}`}
+            to={`/app/vaults/new?amount=${placeable}&source=balance`}
             className="btn btn-primary mt-4 w-full sm:w-auto"
           >
             Redeploy {money(placeable)}
