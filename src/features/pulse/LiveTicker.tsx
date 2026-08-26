@@ -174,7 +174,7 @@ function buildItems(snap: Snapshot, now: number): TickerItem[] {
   }
 
   // 4. Standing on the ladder, and how close the next rung is.
-  if (snap.tier || snap.contributed > 0) {
+  if (snap.tier || snap.standing > 0) {
     items.push({
       id: "tier",
       icon: Layers,
@@ -259,7 +259,7 @@ function Marquee({ items }: { items: TickerItem[] }) {
   return (
     <div
       ref={viewport}
-      className="relative min-w-0 flex-1 overflow-hidden"
+      className="fade-x relative min-w-0 flex-1 overflow-hidden"
       style={{
         WebkitMaskImage:
           "linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent)",
@@ -311,7 +311,7 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
 
       {hasSomething ? (
         reduce ? (
-          <div className="no-bar flex min-w-0 flex-1 items-center overflow-x-auto">
+          <div className="no-bar fade-x flex min-w-0 flex-1 items-center overflow-x-auto">
             {items.map((item) => (
               <Item key={item.id} item={item} />
             ))}

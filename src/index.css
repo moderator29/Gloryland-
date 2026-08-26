@@ -1,3 +1,5 @@
+@import "./fonts.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,6 +39,11 @@
     --loss: #f87171;
     --warn: #fbbf24;
 
+    /* ── Type: three families, each with one job ── */
+    --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
     /* ── Lines and glass ── */
     --line: rgba(120, 160, 220, 0.13);
     --line-hi: rgba(120, 170, 240, 0.26);
@@ -72,11 +79,7 @@
   }
 
   html {
-    font-family:
-      "Inter",
-      system-ui,
-      -apple-system,
-      sans-serif;
+    font-family: var(--font-ui);
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
@@ -127,32 +130,187 @@
      Three levels only. Panels hold content, insets hold data inside panels,
      and the raised variant is reserved for things that float above the page. */
 
+  /* Every surface is built from the same three ingredients, so they read as
+     one material at different depths:
+       1. a brand tint at the top that fades out before the middle,
+       2. a one pixel inner highlight along the top edge, the stride, which is
+          what makes an edge look lit rather than drawn,
+       3. a long soft shadow underneath.
+     Blur is deliberately NOT in that list. A page can hold thirty panels, and
+     thirty compositing layers is what makes a phone stutter, so blur is spent
+     only on surfaces that actually float. */
+
   .panel {
-    background: linear-gradient(180deg, rgba(24, 33, 56, 0.55), rgba(11, 16, 32, 0.72));
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(46, 139, 255, 0.05), transparent 38%),
+      linear-gradient(180deg, rgba(26, 36, 61, 0.62), rgba(10, 15, 30, 0.76));
     border: 1px solid var(--line);
-    border-radius: 1rem;
+    border-radius: 1.1rem;
+    box-shadow:
+      inset 0 1px 0 rgba(190, 220, 255, 0.07),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+      0 18px 44px -28px rgba(0, 0, 0, 0.85);
   }
 
   .panel-hi {
-    background: linear-gradient(180deg, rgba(30, 42, 70, 0.7), rgba(13, 19, 37, 0.8));
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(46, 139, 255, 0.09), transparent 42%),
+      linear-gradient(180deg, rgba(32, 45, 76, 0.76), rgba(12, 18, 36, 0.84));
     border: 1px solid var(--line-hi);
-    border-radius: 1rem;
-    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+    border-radius: 1.1rem;
+    box-shadow:
+      inset 0 1px 0 rgba(200, 226, 255, 0.11),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+      0 28px 66px -30px rgba(0, 0, 0, 0.92);
   }
 
   .inset {
-    background: rgba(5, 7, 15, 0.5);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 50%), rgba(5, 7, 15, 0.55);
     border: 1px solid var(--line);
-    border-radius: 0.75rem;
+    border-radius: 0.8rem;
+    box-shadow: inset 0 1px 0 rgba(160, 195, 240, 0.045);
   }
 
   /* Floating surfaces are the only place blur is paid for. */
   .raised {
-    background: var(--glass-hi);
+    background: linear-gradient(180deg, rgba(46, 139, 255, 0.08), transparent 40%), var(--glass-hi);
     border: 1px solid var(--line-hi);
-    backdrop-filter: blur(16px) saturate(150%);
-    -webkit-backdrop-filter: blur(16px) saturate(150%);
-    box-shadow: 0 30px 70px -25px rgba(0, 0, 0, 0.95);
+    border-radius: 1.1rem;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow:
+      inset 0 1px 0 rgba(210, 232, 255, 0.13),
+      0 30px 70px -25px rgba(0, 0, 0, 0.95);
+  }
+
+  /* The hero material. Same recipe as .panel with the blur paid for and the
+     stride made visible, for the few surfaces that carry a page. */
+  .glass {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(46, 139, 255, 0.08), transparent 46%),
+      linear-gradient(155deg, rgba(34, 211, 238, 0.05), transparent 34%),
+      linear-gradient(180deg, rgba(28, 39, 66, 0.66), rgba(9, 13, 27, 0.8));
+    border: 1px solid var(--line-hi);
+    border-radius: 1.35rem;
+    backdrop-filter: blur(22px) saturate(165%);
+    -webkit-backdrop-filter: blur(22px) saturate(165%);
+    box-shadow:
+      inset 0 1px 0 rgba(214, 234, 255, 0.14),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+      0 34px 80px -34px rgba(0, 0, 0, 0.95);
+  }
+
+  /* The stride: a raking band of light across the upper left, the thing that
+     separates a glass surface from a grey rectangle. Purely decorative, so it
+     is inert to the pointer and invisible to assistive technology. */
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: -40% -10% auto -10%;
+    height: 150%;
+    background: linear-gradient(
+      104deg,
+      transparent 12%,
+      rgba(190, 222, 255, 0.055) 34%,
+      rgba(190, 222, 255, 0.02) 44%,
+      transparent 58%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Grain. A large flat gradient bands on an OLED phone, and a trace of noise
+     is what stops it. Small enough to be felt rather than seen. */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::after,
+  .glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* A light sweep on hover, for surfaces that are also links. Transform only,
+     so it never lays out and never repaints the content underneath. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 45%;
+    background: linear-gradient(100deg, transparent, rgba(190, 222, 255, 0.07), transparent);
+    transform: translateX(-160%) skewX(-14deg);
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .sheen:hover::after,
+  .sheen:focus-visible::after {
+    transform: translateX(320%) skewX(-14deg);
+  }
+
+  /* Fade a scroll container's edges so clipped content reads as "there is
+     more" rather than as a broken layout. Vertical and horizontal variants. */
+  .fade-y {
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 14px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 14px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+  }
+
+  .fade-x {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 22px,
+      #000 calc(100% - 22px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 22px,
+      #000 calc(100% - 22px),
+      transparent 100%
+    );
+  }
+
+  /* A hairline that carries brand light rather than sitting flat. */
+  .rule-glow {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--line-hi) 18%,
+      rgba(46, 139, 255, 0.45) 50%,
+      var(--line-hi) 82%,
+      transparent
+    );
   }
 
   /* A hairline of brand light along the top edge of a surface. */
@@ -285,6 +443,7 @@
   /* ── Type scale ────────────────────────────────────────────────────── */
 
   .eyebrow {
+    font-family: var(--font-display);
     font-size: 0.625rem;
     font-weight: 600;
     letter-spacing: 0.22em;
@@ -293,6 +452,7 @@
   }
 
   .display {
+    font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.03em;
     line-height: 1.02;
@@ -300,10 +460,20 @@
   }
 
   .metric {
+    font-family: var(--font-display);
     font-variant-numeric: tabular-nums slashed-zero;
     font-weight: 600;
     letter-spacing: -0.025em;
     color: var(--text-hi);
+  }
+
+  /* Machine text: addresses, transaction ids, anything meant to be compared
+     character by character rather than read as a word. */
+  .machine {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: -0.01em;
+    word-break: break-all;
   }
 
   .text-accent-gradient {
@@ -448,6 +618,7 @@
   }
 
   .band-title {
+    font-family: var(--font-display);
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -571,6 +742,7 @@
      and still clears a 360px viewport with room to spare. */
   .figure-lead {
     display: block;
+    font-family: var(--font-display);
     max-width: 100%;
     font-size: clamp(2rem, 9vw, 4.5rem);
     font-variant-numeric: tabular-nums slashed-zero;
@@ -590,6 +762,7 @@
   /* The same treatment one step down, for the lead figure of a bento cell. */
   .figure-mid {
     display: block;
+    font-family: var(--font-display);
     max-width: 100%;
     font-size: clamp(1.5rem, 5vw, 2.25rem);
     font-variant-numeric: tabular-nums slashed-zero;

@@ -42,6 +42,9 @@ const AnalyticsPage = lazy(() => import("./routes/app/analytics"));
 const Insights = lazy(() => import("./routes/app/insights"));
 const Activity = lazy(() => import("./routes/app/activity"));
 const OrientationRoute = lazy(() => import("./routes/app/orientation"));
+const Glossary = lazy(() => import("./routes/app/glossary"));
+const Atlas = lazy(() => import("./routes/app/atlas"));
+const HorizonRoute = lazy(() => import("./routes/app/horizon"));
 const Signal = lazy(() => import("./routes/app/signal"));
 const SignalPost = lazy(() => import("./routes/app/signal-post"));
 const Market = lazy(() => import("./routes/app/market"));
@@ -328,6 +331,30 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Support />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="atlas"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Atlas />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="horizon"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <HorizonRoute />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="glossary"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Glossary />
                     </Suspense>
                   }
                 />

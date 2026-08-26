@@ -10,6 +10,7 @@ import { MarketTicker } from "@/features/market";
 import { LocalLedgerNotice } from "./LocalLedgerNotice";
 import { Aperture } from "@/features/onboarding";
 import { InstallPrompt, ScrollRail, Wayfinder } from "@/features/utility";
+import { Palette } from "@/features/atlas";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const COLLAPSE_KEY = "rgl_sidebar_collapsed";
@@ -65,6 +66,9 @@ export function AppShell() {
     <div className="relative min-h-screen bg-[var(--ink-000)]">
       {/* Played once a session, before anything else is readable. */}
       <Aperture />
+      {/* The one overlay in the product, because a launcher is not a
+          destination. Cmd+K anywhere, or "/" outside a text field. */}
+      <Palette />
       <Ambience />
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
@@ -82,7 +86,6 @@ export function AppShell() {
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--line)] bg-[rgba(5,7,15,0.82)] px-4 backdrop-blur-xl sm:px-6">
           <MobileMenuButton />
           <div className="ml-auto flex items-center gap-2">
-            <Wayfinder />
             <Link to="/app/vaults/new" className="btn btn-primary !py-2 !text-[13px]">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Vault</span>
@@ -112,6 +115,11 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      {/* Floating, so it must sit outside the header: that element sets
+          backdrop-filter, which makes it a containing block for fixed
+          children and would pin this to the header rather than the viewport. */}
+      <Wayfinder />
 
       <MobileTabs />
     </div>

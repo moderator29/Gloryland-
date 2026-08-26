@@ -9,14 +9,14 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /** Identity, current standing, and the account actions, behind one control. */
 export function AccountMenu() {
-  const { username, logout } = useUser();
+  const { username, member, initials: memberInitials, logout } = useUser();
   const snap = useLedger();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const [armed, requestLogout] = useArmedAction(logout);
 
-  const initial = (username || "").trim().charAt(0).toUpperCase() || "R";
+  const initial = memberInitials || (username || "").trim().charAt(0).toUpperCase() || "R";
 
   useEffect(() => {
     if (!open) return;
@@ -65,6 +65,9 @@ export function AccountMenu() {
           >
             <div className="mb-2 rounded-xl border border-[var(--line)] bg-[rgba(5,7,15,0.5)] p-3">
               <p className="text-sm font-semibold text-[var(--text-hi)]">{username || "Member"}</p>
+              {member && (
+                <p className="machine mt-0.5 text-[var(--text-low)]">@{member.username}</p>
+              )}
               <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--accent-hi)]">
                 <ShieldCheck className="h-3 w-3" />
                 {snap.tier ? `${snap.tier.name} tier` : "No tier yet"}

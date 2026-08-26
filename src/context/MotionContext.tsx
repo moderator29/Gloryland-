@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 
 export type MotionLevel = "solo" | "vibe" | "cinema";
 
-const KEY = "hal_motion_level_v1";
+const KEY = "rgl_motion_v1";
 
 type Ctx = {
   level: MotionLevel;

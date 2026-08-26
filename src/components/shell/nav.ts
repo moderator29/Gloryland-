@@ -12,6 +12,9 @@ import {
   LifeBuoy,
   Settings,
   UsersRound,
+  CalendarRange,
+  Compass,
+  BookMarked,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,7 +34,8 @@ export const NAV: NavGroup[] = [
       { to: "/app/desk", label: "Desk", icon: Terminal },
       { to: "/app/vaults", label: "Vaults", icon: Landmark },
       { to: "/app/tiers", label: "Tiers", icon: Layers },
-      { to: "/app/rewards", label: "Rewards", icon: Gift },
+      { to: "/app/rewards", label: "Yield", icon: Gift },
+      { to: "/app/horizon", label: "Horizon", icon: CalendarRange },
       { to: "/app/market", label: "Markets", icon: CandlestickChart },
     ],
   },
@@ -39,9 +43,9 @@ export const NAV: NavGroup[] = [
     heading: "Intelligence",
     items: [
       { to: "/app/signal", label: "Signal", icon: Radio },
-      { to: "/app/insights", label: "Insights", icon: Sparkles },
-      { to: "/app/analytics", label: "Analytics", icon: ChartLine },
-      { to: "/app/activity", label: "Activity", icon: Receipt },
+      { to: "/app/insights", label: "Insight", icon: Sparkles },
+      { to: "/app/analytics", label: "Telemetry", icon: ChartLine },
+      { to: "/app/activity", label: "Ledger", icon: Receipt },
     ],
   },
   {
@@ -55,6 +59,8 @@ export const NAV: NavGroup[] = [
     heading: "Account",
     items: [
       { to: "/app/circle", label: "Circle", icon: UsersRound },
+      { to: "/app/atlas", label: "Atlas", icon: Compass },
+      { to: "/app/glossary", label: "Glossary", icon: BookMarked },
       { to: "/app/settings", label: "Settings", icon: Settings },
     ],
   },
@@ -65,5 +71,5 @@ export const MOBILE_TABS: NavItem[] = [
   { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
   { to: "/app/desk", label: "Desk", icon: Terminal },
   { to: "/app/vaults", label: "Vaults", icon: Landmark },
-  { to: "/app/rewards", label: "Rewards", icon: Gift },
+  { to: "/app/rewards", label: "Yield", icon: Gift },
 ];

@@ -79,7 +79,9 @@ export function Explain({ id, ctx, className = "", align = "start" }: ExplainPro
                 strokeWidth={1.8}
                 aria-hidden="true"
               />
-              <span className="min-w-0 text-[11px] leading-relaxed text-[var(--text-low)]">{c}</span>
+              <span className="min-w-0 text-[11px] leading-relaxed text-[var(--text-low)]">
+                {c}
+              </span>
             </li>
           ))}
         </ul>
@@ -94,11 +96,11 @@ export function Explain({ id, ctx, className = "", align = "start" }: ExplainPro
     </div>
   );
 
-  const region = (
-    <div id={panelId} role="region" aria-label={`How ${def.label} is calculated`}>
-      {body}
-    </div>
-  );
+  // No landmark role here on purpose. A page can carry half a dozen of these
+  // beside its metrics, and six extra regions would clutter the landmark list
+  // for no gain: aria-expanded plus aria-controls already describe the
+  // relationship between the glyph and what it opens.
+  const region = <div id={panelId}>{body}</div>;
 
   // Reduced motion skips framer-motion outright rather than running it at zero
   // duration, so nothing measures a height it is not going to animate.

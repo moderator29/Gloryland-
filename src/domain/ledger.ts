@@ -38,6 +38,19 @@ export type LedgerEvent =
       tierId: TierId;
       asset: string;
       network: string;
+      /**
+       * True when this position was funded from the balance already in the
+       * account rather than from money brought in from outside.
+       *
+       * Without it the two cases are indistinguishable, and settling a term
+       * then re-placing the same capital counted as if fresh money had
+       * arrived: the balance was credited on settlement and never debited on
+       * placement, so the portfolio doubled on every roll and tier standing
+       * climbed on money that was only ever deposited once. Absent means
+       * external, which is how every event written before this field existed
+       * was treated.
+       */
+      fromAvailable?: boolean;
     }
   /** Accrued rewards moved from a position into available cash. */
   | { id: string; kind: "claim"; at: number; amount: number; positionId: string }
@@ -89,8 +102,18 @@ export type Snapshot = {
   withdrawn: number;
   /** Everything the member owns right now. */
   portfolioValue: number;
-  /** Capital they have ever put in. */
+  /** External capital ever brought in. Excludes anything re-placed from the
+   *  account balance, which is money that was already counted once. */
   contributed: number;
+  /** The most principal ever deployed at one time. */
+  peakDeployed: number;
+  /**
+   * What tier standing is measured on: the greater of external capital and
+   * peak deployed. Contribution alone would strand a member who compounds,
+   * and peak alone would ignore capital that was settled and withdrawn.
+   * Neither figure can be inflated by moving the same money in a circle.
+   */
+  standing: number;
   /** portfolioValue + withdrawn - contributed. */
   netGain: number;
   /** netGain as a fraction of contributed. */
@@ -99,7 +122,7 @@ export type Snapshot = {
   dailyRate: number;
   tier: Tier | null;
   nextTier: Tier | null;
-  /** 0..1 toward the next tier's entry, by lifetime contribution. */
+  /** 0..1 toward the next tier's entry, measured on `standing`. */
   tierProgress: number;
   /** Capital still required to reach the next tier. */
   toNextTier: number;
@@ -255,16 +278,43 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const rewardsPending = Math.max(0, rewardsAccrued - rewardsClaimed);
   const returnedPrincipal = positions.filter((p) => p.closed).reduce((s, p) => s + p.principal, 0);
   const withdrawn = withdraws.reduce((s, w) => s + w.amount, 0);
-  const available = Math.max(0, rewardsClaimed + returnedPrincipal - withdrawn);
 
-  const contributed = opens.reduce((s, o) => s + o.amount, 0);
+  // Capital re-placed from the balance leaves the balance. Capital brought in
+  // from outside never touched it, so it must not be debited here.
+  const recycled = opens.filter((o) => o.fromAvailable).reduce((s, o) => s + o.amount, 0);
+  const available = Math.max(0, rewardsClaimed + returnedPrincipal - withdrawn - recycled);
+
+  const contributed = opens.filter((o) => !o.fromAvailable).reduce((s, o) => s + o.amount, 0);
+
+  // The most principal that was ever deployed at one instant. Replayed rather
+  // than accumulated, because a position that closed must lower the running
+  // total before the next open raises it again.
+  let running = 0;
+  let peakDeployed = 0;
+  const timeline = [
+    ...opens.map((o) => ({ at: o.at, delta: o.amount })),
+    ...closes.map((c) => ({
+      at: c.at,
+      delta: -(opens.find((o) => o.id === c.positionId)?.amount ?? 0),
+    })),
+  ]
+    // A roll settles and re-places in the same instant. Closing first is what
+    // stops that instant reading as if both terms were open at once, which
+    // would put the peak at the sum of the two rather than the larger.
+    .sort((a, b) => a.at - b.at || a.delta - b.delta);
+  for (const step of timeline) {
+    running += step.delta;
+    if (running > peakDeployed) peakDeployed = running;
+  }
+
+  const standing = Math.max(contributed, peakDeployed);
   const portfolioValue = deployed + rewardsPending + available;
   const netGain = portfolioValue + withdrawn - contributed;
 
-  const tier = tierForAmount(contributed);
+  const tier = tierForAmount(standing);
   const next = tier ? (TIERS.find((t) => t.rank === tier.rank + 1) ?? null) : TIERS[0];
   const floor = tier?.entry ?? 0;
-  const tierProgress = next ? clamp((contributed - floor) / (next.entry - floor), 0, 1) : 1;
+  const tierProgress = next ? clamp((standing - floor) / (next.entry - floor), 0, 1) : 1;
 
   return {
     positions,
@@ -277,13 +327,15 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     withdrawn,
     portfolioValue,
     contributed,
+    peakDeployed,
+    standing,
     netGain,
     returnPct: contributed > 0 ? netGain / contributed : 0,
     dailyRate: active.filter((p) => !p.matured).reduce((s, p) => s + p.dailyReward, 0),
     tier,
     nextTier: next,
     tierProgress,
-    toNextTier: next ? Math.max(0, next.entry - contributed) : 0,
+    toNextTier: next ? Math.max(0, next.entry - standing) : 0,
     events: [...events].sort((a, b) => b.at - a.at),
   };
 }
@@ -296,6 +348,8 @@ export function openPosition(input: {
   asset: string;
   network: string;
   at?: number;
+  /** Set when the placement is funded from the account balance. */
+  fromAvailable?: boolean;
 }) {
   return append({ kind: "open", ...input });
 }

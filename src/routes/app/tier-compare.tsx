@@ -119,7 +119,7 @@ export default function TierCompare() {
 
   const hoursSaved = lower.settlementHours - higher.settlementHours;
   const capitalStep = higher.entry - lower.entry;
-  const gap = Math.max(0, higher.entry - snap.contributed);
+  const gap = Math.max(0, higher.entry - snap.standing);
 
   const fade = (delay: number) =>
     reduce
@@ -244,13 +244,13 @@ export default function TierCompare() {
             <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">
               {gap > 0 ? (
                 <>
-                  You have contributed {money(snap.contributed)} to date, so {money(gap)} more
-                  reaches {higher.name}.
+                  Your standing is {money(snap.standing)}, so {money(gap)} more reaches{" "}
+                  {higher.name}.
                 </>
               ) : (
                 <>
-                  Your {money(snap.contributed)} contributed already clears the{" "}
-                  {money(higher.entry)} entry for {higher.name}.
+                  Your standing of {money(snap.standing)} already clears the {money(higher.entry)}{" "}
+                  entry for {higher.name}.
                 </>
               )}
             </p>

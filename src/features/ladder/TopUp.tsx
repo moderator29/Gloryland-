@@ -56,11 +56,11 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
             {existing ? (
               <>
-                Your {existing.tier.name} vault opened {fullDate(existing.openedAt)} holds{" "}
-                <span className="tabular text-[var(--text)]">{money(existing.principal)}</span> for
-                its full {CYCLE_DAYS} day term. That principal is fixed and cannot be added to.
-                Capital placed today opens a second position with its own term and its own maturity,
-                and the first one carries on exactly as it stands.
+                Your {existing.tier.name} vault opened {fullDate(existing.openedAt)} with{" "}
+                <span className="tabular text-[var(--text)]">{money(existing.principal)}</span>{" "}
+                committed for its {CYCLE_DAYS} day term. That principal was fixed the moment it
+                opened and cannot be added to. Capital placed today opens a second position with its
+                own term and its own maturity, and the first one carries on exactly as it stands.
               </>
             ) : (
               <>
@@ -129,9 +129,7 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
             <dl className="mt-3 grid grid-cols-3 gap-3">
               <div className="min-w-0">
                 <dt className="text-[11px] text-[var(--text-low)]">Per day</dt>
-                <dd className="metric mt-1 text-base text-[var(--gain)]">
-                  {money(plan.daily, 2)}
-                </dd>
+                <dd className="metric mt-1 text-base text-[var(--gain)]">{money(plan.daily, 2)}</dd>
               </div>
               <div className="min-w-0">
                 <dt className="text-[11px] text-[var(--text-low)]">Term reward</dt>
@@ -165,13 +163,32 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
                     {existing.tier.name} vault, untouched
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                    {money(existing.principal)} · matures {fullDate(existing.maturesAt)} ·{" "}
-                    <Countdown to={existing.maturesAt} compact />
+                    {money(existing.principal)} ·{" "}
+                    {existing.matured ? (
+                      <>matured {fullDate(existing.maturesAt)}</>
+                    ) : (
+                      <>
+                        matures {fullDate(existing.maturesAt)} ·{" "}
+                        <Countdown to={existing.maturesAt} compact />
+                      </>
+                    )}
                   </p>
                 </div>
-                <p className="metric shrink-0 text-sm text-[var(--gain)]">
-                  {money(existing.dailyReward, 2)}
-                  <span className="text-[11px] font-normal text-[var(--text-low)]">/day</span>
+                {/* Accrual stops at maturity, so a daily figure would be wrong there. */}
+                <p className="metric shrink-0 text-right text-sm text-[var(--gain)]">
+                  {existing.matured ? (
+                    <>
+                      {money(existing.termReward)}
+                      <span className="block text-[11px] font-normal text-[var(--text-low)]">
+                        term complete
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      {money(existing.dailyReward, 2)}
+                      <span className="text-[11px] font-normal text-[var(--text-low)]">/day</span>
+                    </>
+                  )}
                 </p>
               </div>
             )}
@@ -183,8 +200,7 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
                   {plan.tier.name} vault, new term
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                  {money(plan.amount)} · opens on confirmation · matures{" "}
-                  {fullDate(plan.maturesAt)}
+                  {money(plan.amount)} · opens on confirmation · matures {fullDate(plan.maturesAt)}
                 </p>
               </div>
               <p className="metric shrink-0 text-sm text-[var(--gain)]">

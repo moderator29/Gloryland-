@@ -29,9 +29,7 @@ export default function Tiers() {
           <div>
             <p className="eyebrow">Current standing</p>
             <p className="display mt-1.5 text-2xl">{snap.tier?.name ?? "Unranked"}</p>
-            <p className="mt-1 text-xs text-[var(--text-low)]">
-              {money(snap.contributed)} contributed to date
-            </p>
+            <p className="mt-1 text-xs text-[var(--text-low)]">{money(snap.standing)} standing</p>
           </div>
           {snap.nextTier && (
             <div className="text-right">

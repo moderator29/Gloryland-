@@ -1,0 +1,150 @@
+/**
+ * Assertions over the derivation, run against the real `derive`.
+ *
+ * These exist because the figures here are the product. A UI bug shows a wrong
+ * colour; a derivation bug shows a member a balance they do not have. Case 2
+ * is the regression that prompted the suite: an `open` never debited the
+ * account balance, so settling a term and re-placing the same capital counted
+ * it twice and the portfolio doubled on every roll.
+ *
+ * Run with `npm run check`.
+ */
+
+import { derive, DAY_MS, type LedgerEvent } from "@/domain/ledger";
+import { CYCLE_DAYS, DAILY_RATE } from "@/domain/tiers";
+
+let pass = 0,
+  fail = 0;
+const near = (a: number, b: number, tol = 0.01) => Math.abs(a - b) <= tol;
+function is(label: string, actual: unknown, expected: unknown) {
+  const ok =
+    typeof actual === "number" && typeof expected === "number"
+      ? near(actual, expected)
+      : actual === expected;
+  if (ok) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`  FAIL ${label}: got ${actual}, want ${expected}`);
+  }
+}
+
+const T0 = Date.UTC(2026, 0, 1);
+const day = (n: number) => T0 + n * DAY_MS;
+const open = (id: string, at: number, amount: number, tierId: string, fromAvailable?: boolean) =>
+  ({
+    id,
+    kind: "open",
+    at,
+    amount,
+    tierId,
+    asset: "USDT",
+    network: "TRC20",
+    ...(fromAvailable ? { fromAvailable } : {}),
+  }) as LedgerEvent;
+const close = (id: string, at: number, positionId: string) =>
+  ({ id, kind: "close", at, positionId }) as LedgerEvent;
+const claim = (id: string, at: number, positionId: string, amount: number) =>
+  ({ id, kind: "claim", at, positionId, amount }) as LedgerEvent;
+const withdraw = (id: string, at: number, amount: number) =>
+  ({ id, kind: "withdraw", at, amount, address: "x" }) as LedgerEvent;
+
+console.log("\n1. A fresh external deposit");
+{
+  const s = derive([open("p1", T0, 1000, "signal")], day(10));
+  is("deployed", s.deployed, 1000);
+  is("contributed", s.contributed, 1000);
+  is("available", s.available, 0);
+  is("accrued 10d", s.rewardsAccrued, 1000 * DAILY_RATE * 10);
+  is("portfolioValue", s.portfolioValue, 1000 + 100);
+  is("peakDeployed", s.peakDeployed, 1000);
+  is("standing", s.standing, 1000);
+}
+
+console.log("\n2. The roll that used to double count");
+{
+  const ev: LedgerEvent[] = [
+    open("p1", T0, 1000, "signal"),
+    claim("c1", day(CYCLE_DAYS), "p1", 300),
+    close("x1", day(CYCLE_DAYS), "p1"),
+    open("p2", day(CYCLE_DAYS), 1300, "signal", true),
+  ];
+  const s = derive(ev, day(CYCLE_DAYS));
+  is("deployed", s.deployed, 1300);
+  is("available after roll", s.available, 0);
+  is("portfolioValue is the real 1300", s.portfolioValue, 1300);
+  is("contributed is external only", s.contributed, 1000);
+  is("peakDeployed", s.peakDeployed, 1300);
+  is("standing", s.standing, 1300);
+  is("netGain", s.netGain, 300);
+}
+
+console.log("\n3. Circling the same money never buys a tier");
+{
+  const ev: LedgerEvent[] = [];
+  for (let i = 0; i < 5; i++) {
+    ev.push(open(`p${i}`, day(i * CYCLE_DAYS), 1000, "signal", i > 0));
+    ev.push(close(`x${i}`, day((i + 1) * CYCLE_DAYS), `p${i}`));
+  }
+  const s = derive(ev, day(5 * CYCLE_DAYS));
+  is("contributed stays at the one real deposit", s.contributed, 1000);
+  is("peakDeployed never exceeds one term", s.peakDeployed, 1000);
+  is("standing", s.standing, 1000);
+  is("tier is the rung one deposit buys, not five", s.tier?.id, "signal");
+}
+
+console.log("\n4. Compounding does raise standing");
+{
+  const ev: LedgerEvent[] = [
+    open("p1", T0, 1000, "signal"),
+    claim("c1", day(30), "p1", 300),
+    close("x1", day(30), "p1"),
+    open("p2", day(30), 1300, "signal", true),
+    claim("c2", day(60), "p2", 390),
+    close("x2", day(60), "p2"),
+    open("p3", day(60), 1690, "signal", true),
+  ];
+  const s = derive(ev, day(60));
+  is("deployed", s.deployed, 1690);
+  is("available", s.available, 0);
+  is("portfolioValue", s.portfolioValue, 1690);
+  is("peakDeployed", s.peakDeployed, 1690);
+  is("standing follows the peak", s.standing, 1690);
+  is("contributed still external only", s.contributed, 1000);
+}
+
+console.log("\n5. Settling and withdrawing");
+{
+  const ev: LedgerEvent[] = [
+    open("p1", T0, 5000, "apex"),
+    claim("c1", day(30), "p1", 1500),
+    close("x1", day(30), "p1"),
+    withdraw("w1", day(31), 6500),
+  ];
+  const s = derive(ev, day(31));
+  is("available drains", s.available, 0);
+  is("withdrawn", s.withdrawn, 6500);
+  is("portfolioValue", s.portfolioValue, 0);
+  is("netGain", s.netGain, 1500);
+  is("standing survives the exit", s.standing, 5000);
+  is("tier held", s.tier?.id, "apex");
+}
+
+console.log("\n6. Legacy events with no funding flag read as external");
+{
+  const s = derive([open("p1", T0, 3000, "vector")], day(1));
+  is("contributed", s.contributed, 3000);
+  is("available", s.available, 0);
+  is("standing", s.standing, 3000);
+}
+
+console.log("\n7. Accrual still stops at settlement and at maturity");
+{
+  const early = derive([open("p1", T0, 1000, "signal"), close("x", day(10), "p1")], day(25));
+  is("frozen at settlement", early.rewardsAccrued, 1000 * DAILY_RATE * 10);
+  const late = derive([open("p1", T0, 1000, "signal")], day(90));
+  is("capped at the term", late.rewardsAccrued, 1000 * DAILY_RATE * CYCLE_DAYS);
+}
+
+console.log(`\n${pass} passed, ${fail} failed`);
+if (fail > 0) process.exit(1);

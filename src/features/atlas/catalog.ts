@@ -643,6 +643,73 @@ function scoreToken(f: Folded, token: string): number {
   return f.subtitle.includes(token) ? SCORE.subtitle : 0;
 }
 
+/**
+ * Members type the plural of a thing as readily as the singular, and "vaults"
+ * finding nothing when "vault" finds six rows reads as a broken index. Trying
+ * the stem once, at a discount, covers that without dragging a stemmer in: the
+ * discount keeps a real match ahead of a guessed one.
+ */
+function scoreTokenLoosely(f: Folded, token: string): number {
+  const direct = scoreToken(f, token);
+  if (direct > 0) return direct;
+  if (token.length <= 3 || !token.endsWith("s")) return 0;
+  return Math.round(scoreToken(f, token.slice(0, -1)) * 0.8);
+}
+
+/**
+ * Words that carry no signal in a query.
+ *
+ * A member does not always type keywords. "how do i withdraw" is a real thing
+ * to type into an index, and every token having to land somewhere turns that
+ * question into no answer at all. Stripping the connective tissue leaves the
+ * word they actually meant. If a query is nothing but these, it is left intact
+ * rather than treated as empty.
+ */
+const STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "can",
+  "do",
+  "does",
+  "for",
+  "from",
+  "how",
+  "i",
+  "in",
+  "is",
+  "it",
+  "me",
+  "my",
+  "of",
+  "on",
+  "the",
+  "to",
+  "what",
+  "when",
+  "where",
+  "which",
+  "with",
+]);
+
+function meaningfulTokens(tokens: string[]): string[] {
+  if (tokens.length < 2) return tokens;
+  const kept = tokens.filter((token) => token.length > 1 && !STOPWORDS.has(token));
+  return kept.length > 0 ? kept : tokens;
+}
+
+/**
+ * The words a query is actually searched on, folded. Exported because the
+ * highlight in Results has to mark what the ranking matched: marking a dropped
+ * connective would put the accent on the wrong half of the row.
+ */
+export function queryTokens(query: string): string[] {
+  const folded = fold(query.trim());
+  if (!folded) return [];
+  return meaningfulTokens(folded.split(/\s+/).filter(Boolean));
+}
+
 /** The rows a member sees before typing: the surfaces they use, then what is new. */
 const DEFAULT_IDS = ["home", "desk", "act-open", "vaults", "yield", "signal", "tiers", "support"];
 const DEFAULT_POSTS = 4;
@@ -686,7 +753,7 @@ export function searchCatalog(
   const folded = fold(query.trim());
   if (!folded) return toGroups(curated(catalog, limit));
 
-  const tokens = folded.split(/\s+/).filter(Boolean);
+  const tokens = queryTokens(query);
   const hits: { entry: AtlasEntry; score: number }[] = [];
 
   for (const entry of catalog) {
@@ -694,7 +761,7 @@ export function searchCatalog(
     let total = 0;
     let missed = false;
     for (const token of tokens) {
-      const score = scoreToken(f, token);
+      const score = scoreTokenLoosely(f, token);
       if (score === 0) {
         missed = true;
         break;
@@ -708,7 +775,14 @@ export function searchCatalog(
     hits.push({ entry, score: total + KIND_WEIGHT[entry.kind] });
   }
 
-  hits.sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title));
+  // A tie on score goes to the shorter title, which is the one closer to being
+  // the whole query: "tier" should reach Tiers before it reaches Tier Match.
+  hits.sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.entry.title.length - b.entry.title.length ||
+      a.entry.title.localeCompare(b.entry.title),
+  );
   return toGroups(hits.slice(0, Math.max(1, limit)).map((hit) => hit.entry));
 }
 

@@ -53,8 +53,8 @@ export default function TierDetail() {
 
   const held = (snap.tier?.rank ?? 0) >= tier.rank;
   const isNext = snap.nextTier?.id === tier.id;
-  const gap = isNext ? snap.toNextTier : Math.max(0, tier.entry - snap.contributed);
-  const progress = tier.entry > 0 ? Math.min(1, snap.contributed / tier.entry) : 1;
+  const gap = isNext ? snap.toNextTier : Math.max(0, tier.entry - snap.standing);
+  const progress = tier.entry > 0 ? Math.min(1, snap.standing / tier.entry) : 1;
 
   const fade = (delay: number) =>
     reduce
@@ -204,7 +204,7 @@ export default function TierDetail() {
         {held ? (
           <>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">
-              You hold {tier.name}. {money(snap.contributed)} contributed to date clears the{" "}
+              You hold {tier.name}. Your standing of {money(snap.standing)} clears the{" "}
               {money(tier.entry)} entry
               {snap.tier && snap.tier.id !== tier.id
                 ? `, and your standing is ${snap.tier.name}.`
@@ -223,7 +223,7 @@ export default function TierDetail() {
                 {money(gap)} of further capital reaches {tier.name}.
               </p>
               <p className="tabular text-xs text-[var(--text-low)]">
-                {money(snap.contributed)} of {money(tier.entry)}
+                {money(snap.standing)} of {money(tier.entry)}
               </p>
             </div>
             <div className="mt-3">

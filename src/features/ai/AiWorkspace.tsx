@@ -180,7 +180,8 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
     prefs.sharePosition
       ? [
           `Portfolio value: ${money(snap.portfolioValue, 2)}`,
-          `Contributed: ${money(snap.contributed)}`,
+          `Contributed from outside: ${money(snap.contributed)}`,
+          `Tier standing: ${money(snap.standing)}`,
           `Deployed in vaults: ${money(snap.deployed)}`,
           `Unclaimed rewards: ${money(snap.rewardsPending, 2)}`,
           `Available balance: ${money(snap.available, 2)}`,

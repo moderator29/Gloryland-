@@ -1,5 +1,5 @@
-const DEPOSITS_KEY = "hal_deposits_v1";
-const WITHDRAWS_KEY = "hal_withdraws_v1";
+const DEPOSITS_KEY = "rgl_deposits_v1";
+const WITHDRAWS_KEY = "rgl_withdrawals_v1";
 
 export type Deposit = {
   id: string;

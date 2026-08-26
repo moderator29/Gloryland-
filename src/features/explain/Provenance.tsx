@@ -1,10 +1,11 @@
 import { useId } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TriangleAlert } from "lucide-react";
-import type { Position, Snapshot } from "@/domain/ledger";
+import { DAY_MS, type Position, type Snapshot } from "@/domain/ledger";
 import { CYCLE_DAYS, DAILY_RATE, TIERS, termReward, tierForAmount } from "@/domain/tiers";
-import { days, fullDate, money, relative } from "@/components/system/format";
+import { fullDate, money, relative } from "@/components/system/format";
 import {
+  dayCount,
   explainValue,
   getDefinition,
   glossaryHref,
@@ -96,7 +97,7 @@ function positionSteps(id: FigureId, p: Position): Step[] | null {
           detail: p.closed
             ? "Measured from the open event to the settlement instant."
             : "Measured from the open event to now, whole and fractional.",
-          value: `${days(p.daysElapsed)} days`,
+          value: `${dayCount(p.daysElapsed)} days`,
         },
         {
           label: "Bound",
@@ -176,7 +177,7 @@ function positionSteps(id: FigureId, p: Position): Step[] | null {
           detail: p.closed
             ? "Measured to the settlement instant, where the clock was cut."
             : "Measured from the open event to now.",
-          value: `${days(p.daysElapsed)} days`,
+          value: `${dayCount(p.daysElapsed)} days`,
         },
         {
           label: "Term length",
@@ -186,7 +187,7 @@ function positionSteps(id: FigureId, p: Position): Step[] | null {
         {
           label: "Remaining",
           detail: p.matured ? "The term is complete." : "What is left of the term.",
-          value: `${days(p.daysRemaining)} days`,
+          value: `${dayCount(p.daysRemaining)} days`,
         },
         {
           label: "Term progress",
@@ -462,15 +463,27 @@ export function Provenance({ id, position, snap, ctx, className = "" }: Provenan
   // through the same derivation so the worked figures are still the model's.
   const pos = position ?? previewPosition(ctx ?? {});
 
-  const steps =
+  const steps: Step[] =
     (pos ? positionSteps(id, pos) : null) ??
     (snap ? snapshotSteps(id, snap) : null) ??
     // Nothing derivable was supplied, so fall back to the definition itself
     // rather than showing invented values beside real labels.
     def.how.map((detail) => ({ detail }));
 
+  // The instant this position was derived at. `daysElapsed` already stops at
+  // settlement and at maturity, so adding it back to the open time lands on the
+  // settlement instant for a closed position and on the snapshot's own clock for
+  // an open one. Without it the summary below would re-derive on a live clock
+  // and show a settled position still accruing, contradicting the steps above.
+  const derivedAt = pos ? pos.openedAt + pos.daysElapsed * DAY_MS : 0;
+
   const exampleCtx: ExplainContext = pos
-    ? { principal: pos.principal, openedAt: pos.openedAt, now: ctx?.now, closedAt: ctx?.closedAt }
+    ? {
+        principal: pos.principal,
+        openedAt: pos.openedAt,
+        now: ctx?.now ?? derivedAt,
+        closedAt: pos.closed ? derivedAt : ctx?.closedAt,
+      }
     : (ctx ?? {});
 
   return (
@@ -539,7 +552,9 @@ export function Provenance({ id, position, snap, ctx, className = "" }: Provenan
                 strokeWidth={1.8}
                 aria-hidden="true"
               />
-              <span className="min-w-0 text-[11px] leading-relaxed text-[var(--text-low)]">{c}</span>
+              <span className="min-w-0 text-[11px] leading-relaxed text-[var(--text-low)]">
+                {c}
+              </span>
             </li>
           ))}
         </ul>

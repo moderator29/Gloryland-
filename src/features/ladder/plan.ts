@@ -219,11 +219,7 @@ export function stagger(total: number, parts: number, from: number = Date.now())
   const remainder = sum - base * n;
 
   const legs = Array.from({ length: n }, (_, i) =>
-    buildLeg(
-      i + 1,
-      i === 0 ? base + remainder : base,
-      from + Math.round(i * spacingDays * DAY_MS),
-    ),
+    buildLeg(i + 1, i === 0 ? base + remainder : base, from + Math.round(i * spacingDays * DAY_MS)),
   );
 
   return {

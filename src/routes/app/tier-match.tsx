@@ -503,7 +503,7 @@ export default function TierMatch() {
                       aria-hidden
                     />
                     <span className="min-w-0 leading-relaxed">
-                      You stand at {snap.tier.name} today on {money(snap.contributed)} contributed.
+                      You stand at {snap.tier.name} today on a standing of {money(snap.standing)}.
                     </span>
                   </li>
                 ) : null}

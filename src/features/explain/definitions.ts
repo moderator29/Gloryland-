@@ -27,7 +27,7 @@ import {
   type Tier,
 } from "@/domain/tiers";
 import { DAY_MS, derive, type LedgerEvent, type Position } from "@/domain/ledger";
-import { days, fullDate, money } from "@/components/system/format";
+import { fullDate, money } from "@/components/system/format";
 
 /* ── the figures a member can ask about ─────────────────────────────────── */
 
@@ -77,6 +77,18 @@ const TOP = TIERS[TIERS.length - 1];
 
 const LADDER = TIERS.map((t) => `${t.name} from ${money(t.entry)}`).join(", ");
 const TARGETS = TIERS.map((t) => `${t.name} ${t.settlementHours}h`).join(", ");
+
+/**
+ * Days at the precision the arithmetic actually runs at.
+ *
+ * The shared `days` formatter rounds above ten, which is right on a countdown
+ * and wrong here: a rounded day count printed beside an exact dollar figure
+ * reads as though the two disagree, which is the doubt this feature exists to
+ * remove. Provenance shows the number the model multiplied by.
+ */
+export function dayCount(n: number): string {
+  return n.toFixed(2);
+}
 
 /** Where the full reference lives, so a deep link is written down once. */
 export const GLOSSARY_PATH = "/app/glossary";
@@ -419,7 +431,7 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
           : real.matured
             ? `, held at the ${TERM_PCT} ceiling since maturity`
             : "";
-        return `${money(real.principal)} open for ${days(real.daysElapsed)} days has accrued ${money(real.accrued, 2)}${state}.`;
+        return `${money(real.principal)} open for ${dayCount(real.daysElapsed)} days has accrued ${money(real.accrued, 2)}${state}.`;
       }
       if (!sample) return `${lead}Accrual is principal x ${DAILY_PCT} x days elapsed.`;
       return `${lead}${money(principal)} at day ${SAMPLE_DAY} of ${CYCLE_DAYS} has accrued ${money(sample.accrued, 2)}, on the way to ${money(sample.termReward, 2)} at maturity.`;
@@ -448,19 +460,20 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
       if (real) {
         return `This position contributes ${money(real.principal)} of deployed principal and ${money(real.claimable, 2)} of unclaimed rewards to portfolio value.`;
       }
-      if (!sample) return `${lead}Portfolio value is deployed principal plus unclaimed rewards plus available cash.`;
+      if (!sample)
+        return `${lead}Portfolio value is deployed principal plus unclaimed rewards plus available cash.`;
       return `${lead}An open ${money(principal)} vault at day ${SAMPLE_DAY} contributes ${money(principal)} of deployed principal and ${money(sample.accrued, 2)} of unclaimed rewards.`;
     }
 
     case "standing": {
       if (principal < ENTRY.entry) {
-        return `${money(principal)} of lifetime contribution sits below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so standing reads as unranked.`;
+        return `${lead}${money(principal)} of lifetime contribution sits below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so standing reads as unranked.`;
       }
       const up = nextTier(tier.id);
       const tail = up
         ? `, with ${money(Math.max(0, up.entry - principal))} of further contribution to ${up.name}`
         : ", the top of the ladder";
-      return `${money(principal)} of lifetime contribution clears the ${money(tier.entry)} entry for ${tier.name}${tail}.`;
+      return `${lead}${money(principal)} of lifetime contribution clears the ${money(tier.entry)} entry for ${tier.name}${tail}.`;
     }
 
     case "settlementTarget": {
@@ -479,8 +492,8 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
 
     case "progress": {
       if (real) {
-        const held = real.closed ? " and holds there, since the position is settled" : "";
-        return `${days(real.daysElapsed)} of ${CYCLE_DAYS} days elapsed reads ${(real.progress * 100).toFixed(1)}% through the term${held}, with ${days(real.daysRemaining)} days remaining.`;
+        const held = real.closed ? " The position is settled, so progress holds there." : "";
+        return `${dayCount(real.daysElapsed)} of ${CYCLE_DAYS} days elapsed reads ${(real.progress * 100).toFixed(1)}% through the term, with ${dayCount(real.daysRemaining)} days remaining.${held}`;
       }
       if (!sample) return `${lead}Progress is days elapsed divided by ${CYCLE_DAYS}.`;
       return `${lead}At day ${SAMPLE_DAY} of ${CYCLE_DAYS}, a term reads ${(sample.progress * 100).toFixed(1)}% complete.`;
@@ -489,10 +502,10 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
     case "redeploy": {
       const placeable = Math.floor(principal);
       if (placeable < ENTRY.entry) {
-        return `${money(principal, 2)} idle is below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so there is no vault to open yet.`;
+        return `${lead}${money(principal, 2)} idle is below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so there is no vault to open yet.`;
       }
       const t = tierFor(placeable);
-      return `${money(placeable)} idle opens a ${t.name} vault and accrues ${money(termReward(placeable), 2)} across the ${CYCLE_DAYS} day term.`;
+      return `${lead}${money(placeable)} idle opens a ${t.name} vault and accrues ${money(termReward(placeable), 2)} across the ${CYCLE_DAYS} day term.`;
     }
 
     case "lifetime": {

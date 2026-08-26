@@ -30,7 +30,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           {collapsed ? <Mark size={26} /> : <Wordmark size={24} />}
         </div>
 
-        <nav className="no-bar flex-1 overflow-y-auto pb-2" aria-label="Main">
+        <nav className="no-bar fade-y flex-1 overflow-y-auto pb-2" aria-label="Main">
           {NAV.map((group) => (
             <div key={group.heading} className="mb-4">
               {!collapsed && <p className="eyebrow mb-1.5 px-3">{group.heading}</p>}

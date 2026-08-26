@@ -27,8 +27,26 @@ export default function VaultNew() {
   const nav = useNavigate();
   const reduce = useReducedMotion();
   const [params] = useSearchParams();
-  const preset = Number(params.get("amount")) || 0;
+  // A link carrying an amount wins. Failing that, the band picked during sign
+  // up prefills the form once, then clears itself so it never surprises the
+  // member on a later visit.
+  const preset =
+    Number(params.get("amount")) ||
+    (() => {
+      try {
+        const stored = Number(sessionStorage.getItem("rgl_start_amount")) || 0;
+        if (stored) sessionStorage.removeItem("rgl_start_amount");
+        return stored;
+      } catch {
+        return 0;
+      }
+    })();
   const rolledFrom = params.get("from");
+  // A roll settles an existing term and re-places the same capital, so it is
+  // funded from the balance rather than from money arriving from outside. The
+  // ledger has to know the difference, otherwise the same capital is counted
+  // twice and tier standing climbs on money that was only deposited once.
+  const fromBalance = rolledFrom !== null;
 
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState(preset ? String(preset) : "");
@@ -66,6 +84,7 @@ export default function VaultNew() {
       tierId: tier.id,
       asset: meta.symbol,
       network: meta.network,
+      fromAvailable: fromBalance,
     });
     setReceipt({
       reference: reference(evt.id),

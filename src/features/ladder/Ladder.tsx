@@ -41,7 +41,7 @@ function Standing({ snap }: { snap: Snapshot }) {
       </div>
       <div className="text-right">
         <p className="tag-micro">Contributed</p>
-        <p className="metric mt-1.5 text-sm">{money(snap.contributed)}</p>
+        <p className="metric mt-1.5 text-sm">{money(snap.standing)}</p>
       </div>
       <div className="text-right">
         <p className="tag-micro">Settlement</p>
@@ -66,7 +66,11 @@ export function Ladder({ snap, className = "" }: LadderProps) {
     <section className={`panel p-4 sm:p-5 ${className}`} aria-labelledby="ladder-title">
       <div className="flex items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)]">
-          <Layers className="h-4 w-4 text-[var(--accent-hi)]" strokeWidth={1.8} aria-hidden="true" />
+          <Layers
+            className="h-4 w-4 text-[var(--accent-hi)]"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
         </span>
         <div className="min-w-0 flex-1">
           <p className="eyebrow">Ladder</p>
@@ -156,9 +160,8 @@ export function Ladder({ snap, className = "" }: LadderProps) {
 
                 {step.roundedUp && (
                   <p className="mt-2.5 text-[11px] leading-relaxed text-[var(--text-low)]">
-                    The gap to {step.tier.name} is {money(step.gap)}, but{" "}
-                    {money(MINIMUM_PLACEMENT)} is the smallest position that can be opened, so that
-                    is what this places.
+                    The gap to {step.tier.name} is {money(step.gap)}, but {money(MINIMUM_PLACEMENT)}{" "}
+                    is the smallest position that can be opened, so that is what this places.
                   </p>
                 )}
               </div>
