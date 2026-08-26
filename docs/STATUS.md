@@ -1,96 +1,109 @@
 # Build status
 
-Updated as work lands. Newest section first within each heading.
+Updated as work lands.
 
-## Shipped and on main
+## Deploy
 
-### Deploy
+Green. Verified by cloning the pushed tree and running install, build,
+typecheck and the assertion suite against pnpm 11.22.0, the version the runner
+uses. No environment variable is required to deploy. The two optional ones are
+`ANTHROPIC_API_KEY`, without which the assistants answer from the product
+reference instead of a model, and `VITE_ADDR_BTC` and its four siblings,
+without which the funding surfaces say plainly that funding is not open.
 
-- **pnpm 11 install failure fixed.** The runner refused to install because
-  esbuild ships a build script that was neither approved nor declined. The
-  approval lives in `pnpm-workspace.yaml` under both key spellings, because
-  pnpm 11 reads `allowBuilds` and pnpm 10 reads `onlyBuiltDependencies`, and
-  pnpm 11 no longer reads the `pnpm` field in `package.json` at all. Verified
-  by running install and build against pnpm 11.22.0, the runner's version.
-- **No cron.** Signal derives its own schedule on the client, so the project
-  deploys on a Hobby plan with zero configuration and zero environment
-  variables. The AI assistants are the only thing that need a key, and they
-  degrade honestly without one.
+The earlier failure was not the cron and not a secret. pnpm 11 refuses to
+install when a dependency ships a build script that is neither approved nor
+declined, and it exits non zero rather than warning. The approval lives in
+`pnpm-workspace.yaml` under both key spellings, because pnpm 11 reads
+`allowBuilds` and pnpm 10 reads `onlyBuiltDependencies`, and pnpm 11 no longer
+reads the `pnpm` field in `package.json` at all.
 
-### Domain
+## Checks
 
-- **A double count in the ledger, fixed.** An `open` never debited the account
-  balance, so it could not tell capital arriving from outside from capital
-  already held being placed again. Rolling a term credited the balance on
-  settlement and never debited it on placement: $1,000 rolled once showed
-  $2,600 against a real $1,300. An `open` now records `fromAvailable`.
-  Contribution counts external capital only, and tier standing is the greater
-  of external capital and the most principal ever deployed at once, so no
-  figure can be inflated by moving the same money in a circle while a member
-  who compounds still climbs.
-- **`npm run check`** runs 52 assertions over the real `derive`. All pass.
-- **Atomic writes.** `appendMany` persists a batch as one write, because a
-  relay firing is a claim, a close and an open that only make sense together.
+| Command | State |
+| --- | --- |
+| `npm run build` | passes |
+| `npm run typecheck` | passes, app and API |
+| `npm run check` | 72 assertions, all pass |
+| `npx eslint src/` | clean, warnings only |
+| Route sweep at 390px | 36 of 36 clean |
+
+The route sweep loads every route with a funded ledger and checks for
+uncaught errors, console errors, horizontal page overflow, heading structure
+and touch target size.
+
+## What shipped
+
+### The engine
+
+- **A double count, fixed.** An `open` never debited the balance, so settling a
+  term and re-placing the same capital counted it twice: $1,000 rolled once
+  showed $2,600 against a real $1,300. An `open` now records `fromAvailable`.
+  Contribution counts external capital only, and standing is the greater of
+  external capital and the most ever deployed at once, so no figure can be
+  inflated by moving the same money in a circle while compounding still climbs.
+- **Atomic writes.** `appendMany` persists a batch as one write.
+- **One peak implementation**, shared by the ledger and the planners.
+
+### Three instruments
+
 - **Relay.** A standing instruction on a position: at maturity it carries into
-  a new term instead of sitting still. Modes are principal and reward, or
-  principal only. Events are stamped at the moment they run, never at the
-  maturity date, because backdating would fabricate accrual for days the
-  capital actually sat idle. The chain re-arms itself.
-- **Identity.** Members have a handle and a display name. The handle is checked
-  for format, against a reserved list and against handles already claimed, with
-  suggestions when one is taken. The check is async because it is the single
-  function that becomes a server call.
+  a new term and re-arms itself. Events are stamped when they run, never at the
+  maturity date, because backdating would fabricate accrual.
+- **Course.** An amount and a rhythm, with a date on every placement between
+  here and the rung the member is aiming at. The platform cannot take the
+  money, so a course is a schedule filled by hand, and the page says so.
+- **Echelon.** One sum placed as several terms starting days apart. The reward
+  is identical either way; laddering buys timing, not yield, and the comparison
+  leads with that.
+
+### Identity and first run
+
+Members have a handle and a display name. The handle is checked for format,
+against a reserved list and against handles already claimed. Sign up is four
+steps: identity, how they want to run capital, roughly where they would start,
+and a summary. The approach changes what surfaces lead with, never the rate.
 
 ### Interface
 
-- **Type is self hosted.** Space Grotesk carries display type and every figure,
-  Inter runs the interface, JetBrains Mono is reserved for addresses and
-  identifiers. Latin subsets only, preloaded for first paint. No third party
-  connection is opened to draw a heading.
-- **One material.** Every surface is a brand tint fading before the middle, a
-  one pixel inner highlight along the top edge, and a long shadow. Blur is
-  deliberately not in that recipe and is spent only where something floats.
-  Added `.glass` with a raking light stride and grain, `.sheen`, `.rule-glow`
-  and edge fades so a scrolling rail reads as having more rather than as cut.
-- **Sign up is four steps.** Identity, how the member wants to run capital,
-  roughly where they would start, and a summary. The approach changes what
-  surfaces lead with and never the rate, and each option states its own trade.
-- **Signal publishes on a daily batch.** Twenty posts a day, times spread
-  across a 06:00 to 23:00 window, revealed as each arrives. Deterministic on
-  the calendar day, so every member sees the same channel with no server.
+Type is self hosted: Space Grotesk for display and figures, Inter for the
+interface, JetBrains Mono for identifiers. One surface material across the
+product, with blur spent only where something floats. A touch target floor
+applied to coarse pointers only, so a dense row stays dense on a mouse.
 
-### Surfaces mounted
+### Content and assistants
 
-Atlas with a Cmd+K launcher, the glossary, Horizon the maturity calendar, the
-ladder planner, the aperture reveal, the reading rail, the install prompt,
-Wayfinder, orientation, and the engagement set on Home.
+Signal derives its own day of twenty posts, revealed as each time arrives,
+deterministic on the calendar day so every member sees the same channel with no
+server. Both assistants answer from a generated briefing covering every
+surface, flow, tier and term, narrowed by question, with the prohibitions
+always included.
 
-## In flight
+### Honesty fixes
 
-Three engineers are working in parallel on non overlapping files:
-
-| Area | Files | State |
-| --- | --- | --- |
-| Landing page | `src/routes/landing.tsx`, `src/components/landing/*` | mid edit |
-| Profile, settings, security | `src/routes/app/settings/*`, `src/features/profile/*`, `src/routes/app/security.tsx` | mid edit |
-| Assistant knowledge | `api/ai/*`, `src/features/ai/*`, `src/domain/knowledge.ts` | mid edit |
+Five real deposit addresses were printed under "Send to the address below",
+three of them the same documentation example. They are gone. Invented activity
+in the live band is now labelled. The redeploy prompt no longer walks a member
+into the double count. Four landing page refusals that described security
+controls we do not have are replaced with ones that are true. The predecessor's
+rate card, which contradicted the one rate rule, is removed.
 
 ## Next
 
-1. Mount `Explain` beside the figures it explains across Home, Yield, vault
-   detail and the Desk.
-2. Build Course and Echelon, the second and third instruments designed in
-   `docs/FEATURES-NEXT.md`.
-3. Full route sweep at 360px and 1280px, with the console clean on every route.
-4. Re-audit copy for em dashes and for any figure the ledger cannot derive.
+Ranked, from `docs/RECOMMENDATIONS.md`.
+
+1. Somewhere for a dollar to actually go. Everything else assumes it.
+2. Circle: the referral surface is the thinnest thing in the product.
+3. `useLocale` and `haptic` from the predecessors, both small, both missed.
+4. Error reporting, so a crash in production is something we learn about.
+5. The remaining `BUILD NOW` items in the recommendations file.
 
 ## Rules this build holds itself to
 
-1. No figure appears on a surface that `derive` cannot produce from the
-   member's own log.
-2. No em dash characters anywhere, in code, copy or comments.
-3. Never invent a licence, a regulator, a partner, a statistic, a member count,
-   an assets figure, a testimonial or a track record.
-4. Tiers differ on settlement speed and tooling. They never differ on rate.
-5. Where the product cannot do something yet, the interface says so plainly
-   rather than implying it can.
+1. No figure appears that `derive` cannot produce from the member's own log.
+2. Anything illustrative is labelled where it appears.
+3. No em dash characters anywhere, in code, copy or comments.
+4. Never claim a licence, regulator, partner, statistic, member count,
+   testimonial or track record.
+5. Tiers differ on settlement speed and tooling, never on rate.
+6. Where the product cannot do something yet, the interface says so.
