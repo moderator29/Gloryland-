@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Check, Gauge, Layers, Palette, Volume2 } from "lucide-react";
 import { useMotionLevel, type MotionLevel } from "@/context/MotionContext";
 import { useLedger } from "@/hooks/useLedger";
-import { CYCLE_DAYS } from "@/domain/tiers";
+import { DAILY_RATE } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { isAmbientOn, isMuted, playTap, setMuted, startAmbient, stopAmbient } from "@/lib/sound";
@@ -107,7 +107,7 @@ export default function SettingsAppearance() {
               <div className="rail-row">
                 <span className="min-w-0 flex-1 text-sm text-[var(--text)]">Open vaults</span>
                 <span className="tabular text-xs text-[var(--text-mid)]">
-                  {snap.activePositions.length} of {CYCLE_DAYS} day terms
+                  {snap.activePositions.length} open at {(DAILY_RATE * 100).toFixed(0)}% a day
                 </span>
               </div>
               <div className="rail-row rail-row-gain">

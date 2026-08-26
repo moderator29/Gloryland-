@@ -277,7 +277,6 @@ export function Progress({
 const STATUS = {
   active: { label: "Active", cls: "chip-accent" },
   accruing: { label: "Accruing", cls: "chip-gain" },
-  matured: { label: "Matured", cls: "chip-warn" },
   closed: { label: "Closed", cls: "" },
   pending: { label: "Pending", cls: "chip-warn" },
   sent: { label: "Sent", cls: "chip-gain" },

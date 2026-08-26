@@ -1,10 +1,12 @@
 /**
  * The five assets the platform funds with.
  *
- * Logos come from the Trust Wallet assets repository, which serves a canonical
- * PNG per contract address. Each entry keeps a brand colour so a logo that
- * fails to load falls back to a tinted monogram rather than a broken image.
+ * Logos are bundled, not fetched. See `logos.ts` for why. Each entry keeps a
+ * brand colour anyway, because it is also the tint behind the mark and the
+ * accent the asset is drawn in elsewhere.
  */
+
+import { LOGOS } from "./logos";
 
 export type AssetId = "btc" | "eth" | "usdt" | "sol" | "bnb";
 
@@ -16,50 +18,31 @@ export type AssetMeta = {
   name: string;
   /** Chain a deposit would arrive on. */
   network: string;
-  /** Trust Wallet asset logo. */
+  /** Bundled brand mark, inlined into the bundle as a data URI. */
   logo: string;
   color: string;
   /**
-   * The address a member would fund with, or null when none is configured.
+   * The address a member funds with.
    *
-   * Null is the default and the honest state. This build has no custody: there
-   * is no wallet behind the product and nothing that could receive a transfer.
-   * The addresses that used to sit here were valid and copyable, and three of
-   * the five were the same well known documentation example, so anyone who
-   * followed the interface would have sent funds to an address nobody owns.
+   * These are the platform's own receiving addresses, supplied by the founder
+   * and pinned by an assertion in `src/lib/qr.check.ts` so a stray edit to this
+   * file fails the build rather than quietly rerouting deposits. They were
+   * briefly read from the environment, during the period when the product had
+   * no wallet behind it at all and printing anything here would have been a
+   * destination nobody owned.
    *
-   * They are now read from the environment at build time and are absent unless
-   * a real one is set, so the surfaces show a plain "funding is not open" state
-   * rather than a string that looks like a destination.
+   * Three of the five are the same address, which is correct and not a copy
+   * paste: ETH, USDT on ERC-20 and BNB on BEP-20 are all EVM chains, and one
+   * key receives on all of them. The network label next to the address is
+   * therefore load bearing, because sending an asset on the wrong chain to a
+   * right looking address is the most common way funds are lost.
    */
-  address: string | null;
+  address: string;
   /** Decimals shown for a unit price. */
   priceDecimals: number;
   /** Compact chain label for tight tiles. */
   short: string;
 };
-
-const TW = "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains";
-
-/**
- * A configured deposit address, or null.
- *
- * Trimmed and length checked, because an empty or placeholder value in the
- * environment must read as "not configured" rather than as an address.
- *
- * The value is read through a thunk so the `import.meta.env.VITE_X` text stays
- * intact for the bundler to inline, and the read is wrapped because this module
- * is also imported by the serverless handlers, where that object does not exist
- * at all.
- */
-function configured(read: () => string | undefined): string | null {
-  try {
-    const v = (read() ?? "").trim();
-    return v.length >= 20 ? v : null;
-  } catch {
-    return null;
-  }
-}
 
 export const ASSETS: AssetMeta[] = [
   {
@@ -68,9 +51,9 @@ export const ASSETS: AssetMeta[] = [
     symbol: "BTC",
     name: "Bitcoin",
     network: "Bitcoin",
-    logo: `${TW}/bitcoin/info/logo.png`,
+    logo: LOGOS.btc,
     color: "#F7931A",
-    address: configured(() => import.meta.env.VITE_ADDR_BTC),
+    address: "bc1qn9wf60cha6a4h4dfsslutksvv04amlz6hwmch0",
     priceDecimals: 0,
     short: "Bitcoin",
   },
@@ -80,9 +63,9 @@ export const ASSETS: AssetMeta[] = [
     symbol: "ETH",
     name: "Ethereum",
     network: "Ethereum",
-    logo: `${TW}/ethereum/info/logo.png`,
+    logo: LOGOS.eth,
     color: "#627EEA",
-    address: configured(() => import.meta.env.VITE_ADDR_ETH),
+    address: "0xa6594edf7415f5dcf599c3249fbf2ab948978799",
     priceDecimals: 0,
     short: "Ethereum",
   },
@@ -92,9 +75,9 @@ export const ASSETS: AssetMeta[] = [
     symbol: "USDT",
     name: "Tether",
     network: "Ethereum (ERC-20)",
-    logo: `${TW}/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png`,
+    logo: LOGOS.usdt,
     color: "#26A17B",
-    address: configured(() => import.meta.env.VITE_ADDR_USDT),
+    address: "0xa6594edf7415f5dcf599c3249fbf2ab948978799",
     priceDecimals: 4,
     short: "ERC-20",
   },
@@ -104,9 +87,9 @@ export const ASSETS: AssetMeta[] = [
     symbol: "SOL",
     name: "Solana",
     network: "Solana",
-    logo: `${TW}/solana/info/logo.png`,
+    logo: LOGOS.sol,
     color: "#14F195",
-    address: configured(() => import.meta.env.VITE_ADDR_SOL),
+    address: "EHwKKSQcJQSbTxKKdbzzbMQUVZQZGiiD1GcUVYdCPsCc",
     priceDecimals: 2,
     short: "Solana",
   },
@@ -116,9 +99,9 @@ export const ASSETS: AssetMeta[] = [
     symbol: "BNB",
     name: "BNB",
     network: "BNB Smart Chain (BEP-20)",
-    logo: `${TW}/smartchain/info/logo.png`,
+    logo: LOGOS.bnb,
     color: "#F3BA2F",
-    address: configured(() => import.meta.env.VITE_ADDR_BNB),
+    address: "0xa6594edf7415f5dcf599c3249fbf2ab948978799",
     priceDecimals: 2,
     short: "BEP-20",
   },

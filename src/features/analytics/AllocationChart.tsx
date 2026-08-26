@@ -12,7 +12,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { money } from "@/components/system/format";
 import type { Position, Snapshot } from "@/domain/ledger";
-import type { TierId } from "@/domain/tiers";
+import { TIERS } from "@/domain/tiers";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { ChartEmpty, ChartHeader } from "./chartPrimitives";
 
@@ -30,15 +30,29 @@ export type AllocationChartProps = {
   className?: string;
 };
 
-/** Ordered light-to-deep along the ladder, plus one neutral for the unknown. */
-const TIER_COLOR: Record<TierId, string> = {
-  core: "var(--accent-deep)",
-  signal: "var(--accent)",
-  vector: "var(--accent-hi)",
-  apex: "var(--accent-soft)",
-  meridian: "var(--accent-cyan)",
-  sovereign: "var(--text-mid)",
-};
+/**
+ * The blue ramp, deep to cyan, walked by a rung's position on the ladder.
+ *
+ * Derived from `rank` rather than written per tier. The ladder is twenty rungs
+ * and will change again, and a hand written map is a list that silently loses
+ * an entry the day a rung is added: the tier would still render, in whatever
+ * `undefined` resolves to.
+ */
+const RAMP = [
+  "var(--accent-deep)",
+  "var(--accent)",
+  "var(--accent-hi)",
+  "var(--accent-soft)",
+  "var(--accent-cyan)",
+] as const;
+
+function tierColor(tier: { rank: number } | null | undefined): string {
+  if (!tier) return NEUTRAL;
+  const span = Math.max(1, TIERS.length - 1);
+  const t = Math.min(1, Math.max(0, (tier.rank - 1) / span));
+  return RAMP[Math.min(RAMP.length - 1, Math.round(t * (RAMP.length - 1)))];
+}
+
 const NEUTRAL = "var(--text-low)";
 
 function sharePct(n: number): string {
@@ -72,7 +86,7 @@ export function AllocationChart({ snapshot, className = "" }: AllocationChartPro
           name: p.tier?.name ?? "Unassigned",
           amount,
           positions: 1,
-          color: TIER_COLOR[id as TierId] ?? NEUTRAL,
+          color: tierColor(p.tier),
         });
       }
     }

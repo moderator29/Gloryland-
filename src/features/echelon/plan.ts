@@ -1,48 +1,62 @@
 /**
- * Echelon: one sum placed as several terms that start days apart.
+ * Echelon: what splitting one sum into placements days apart now costs.
  *
- * A single placement of $3,000 returns $3,900 on one day and nothing on any
- * other day. The same $3,000 placed as six terms of $500, each opened five
- * days after the one before, returns $650 on six separate dates. The rate is
- * the same on every leg, so the total reward is the same too. What changes is
- * when capital is accessible and how much of it rides on any one date.
+ * This module used to plan a formation. One sum placed as several terms that
+ * started days apart returned capital on several dates instead of one, and the
+ * whole argument was the stagger of those maturities: same total reward either
+ * way, but less riding on any single date.
  *
- * The arithmetic that splits a total into legs is not repeated here. It lives
- * in `stagger` in the ladder planner, which already carries the rule that the
- * remainder rides on leg one so the legs sum to exactly the total the member
- * named. This module adds what `stagger` does not have: a spacing the member
- * chooses rather than one fixed by the number of legs, the dates that follow
- * from it, the combined accrual over time, the point where the schedule
- * settles into a rhythm, and the honest comparison against one placement.
+ * That argument is gone, and it is worth saying why rather than quietly
+ * reshaping the surface around a new one.
  *
- * Pure. No React, no storage, and both clocks are parameters, so the same
- * inputs always produce the same output.
+ * 1. There are no maturities. A position accrues from the day it opens and
+ *    keeps accruing until the member closes it, so no capital "comes back" on
+ *    a date, and there are no dates to stagger.
+ * 2. Liquidity is a member level window, not a position level one. A
+ *    withdrawal may be requested once every four days regardless of how many
+ *    positions are open, so splitting a sum buys no extra access to cash.
+ * 3. Because accrual starts at the placement, capital that waits to be placed
+ *    earns nothing while it waits. A leg opened five days late has five days
+ *    of accrual it will never recover, and since both plans accrue at the same
+ *    rate from then on, the gap never closes.
+ *
+ * So the honest form of this module is not a planner. It is the arithmetic of
+ * what a stagger costs, stated plainly enough that a member can decide against
+ * it. Nothing here recommends splitting a sum, and the surface that renders it
+ * says the same.
+ *
+ * Pure. No React, no storage, and the clock is a parameter, so the same inputs
+ * always produce the same output.
  *
  * The ladder planner is imported by path rather than through its barrel,
  * because that barrel also exports React components and nothing here should
  * pull a component into a module that is meant to be arithmetic.
  */
 
-import { DAY_MS, peakDeployedOf } from "@/domain/ledger";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, type Tier } from "@/domain/tiers";
-import { MINIMUM_PLACEMENT, maxParts, stagger, type StaggerLeg } from "@/features/ladder/plan";
-import { days, money } from "@/components/system/format";
+import { DAY_MS } from "@/domain/ledger";
+import {
+  DAILY_RATE,
+  WITHDRAW_INTERVAL_DAYS,
+  dailyReward,
+  tierForAmount,
+  type Tier,
+} from "@/domain/tiers";
+import { MINIMUM_PLACEMENT, maxParts } from "@/features/ladder/plan";
+import { money } from "@/components/system/format";
 
 /** One leg is a placement, not a formation. */
 export const MIN_LEGS = 2;
 
-/**
- * The widest spacing an echelon can use. Past one term, leg one has already
- * returned before leg two opens, so nothing overlaps and the formation is
- * really a sequence.
- */
-export const MAX_SPACING_DAYS = CYCLE_DAYS;
+/** The tightest spacing worth expressing. Accrual is quoted by the day. */
+export const MIN_SPACING_DAYS = 1;
 
 /**
- * The tightest spacing worth offering. Rewards accrue by the day, so two legs
- * less than a day apart are a distinction the product cannot express.
+ * The widest spacing the planner will model.
+ *
+ * A calendar month, chosen so the cost of a long delay can be shown rather
+ * than because anything in the model changes there. Nothing happens on day 30.
  */
-export const MIN_SPACING_DAYS = 1;
+export const MAX_SPACING_DAYS = 30;
 
 function safe(n: number): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
@@ -52,12 +66,7 @@ function clamp(n: number, lo: number, hi: number): number {
   return n < lo ? lo : n > hi ? hi : n;
 }
 
-/** Spacing that lands the legs evenly across one term, which is the default. */
-export function evenSpacing(parts: number): number {
-  return CYCLE_DAYS / Math.max(1, Math.floor(safe(parts)));
-}
-
-/** Leg counts worth offering for a total, largest first cut off by the minimum. */
+/** Leg counts worth offering for a total, cut off by the minimum placement. */
 export function legChoices(total: number, upTo = 6): number[] {
   const limit = Math.min(maxParts(total), upTo);
   const out: number[] = [];
@@ -65,20 +74,14 @@ export function legChoices(total: number, upTo = 6): number[] {
   return out;
 }
 
-/**
- * Spacings worth offering for a leg count: a fixed ladder of whole days plus
- * the even spacing for this many legs, rounded to a whole day so every date
- * on screen is a date rather than a fraction.
- */
-export function spacingChoices(parts: number): number[] {
-  const even = clamp(Math.round(evenSpacing(parts)), MIN_SPACING_DAYS, MAX_SPACING_DAYS);
-  const set = new Set<number>([2, 3, 5, 7, 10, 14, even]);
-  return [...set]
-    .filter((n) => n >= MIN_SPACING_DAYS && n <= MAX_SPACING_DAYS)
-    .sort((a, b) => a - b);
+/** Spacings worth offering, in whole days so every date on screen is a date. */
+export function spacingChoices(): number[] {
+  return [1, 2, 3, WITHDRAW_INTERVAL_DAYS, 7, 14, 30].filter(
+    (n, i, a) => a.indexOf(n) === i && n >= MIN_SPACING_DAYS && n <= MAX_SPACING_DAYS,
+  );
 }
 
-/* ── Whether a plan can actually be placed ──────────────────────────────── */
+/* ── Whether a split can actually be placed ─────────────────────────────── */
 
 export type EchelonProblem = "total" | "legs" | "spacing";
 
@@ -97,18 +100,14 @@ export type Validity = {
 };
 
 /**
- * Why a plan is not placeable, said plainly rather than by disabling a button
+ * Why a split is not placeable, said plainly rather than by disabling a button
  * and leaving the member to guess.
  *
  * A leg under the minimum and more legs than the total supports are the same
  * condition read two ways, since the smallest leg is the total divided by the
  * legs, so they are reported once with both figures named.
  */
-export function validate(
-  total: number,
-  parts: number,
-  spacingDays: number = evenSpacing(parts),
-): Validity {
+export function validate(total: number, parts: number, spacingDays: number): Validity {
   const sum = safe(total);
   const n = Math.floor(safe(parts));
   const spacing = safe(spacingDays);
@@ -131,7 +130,7 @@ export function validate(
     );
   } else if (n < MIN_LEGS) {
     problems.push("legs");
-    reasons.push("An echelon needs at least two legs. One leg is a single placement.");
+    reasons.push("A split needs at least two legs. One leg is a single placement.");
   } else if (n > maxLegs) {
     problems.push("legs");
     reasons.push(
@@ -142,12 +141,12 @@ export function validate(
   if (spacing < MIN_SPACING_DAYS) {
     problems.push("spacing");
     reasons.push(
-      "Rewards accrue by the day, so legs less than a day apart open on the same day. Space them at least one day.",
+      "Accrual is quoted by the day, so legs less than a day apart open on the same day. Space them at least one day.",
     );
   } else if (spacing > MAX_SPACING_DAYS) {
     problems.push("spacing");
     reasons.push(
-      `Legs ${days(spacing)} days apart never overlap. A term runs ${CYCLE_DAYS} days, so leg one returns before leg two opens, which is a sequence of placements rather than an echelon.`,
+      `The planner models spacings up to ${MAX_SPACING_DAYS} days. Past that the cost simply keeps growing at the same rate, so there is nothing new to show.`,
     );
   }
 
@@ -165,265 +164,91 @@ export function validate(
 /* ── The legs ───────────────────────────────────────────────────────────── */
 
 export type EchelonLeg = {
-  /** Position in the formation, 1-indexed. */
+  /** Position in the sequence, 1-indexed. */
   step: number;
   amount: number;
   tier: Tier | null;
-  /** Days from the plan's anchor until this leg opens. */
+  /** Days from the plan's anchor until this leg would be placed. */
   offsetDays: number;
   opensAt: number;
-  maturesAt: number;
+  /** What this leg accrues per day once it is placed. */
   daily: number;
-  /** Reward across this leg's own full term. */
-  reward: number;
-  /** Principal plus reward: what this leg releases at maturity. */
-  releases: number;
+  /**
+   * Accrual this leg never earns because it waited.
+   *
+   * A permanent shortfall rather than a temporary one: once the leg is open,
+   * it accrues at exactly the rate it would have accrued at on day one, so the
+   * days it sat out are never made up.
+   */
+  forgone: number;
   /** Whether this leg clears the first entry, so it could be opened at all. */
   openable: boolean;
-  /** The open date has arrived, so this leg can be placed now. */
+  /** The date has arrived, so this leg would be placed now. */
   due: boolean;
-  /** Time until the open date. Zero once the leg is due. */
+  /** Time until the date. Zero once the leg is due. */
   opensIn: number;
 };
-
-/**
- * A leg keeps the amount, rate and tier `stagger` worked out and takes only
- * its dates from the chosen spacing, so the two planners can never disagree
- * about what a leg is worth.
- */
-function toLeg(base: StaggerLeg, offsetDays: number, from: number, now: number): EchelonLeg {
-  const opensAt = from + Math.round(offsetDays * DAY_MS);
-  return {
-    step: base.step,
-    amount: base.amount,
-    tier: base.tier,
-    offsetDays,
-    opensAt,
-    maturesAt: opensAt + CYCLE_DAYS * DAY_MS,
-    daily: base.daily,
-    reward: base.reward,
-    releases: base.releases,
-    openable: base.openable,
-    due: now >= opensAt,
-    opensIn: Math.max(0, opensAt - now),
-  };
-}
-
-/** Legs running at an instant: opened, not yet matured. */
-export function runningAt(plan: EchelonPlan, at: number): EchelonLeg[] {
-  return plan.legs.filter((l) => at >= l.opensAt && at < l.maturesAt);
-}
-
-/** Principal at work at an instant. */
-export function deployedAt(plan: EchelonPlan, at: number): number {
-  return runningAt(plan, at).reduce((s, l) => s + l.amount, 0);
-}
-
-/* ── Where the schedule settles ─────────────────────────────────────────── */
-
-export type Steady = {
-  /** When the last leg opens, which is the first instant every leg is running. */
-  fullyDeployedAt: number;
-  /** True when the lag is under one term, so the legs genuinely overlap. */
-  overlaps: boolean;
-  /** The most principal at work at any one instant under this plan. */
-  peakDeployed: number;
-  /** When maturities start landing on the rhythm, which is the first one. */
-  rhythmFrom: number;
-  /** And when the rhythm runs out, after `parts` maturities. */
-  rhythmTo: number;
-  /** Days between one maturity and the next once the rhythm is running. */
-  everyDays: number;
-  /** First open to last maturity. */
-  spanDays: number;
-};
-
-/**
- * The most principal at work at one instant.
- *
- * Replayed against the clock rather than summed, because a leg that matures
- * has to lower the running total before the next one raises it again. The tie
- * break puts a maturity before an open at the same instant, matching how the
- * ledger reads its own peak, so a leg maturing on the day another opens never
- * reads as if both were running at once.
- */
-function peakOf(legs: EchelonLeg[]): number {
-  return peakDeployedOf(
-    legs.map((l) => ({ at: l.opensAt, amount: l.amount, endsAt: l.maturesAt })),
-  );
-}
-
-/* ── The accrual series ─────────────────────────────────────────────────── */
-
-export type AccrualPoint = {
-  /** Days from the plan's anchor. */
-  day: number;
-  t: number;
-  /** Combined reward per day across the legs running on that day. */
-  echelon: number;
-  /** What the same sum placed at once accrues on that day. */
-  single: number;
-  /** Principal at work under the echelon on that day. */
-  deployed: number;
-  /** Reward earned by that day under the echelon. */
-  earned: number;
-  /** Reward earned by that day under the single placement. */
-  singleEarned: number;
-};
-
-function pointAt(legs: EchelonLeg[], total: number, from: number, day: number): AccrualPoint {
-  const t = from + day * DAY_MS;
-  let perDay = 0;
-  let deployed = 0;
-  let earned = 0;
-
-  for (const leg of legs) {
-    // Accrual runs from the open to the maturity and stops dead there, which
-    // is exactly how the ledger accrues a real position.
-    if (t >= leg.opensAt && t < leg.maturesAt) {
-      perDay += leg.daily;
-      deployed += leg.amount;
-    }
-    earned += leg.amount * DAILY_RATE * clamp((t - leg.opensAt) / DAY_MS, 0, CYCLE_DAYS);
-  }
-
-  return {
-    day,
-    t,
-    echelon: perDay,
-    single: day >= 0 && day < CYCLE_DAYS ? total * DAILY_RATE : 0,
-    deployed,
-    earned,
-    singleEarned: total * DAILY_RATE * clamp(day, 0, CYCLE_DAYS),
-  };
-}
-
-/**
- * Combined accrual across the whole plan, one point a day.
- *
- * A long plan is strided down rather than drawn point by point, because a
- * chart on a phone has nowhere to put seven hundred samples. The final day is
- * always included so the series ends where the plan does.
- */
-function series(legs: EchelonLeg[], total: number, from: number, spanDays: number): AccrualPoint[] {
-  const last = Math.ceil(spanDays);
-  const stride = Math.max(1, Math.ceil(last / 180));
-  const out: AccrualPoint[] = [];
-  for (let day = 0; day <= last; day += stride) out.push(pointAt(legs, total, from, day));
-  if (out.length === 0 || out[out.length - 1].day !== spanDays) {
-    out.push(pointAt(legs, total, from, spanDays));
-  }
-  return out;
-}
 
 /* ── The comparison ─────────────────────────────────────────────────────── */
 
 export type Comparison = {
-  /** The same total placed at once, which is what the echelon is measured against. */
-  single: EchelonLeg;
-  /** The figure that is the same on both sides. Stated, never implied. */
-  reward: number;
-
-  /* When capital comes back. */
-  lumpMaturesAt: number;
-  firstMaturesAt: number;
-  lastMaturesAt: number;
-  /** How many dates capital returns on. One, against `parts`. */
-  dates: number;
-  /** The largest amount landing on any one date, each way. */
-  largestSingleDate: number;
-  largestEchelonDate: number;
-  /** That amount as a share of everything returning. One placement is always 1. */
-  singleConcentration: number;
-  echelonConcentration: number;
-
-  /* What the stagger costs early. */
-  /**
-   * Reward the echelon has accrued by the day the single placement matures.
-   * The legs have run 30, 25, 20 days and so on, so this is always short of
-   * the full term reward whenever there is more than one leg.
-   */
-  accruedByLumpMaturity: number;
-  /** The gap on that date, in dollars. */
-  shortfallAtLumpMaturity: number;
-  /** Days after the single maturity before the echelon has earned the same. */
+  /** What the whole sum accrues per day once every leg is placed. */
+  dailyWhenComplete: number;
+  /** What the same sum accrues per day placed today, which is the same figure. */
+  dailyAtOnce: number;
+  /** Days from the first leg to the last. */
   lagDays: number;
-  /** Average principal at work across the single placement's own thirty days. */
-  meanDeployedFirstTerm: number;
-  /** The same reading for one placement, which is simply the whole total. */
-  singleMeanDeployedFirstTerm: number;
+  /**
+   * Total accrual the stagger gives up, summed across the legs that waited.
+   *
+   * The whole comparison, in one number. It is not recovered later: from the
+   * day the last leg opens both plans hold the same principal and accrue at
+   * the same rate, so the gap is fixed at exactly this figure forever.
+   */
+  forgone: number;
+  /** That shortfall expressed as days of the full sum's own accrual. */
+  forgoneDays: number;
+  /** Principal that is out of the market on the first day, and on the last. */
+  deployedOnDayOne: number;
+  /** Withdrawal windows either way. The same, because the window is per member. */
+  withdrawIntervalDays: number;
 };
-
-function compare(legs: EchelonLeg[], single: EchelonLeg, total: number, lagDays: number) {
-  const lumpMaturesAt = single.maturesAt;
-
-  const accruedByLumpMaturity = legs.reduce(
-    (s, l) =>
-      s + l.amount * DAILY_RATE * clamp((lumpMaturesAt - l.opensAt) / DAY_MS, 0, CYCLE_DAYS),
-    0,
-  );
-
-  const reward = legs.reduce((s, l) => s + l.reward, 0);
-  const releases = legs.reduce((s, l) => s + l.releases, 0);
-  const largestEchelonDate = legs.reduce((m, l) => Math.max(m, l.releases), 0);
-
-  return {
-    single,
-    reward,
-    lumpMaturesAt,
-    firstMaturesAt: legs[0].maturesAt,
-    lastMaturesAt: legs[legs.length - 1].maturesAt,
-    dates: legs.length,
-    largestSingleDate: single.releases,
-    largestEchelonDate,
-    singleConcentration: 1,
-    echelonConcentration: releases > 0 ? largestEchelonDate / releases : 0,
-    accruedByLumpMaturity,
-    shortfallAtLumpMaturity: Math.max(0, reward - accruedByLumpMaturity),
-    lagDays,
-    // Reward is principal times the rate times the days it ran, so dividing
-    // the reward earned in the first term by the term rate gives back the
-    // average principal that earned it. One derivation, two readings.
-    meanDeployedFirstTerm: CYCLE_RETURN > 0 ? accruedByLumpMaturity / CYCLE_RETURN : 0,
-    singleMeanDeployedFirstTerm: total,
-  } satisfies Comparison;
-}
-
-/* ── The plan ───────────────────────────────────────────────────────────── */
 
 export type EchelonPlan = {
   total: number;
   parts: number;
   spacingDays: number;
-  /** When leg one opens, which is the plan's anchor. */
+  /** When leg one would be placed, which is the plan's anchor. */
   from: number;
   /** The clock this reading was taken against. */
   now: number;
   legs: EchelonLeg[];
-  /** Reward summed across every leg. */
-  reward: number;
-  /** Principal plus reward summed across every leg. */
-  releases: number;
-  /** Legs whose open date has arrived. These can be placed now. */
+  /** Legs whose date has arrived. */
   due: EchelonLeg[];
-  /** Legs whose open date is still ahead. Planned, not scheduled. */
+  /** Legs whose date is still ahead. Planned, not scheduled. */
   planned: EchelonLeg[];
   /** The earliest leg that is due, or null before the anchor. */
   next: EchelonLeg | null;
-  firstMaturesAt: number;
-  lastMaturesAt: number;
-  /** How far the last maturity trails the first: (parts - 1) x spacing. */
-  lagDays: number;
-  /** First open to last maturity. */
-  spanDays: number;
-  steady: Steady;
-  accrual: AccrualPoint[];
   compare: Comparison;
   validity: Validity;
 };
 
 /**
- * Plan a total as several terms opened `spacingDays` apart.
+ * Split a total into whole dollar legs, remainder on leg one.
+ *
+ * Leg one carries the remainder so the legs add up to exactly the total the
+ * member named. Anything else would show a plan that places a different sum
+ * from the one they typed.
+ */
+function split(total: number, parts: number): number[] {
+  const base = Math.floor(total / parts);
+  const remainder = total - base * parts;
+  return Array.from({ length: parts }, (_, i) => (i === 0 ? base + remainder : base));
+}
+
+/**
+ * Model a total placed as several legs `spacingDays` apart, and what that
+ * costs against placing it at once.
  *
  * Two clocks, because a plan outlives the moment it was made. `from` anchors
  * leg one, and `now` is when the plan is being read, so a member who returns a
@@ -435,54 +260,59 @@ export type EchelonPlan = {
 export function echelon(
   total: number,
   parts: number,
-  spacingDays: number = evenSpacing(parts),
+  spacingDays: number,
   from: number = Date.now(),
   now: number = from,
 ): EchelonPlan {
   const validity = validate(total, parts, spacingDays);
-
-  // Leg amounts, the tier each one lands on and the single placement it is
-  // measured against all come from the ladder planner. Only the dates below
-  // are this module's own, because only the spacing is.
-  const staged = stagger(total, parts, from);
+  const sum = safe(total);
+  const n = Math.max(1, Math.floor(safe(parts)) || 1);
   const spacing = clamp(safe(spacingDays), MIN_SPACING_DAYS, MAX_SPACING_DAYS);
 
-  const legs = staged.legs.map((leg, i) => toLeg(leg, i * spacing, from, now));
-  const single = toLeg(staged.single, 0, from, now);
+  const legs: EchelonLeg[] = split(sum, n).map((amount, i) => {
+    const offsetDays = i * spacing;
+    const opensAt = from + Math.round(offsetDays * DAY_MS);
+    return {
+      step: i + 1,
+      amount,
+      tier: tierForAmount(amount),
+      offsetDays,
+      opensAt,
+      daily: dailyReward(amount),
+      // The days this leg sat out, at the rate it will earn once it is in.
+      forgone: amount * DAILY_RATE * offsetDays,
+      openable: amount >= MINIMUM_PLACEMENT,
+      due: now >= opensAt,
+      opensIn: Math.max(0, opensAt - now),
+    };
+  });
 
-  const lagDays = (legs.length - 1) * spacing;
-  const spanDays = lagDays + CYCLE_DAYS;
-  const first = legs[0];
-  const last = legs[legs.length - 1];
   const due = legs.filter((l) => l.due);
+  const forgone = legs.reduce((s, l) => s + l.forgone, 0);
+  const dailyAtOnce = dailyReward(sum);
 
   return {
-    total: staged.total,
-    parts: staged.parts,
+    total: sum,
+    parts: n,
     spacingDays: spacing,
     from,
     now,
     legs,
-    reward: staged.reward,
-    releases: staged.releases,
     due,
     planned: legs.filter((l) => !l.due),
     next: due[0] ?? null,
-    firstMaturesAt: first.maturesAt,
-    lastMaturesAt: last.maturesAt,
-    lagDays,
-    spanDays,
-    steady: {
-      fullyDeployedAt: last.opensAt,
-      overlaps: lagDays < CYCLE_DAYS,
-      peakDeployed: peakOf(legs),
-      rhythmFrom: first.maturesAt,
-      rhythmTo: last.maturesAt,
-      everyDays: spacing,
-      spanDays,
+    compare: {
+      dailyWhenComplete: dailyAtOnce,
+      dailyAtOnce,
+      lagDays: (n - 1) * spacing,
+      forgone,
+      // Reward is principal times the rate times the days, so dividing the
+      // shortfall by what the whole sum earns in a day gives back the days.
+      // One derivation, two readings.
+      forgoneDays: dailyAtOnce > 0 ? forgone / dailyAtOnce : 0,
+      deployedOnDayOne: legs[0]?.amount ?? 0,
+      withdrawIntervalDays: WITHDRAW_INTERVAL_DAYS,
     },
-    accrual: series(legs, staged.total, from, spanDays),
-    compare: compare(legs, single, staged.total, lagDays),
     validity,
   };
 }

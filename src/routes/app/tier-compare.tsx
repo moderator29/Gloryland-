@@ -2,14 +2,7 @@ import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, Clock, Wallet } from "lucide-react";
-import {
-  CYCLE_RETURN,
-  TIERS,
-  dailyReward,
-  termReward,
-  type Tier,
-  type TierId,
-} from "@/domain/tiers";
+import { DAILY_RATE, TIERS, dailyReward, type Tier, type TierId } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { money } from "@/components/system/format";
 import { Crumbs } from "@/components/system/ui";
@@ -139,9 +132,9 @@ export default function TierCompare() {
         <p className="eyebrow">Programme</p>
         <h1 className="display mt-1 text-2xl sm:text-3xl">Compare tiers</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--text-low)]">
-          Only the lines that actually change are listed. The term rate is fixed at{" "}
-          {(CYCLE_RETURN * 100).toFixed(0)}% on every rung, so the difference is always access,
-          settlement speed and tooling.
+          Only the lines that actually change are listed. The rate is fixed at{" "}
+          {(DAILY_RATE * 100).toFixed(0)}% of principal a day on every rung, so the difference is
+          always access, settlement speed and tooling.
         </p>
       </header>
 
@@ -180,9 +173,7 @@ export default function TierCompare() {
               note={`${money(capitalStep)} more capital, taking a position at entry from ${money(
                 dailyReward(lower.entry),
                 2,
-              )} to ${money(dailyReward(higher.entry), 2)} per day and ${money(
-                termReward(lower.entry),
-              )} to ${money(termReward(higher.entry))} across the term.`}
+              )} to ${money(dailyReward(higher.entry), 2)} per day. The rate is identical, so the figure moves only because the principal does.`}
             />
 
             {hoursSaved > 0 && (

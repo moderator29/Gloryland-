@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Hexagon } from "lucide-react";
-import type { Tier, TierId } from "@/domain/tiers";
+import { TIERS, type Tier } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -25,17 +25,27 @@ export type TierBadgeProps = {
 };
 
 /**
- * Gradient stops per rank, walking the blue ramp from deep to cyan. Every stop
- * is an existing design token, so the badge introduces no new colour.
+ * Gradient stops walking the blue ramp from deep to cyan. Every stop is an
+ * existing design token, so the badge introduces no new colour.
+ *
+ * Picked by a rung's position on the ladder rather than written per tier. The
+ * ladder is twenty rungs and will change again, and a hand written map is a
+ * list that silently loses an entry the day a rung is added.
  */
-const RAMP: Record<TierId, [string, string]> = {
-  core: ["var(--accent-deep)", "var(--accent)"],
-  signal: ["var(--accent-deep)", "var(--accent-hi)"],
-  vector: ["var(--accent)", "var(--accent-hi)"],
-  apex: ["var(--accent)", "var(--accent-soft)"],
-  meridian: ["var(--accent-hi)", "var(--accent-soft)"],
-  sovereign: ["var(--accent-hi)", "var(--accent-cyan)"],
-};
+const STOPS = [
+  "var(--accent-deep)",
+  "var(--accent)",
+  "var(--accent-hi)",
+  "var(--accent-soft)",
+  "var(--accent-cyan)",
+] as const;
+
+function ramp(rank: number): [string, string] {
+  const span = Math.max(1, TIERS.length - 1);
+  const t = Math.min(1, Math.max(0, (rank - 1) / span));
+  const i = Math.min(STOPS.length - 2, Math.floor(t * (STOPS.length - 1)));
+  return [STOPS[i], STOPS[i + 1]];
+}
 
 export function TierBadge({
   tier,
@@ -58,7 +68,7 @@ export function TierBadge({
     );
   }
 
-  const [from, to] = RAMP[tier.id];
+  const [from, to] = ramp(tier.rank);
 
   return (
     <motion.span

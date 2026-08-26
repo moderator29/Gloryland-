@@ -105,7 +105,7 @@ export function RewardsChart({
       {empty ? (
         <ChartEmpty
           title="No rewards yet"
-          hint="Accrual starts the moment a vault opens and runs at 1% of principal a day for the full term."
+          hint="Accrual starts the moment a vault opens and runs for as long as the capital is left in place."
           height={height}
         />
       ) : (

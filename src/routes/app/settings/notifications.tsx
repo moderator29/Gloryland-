@@ -192,10 +192,9 @@ export default function SettingsNotifications() {
           <p className="text-xs leading-relaxed text-[var(--text-low)]">
             Two of these matter more than the rest and neither can reach you today. A term matures
             on a date fixed when it opened, and it earns nothing from that moment until you act. A
-            relay does not run in the background either: it fires the next time you open Rigel after
-            its term matures, never while the app is closed and never backdated, so a relay armed on
-            a term that matured last week has been sitting still since then. Until delivery exists,
-            the maturity calendar on{" "}
+            relay does not run in the background either: it fires the next time you open Rigel,
+            never while the app is closed and never backdated, so a relay that came due last week
+            has been sitting still since then. Until delivery exists, the withdrawal calendar on{" "}
             <Link
               to="/app/horizon"
               className="text-[var(--accent-hi)] underline underline-offset-2"

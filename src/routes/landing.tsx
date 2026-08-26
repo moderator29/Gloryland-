@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
@@ -34,7 +34,7 @@ import { TermTimeline } from "@/components/landing/TermTimeline";
 import { TierLadder } from "@/components/landing/TierLadder";
 import { DeskStatement } from "@/components/landing/DeskStatement";
 import { Faq } from "@/components/landing/Faq";
-import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "@/components/landing/figures";
+import { DAY_RATE, FIRST_TIER, TOP_TIER, WINDOW_RATE } from "@/components/landing/figures";
 
 /**
  * RIGEL, the public page.
@@ -56,19 +56,19 @@ import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "@/components/landing/
 
 const CONSTANTS: { value: number; format: (n: number) => string; label: string }[] = [
   {
-    value: CYCLE_DAYS,
-    format: (n) => `${n.toFixed(0)}`,
-    label: "Days from open to maturity, fixed at the moment a vault is written",
-  },
-  {
     value: DAILY_RATE * 100,
-    format: (n) => `${n.toFixed(2)}%`,
-    label: "Of the original principal, credited to the position every day",
+    format: (n) => `${n.toFixed(0)}%`,
+    label: "Of the original principal, credited to the position every single day",
   },
   {
-    value: CYCLE_RETURN * 100,
-    format: (n) => `${n.toFixed(0)}%`,
-    label: "Reached at maturity, on every rung of the ladder without exception",
+    value: WITHDRAW_INTERVAL_DAYS,
+    format: (n) => `${n.toFixed(0)}`,
+    label: "Days between one withdrawal request and the next, at every rung",
+  },
+  {
+    value: 0,
+    format: () => "None",
+    label: "Term, maturity or lock up. Capital accrues for as long as it stays in place",
   },
   {
     value: TIERS.length,
@@ -95,8 +95,8 @@ const SURFACES: Surface[] = [
     icon: Vault,
     kicker: "Vaults",
     title: "Capital enters as a dated position",
-    body: "Not a share of a pool. Each placement is written as its own position with its own principal, its opening timestamp and its maturity timestamp, and it accrues on its own record. You can always say which tranche is doing what, and exactly when it comes back.",
-    foot: `From ${money(FIRST_TIER.entry)} · ${CYCLE_DAYS} days · ${TERM_RATE} at maturity`,
+    body: "Not a share of a pool. Each placement is written as its own position with its own principal and its opening timestamp, and it accrues on its own record. You can always say which tranche is doing what and what each one is adding today.",
+    foot: `From ${money(FIRST_TIER.entry)} · ${DAY_RATE} a day · no term`,
     span: "lg:col-span-7 lg:row-span-2",
   },
   {
@@ -160,7 +160,7 @@ const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: SquareStack,
     title: "It will not pay more for size",
-    body: `Core and Sovereign earn the identical ${TERM_RATE} across ${CYCLE_DAYS} days, from one constant that every surface reads. What a larger position buys is the shorter settlement target published against its rung, and that target is the only figure on the ladder that moves.`,
+    body: `Core and Sovereign earn the identical ${DAY_RATE} a day, from one constant that every surface reads. What a larger position buys is the shorter settlement target published against its rung, and that target is the only figure on the ladder that moves.`,
   },
   {
     icon: Lock,
@@ -212,10 +212,11 @@ export default function Landing() {
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
                   <span className="chip chip-accent">
                     <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />
-                    Fixed {CYCLE_DAYS} day vault terms
+                    Daily accrual, no fixed term
                   </span>
                   <p className="machine break-normal text-[10px] text-[var(--text-low)] sm:text-[11px]">
-                    TERM {CYCLE_DAYS}D &middot; ACCRUAL {DAY_RATE}/DAY &middot; MATURITY {TERM_RATE}
+                    ACCRUAL {DAY_RATE}/DAY &middot; NO TERM &middot; WINDOW {WITHDRAW_INTERVAL_DAYS}
+                    D
                   </p>
                 </div>
 
@@ -229,9 +230,8 @@ export default function Landing() {
                 {/* And here is the line. Read as an instrument, not a promise. */}
                 <p className="display mt-6 max-w-3xl text-[clamp(1.05rem,3.6vw,1.8rem)] leading-snug text-[var(--text-low)]">
                   <span className="tabular text-[var(--accent-hi)]">{DAY_RATE}</span> of principal a
-                  day, <span className="tabular text-[var(--text-hi)]">{CYCLE_DAYS} days</span> end
-                  to end, <span className="tabular text-[var(--gain)]">{TERM_RATE}</span> at
-                  maturity.
+                  day, every day. Withdraw every{" "}
+                  <span className="tabular text-[var(--gain)]">{WITHDRAW_INTERVAL_DAYS} days</span>.
                 </p>
 
                 <DrawRule className="mt-8" delay={0.25} />
@@ -239,16 +239,16 @@ export default function Landing() {
                 <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-12">
                   <div className="min-w-0">
                     <p className="max-w-xl text-[15px] leading-relaxed text-[var(--text-mid)] sm:text-base">
-                      Rigel holds capital in fixed terms and instruments the result. A position is
-                      written with its principal and both dates before a cent accrues, it credits{" "}
-                      {DAY_RATE} of that principal every day, and it closes at {TERM_RATE}. The rate
-                      is identical at {FIRST_TIER.name} and at {TOP_TIER.name}. What a larger
-                      position buys is settlement speed and tooling, and the ladder says so out
-                      loud.
+                      Rigel holds capital in dated positions and instruments the result. A position
+                      is written with its principal before a cent accrues, it credits {DAY_RATE} of
+                      that principal every day for as long as it stays in place, and a withdrawal
+                      can be requested every {WITHDRAW_INTERVAL_DAYS} days. The rate is identical at{" "}
+                      {FIRST_TIER.name} and at {TOP_TIER.name}. What a larger position buys is
+                      settlement speed, and the ladder says so out loud.
                     </p>
 
                     <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <Link to="/app" className="btn btn-primary h-12 px-6 text-[15px]">
+                      <Link to="/app" className="sheen btn btn-primary h-12 px-6 text-[15px]">
                         Enter the portal
                         <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                       </Link>
@@ -264,15 +264,14 @@ export default function Landing() {
                         aria-hidden="true"
                       />
                       <span>
-                        Capital placed in a vault is at risk, including the risk of total loss. Read
-                        the{" "}
+                        Capital is at risk. Rates are targets, not guarantees. See the{" "}
                         <Link
                           to="/legal/risk"
                           className="text-[var(--text-mid)] underline underline-offset-2 hover:text-[var(--accent-hi)]"
                         >
-                          risk disclosure
-                        </Link>{" "}
-                        before you commit funds.
+                          risk note
+                        </Link>
+                        .
                       </span>
                     </p>
                   </div>
@@ -419,9 +418,9 @@ export default function Landing() {
             lead={
               <>
                 Most platforms pay their largest members more. Rigel does not. The term rate is{" "}
-                {TERM_RATE} at every rung from {FIRST_TIER.name} to {TOP_TIER.name}. What climbing
-                buys is settlement measured in hours instead of days, deeper analytics and priority
-                in the queue. Each rung below links to its own terms.
+                {DAY_RATE} a day at every rung from {FIRST_TIER.name} to {TOP_TIER.name}. What
+                climbing buys is settlement measured in hours instead of days, deeper analytics and
+                priority in the queue. Each rung below links to its own terms.
               </>
             }
           />
@@ -533,7 +532,7 @@ export default function Landing() {
                       <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                     </Link>
                     <Link to="/legal/risk" className="btn btn-outline h-12 px-6 text-[15px]">
-                      Read the risk disclosure
+                      Read the risk note
                     </Link>
                     <p className="mt-1 text-xs leading-relaxed text-[var(--text-low)]">
                       No account system stands behind this build yet. The portal identifies you by a
@@ -553,13 +552,10 @@ export default function Landing() {
                     />
                     <span className="max-w-3xl">
                       <strong className="font-semibold text-[var(--text-hi)]">
-                        The risk, stated plainly.
+                        Capital is at risk.
                       </strong>{" "}
-                      Capital placed in a vault can be lost in part or in full. The published rate
-                      is a target, not a promise. There is no deposit protection and no compensation
-                      scheme, Rigel is not a bank, and a return of this size implies risk of the
-                      same size. Place only what you can lose entirely without it changing how you
-                      live.
+                      Rates are targets, not guarantees. Rigel is not a bank and there is no deposit
+                      protection. Place what you can afford to lose.
                     </span>
                   </p>
                 </div>

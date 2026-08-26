@@ -10,13 +10,16 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "check": "esbuild src/domain/ledger.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ledger-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/ledger-check.mjs",
+    "check": "npm run check:ledger && npm run check:qr && npm run check:credentials",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm run check && npm run lint && npm run build",
     "test:install": "pnpm add -D --lockfile-only=false vitest@^3 jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom",
-    "typecheck:test": "tsc --noEmit -p tsconfig.test.json"
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "check:ledger": "esbuild src/domain/ledger.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ledger-check.mjs --alias:@=./src --loader:.webp=dataurl --log-level=error && node node_modules/.cache/ledger-check.mjs",
+    "check:qr": "esbuild src/lib/qr.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/qr-check.mjs --alias:@=./src --loader:.webp=dataurl --log-level=error && node node_modules/.cache/qr-check.mjs",
+    "check:credentials": "esbuild src/domain/credentials.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/credentials-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/credentials-check.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

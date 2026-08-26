@@ -89,7 +89,7 @@ function describe(e: LedgerEvent) {
     case "close":
       return {
         icon: Check,
-        title: "Vault settled",
+        title: "Vault closed",
         detail: "Principal returned",
         amount: null,
         tone: "text-[var(--text-mid)]",
@@ -98,8 +98,11 @@ function describe(e: LedgerEvent) {
     case "relay.set":
       return {
         icon: Repeat,
-        title: e.mode === "full" ? "Relay armed" : "Relay armed, principal only",
-        detail: "Carries into a new term at maturity",
+        title: e.mode === "full" ? "Relay armed, compounding" : "Relay armed, harvesting",
+        detail:
+          e.mode === "full"
+            ? "Folds accrued reward back into principal"
+            : "Claims accrued reward to the balance",
         amount: null,
         tone: "text-[var(--accent-hi)]",
         sign: "",

@@ -2,14 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Clock, Compass, Layers, Rocket } from "lucide-react";
-import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
-  DAILY_RATE,
-  TIERS,
-  dailyReward,
-  termReward,
-} from "@/domain/tiers";
+import { WITHDRAW_INTERVAL_DAYS, DAILY_RATE, TIERS, dailyReward, rewardOver } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { Value } from "@/components/system/Value";
 import { NAV } from "@/components/shell/nav";
@@ -28,7 +21,6 @@ import { ORIENTATION_KEY } from "@/features/onboarding";
  * orientation cannot drift from what a vault actually does.
  */
 
-const TERM_PCT = (CYCLE_RETURN * 100).toFixed(0);
 const DAILY_PCT = (DAILY_RATE * 100).toFixed(0);
 
 /** One line on what each surface is for, keyed by its route. */
@@ -69,25 +61,27 @@ function VaultPanel() {
         <p className="eyebrow">Step one</p>
         <h2 className="display mt-1.5 text-2xl sm:text-3xl">What a vault is</h2>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-[var(--text-mid)]">
-          A vault is capital you place for a fixed term. The term runs {CYCLE_DAYS} days and returns{" "}
-          {TERM_PCT}% of what you placed, which works out to {DAILY_PCT}% of principal accruing
-          every day. Rewards build continuously across the term rather than landing in one payment
-          at the end, and accrual stops the moment the term matures.
+          A vault is capital you place, and it accrues {DAILY_PCT}% of what you placed every day it
+          stays there. There is no term and no maturity: it keeps accruing for as long as you leave
+          it. Rewards build continuously rather than landing in one payment, and a withdrawal can be
+          requested every {WITHDRAW_INTERVAL_DAYS} days.
         </p>
       </div>
 
       <div className="ledger">
         <div className="rail-row">
           <span className="tag-micro flex-1">Term length</span>
-          <span className="metric tabular text-base">{CYCLE_DAYS} days</span>
+          <span className="metric tabular text-base">None</span>
         </div>
         <div className="rail-row">
           <span className="tag-micro flex-1">Daily accrual</span>
           <span className="metric tabular text-base">{DAILY_PCT}% of principal</span>
         </div>
         <div className="rail-row rail-row-gain">
-          <span className="tag-micro flex-1">Return over the full term</span>
-          <span className="metric tabular text-base text-[var(--gain)]">{TERM_PCT}%</span>
+          <span className="tag-micro flex-1">Withdrawal window</span>
+          <span className="metric tabular text-base text-[var(--gain)]">
+            every {WITHDRAW_INTERVAL_DAYS} days
+          </span>
         </div>
       </div>
 
@@ -122,22 +116,22 @@ function VaultPanel() {
             </dd>
           </div>
           <div className="inset p-3.5">
-            <dt className="eyebrow">Over {CYCLE_DAYS} days</dt>
+            <dt className="eyebrow">By day {WITHDRAW_INTERVAL_DAYS}</dt>
             <dd className="metric mt-1.5 text-lg text-[var(--gain)]">
-              <Value value={termReward(amount)} decimals={2} />
+              <Value value={rewardOver(amount, WITHDRAW_INTERVAL_DAYS)} decimals={2} />
             </dd>
           </div>
           <div className="inset p-3.5">
-            <dt className="eyebrow">Back at maturity</dt>
+            <dt className="eyebrow">By day 30</dt>
             <dd className="metric mt-1.5 text-lg text-[var(--accent-hi)]">
-              <Value value={amount + termReward(amount)} decimals={2} />
+              <Value value={amount + rewardOver(amount, 30)} decimals={2} />
             </dd>
           </div>
         </dl>
 
         <p className="mt-3.5 text-[11px] leading-relaxed text-[var(--text-low)]">
-          Principal plus reward, worked out from the published term. It is arithmetic on the terms
-          above, not a forecast of anything.
+          Worked out from the published rate. It is arithmetic on the figures above, not a forecast
+          of anything.
         </p>
       </div>
     </div>
@@ -153,9 +147,9 @@ function TiersPanel() {
         <p className="eyebrow">Step two</p>
         <h2 className="display mt-1.5 text-2xl sm:text-3xl">What a tier changes</h2>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-[var(--text-mid)]">
-          Not the rate. Every tier earns the same {TERM_PCT}% over the same {CYCLE_DAYS} days, from
-          the first rung to the last. What moves as you climb is access and how fast the desk
-          targets settling a withdrawal request.
+          Not the rate. Every tier earns the same {DAILY_PCT}% of principal a day, from the first
+          rung to the last. What moves as you climb is access and how fast the desk targets settling
+          a withdrawal request.
         </p>
       </div>
 
@@ -168,7 +162,7 @@ function TiersPanel() {
                 From {money(t.entry)}
               </span>
             </span>
-            <span className="chip chip-gain shrink-0">{TERM_PCT}% term</span>
+            <span className="chip chip-gain shrink-0">{DAILY_PCT}% a day</span>
             <span className="chip shrink-0">{t.settlementHours}h settlement target</span>
           </div>
         ))}
@@ -237,8 +231,8 @@ function StartPanel({ onLeave }: { onLeave: () => void }) {
         <h2 className="display mt-1.5 text-2xl sm:text-3xl">That is the whole model</h2>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-[var(--text-mid)]">
           Place capital, watch it accrue {DAILY_PCT}% a day, claim rewards whenever you like, and
-          collect your principal when the {CYCLE_DAYS} days are up. Everything else in the product
-          is a view onto that one movement.
+          request a withdrawal when a window opens. Everything else in the product is a view onto
+          that one movement.
         </p>
       </div>
 

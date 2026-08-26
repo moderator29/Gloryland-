@@ -176,29 +176,36 @@ function buildItems(snap: Snapshot, now: number): TickerItem[] {
     });
   }
 
-  // 2. Terms running down, soonest first.
-  const upcoming = snap.activePositions
-    .filter((p) => !p.matured)
-    .sort((a, b) => a.maturesAt - b.maturesAt)
-    .slice(0, 3);
-  for (const p of upcoming) {
-    items.push({
-      id: `mature-${p.id}`,
-      icon: Clock,
-      label: `${p.tier.name} vault matures`,
-      value: countdown(p.maturesAt - now),
-      tone: "accent",
-    });
-  }
+  // 2. The withdrawal window, which is the only clock left in the product.
+  //    Positions no longer mature, so there is no maturity to count down to:
+  //    what a member is actually waiting on is the next time they may request
+  //    a withdrawal.
+  items.push(
+    snap.withdrawAllowed
+      ? {
+          id: "window",
+          icon: Vault,
+          label: "Withdrawal window",
+          value: "open now",
+          tone: "gain",
+        }
+      : {
+          id: "window",
+          icon: Clock,
+          label: "Withdrawal window opens",
+          value: countdown(snap.withdrawUnlocksAt - now),
+          tone: "accent",
+        },
+  );
 
-  // 3. Terms already complete and waiting on settlement.
-  for (const p of snap.activePositions.filter((p) => p.matured).slice(0, 2)) {
+  // 3. The largest positions and what each adds per day, biggest first.
+  for (const p of [...snap.activePositions].sort((a, b) => b.principal - a.principal).slice(0, 3)) {
     items.push({
-      id: `matured-${p.id}`,
+      id: `pos-${p.id}`,
       icon: Vault,
-      label: `${p.tier.name} vault matured`,
-      value: `${money(p.principal + p.termReward)} ready`,
-      tone: "warn",
+      label: `${p.tier.name} vault`,
+      value: `+${money(p.dailyReward, 2)} a day`,
+      tone: "gain",
     });
   }
 
@@ -236,11 +243,6 @@ function Item({ item }: { item: TickerItem }) {
     <span className="min-h-[36px] mr-2 inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-3 py-1.5">
       <Icon className={`h-3.5 w-3.5 shrink-0 ${TONE[item.tone]}`} strokeWidth={1.9} />
       <span className="whitespace-nowrap text-[12px] text-[var(--text-mid)]">{item.label}</span>
-      {item.sample && (
-        <span className="whitespace-nowrap rounded border border-[var(--line)] px-1 py-px text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-low)]">
-          Sample
-        </span>
-      )}
       <span className={`tabular whitespace-nowrap text-[12px] font-semibold ${TONE[item.tone]}`}>
         {item.value}
       </span>

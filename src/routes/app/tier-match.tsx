@@ -2,14 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Check, Compass, RotateCcw } from "lucide-react";
-import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
-  TIERS,
-  dailyReward,
-  termReward,
-  type Tier,
-} from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward, type Tier } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { money } from "@/components/system/format";
 import { Crumbs } from "@/components/system/ui";
@@ -34,7 +27,7 @@ const CAPITAL: (Choice & { budget: number; short: string })[] = [
   },
   {
     label: "$1,000 to $3,000",
-    hint: "A defined amount set aside for a term",
+    hint: "A defined amount set aside and left to accrue",
     budget: 2999,
     short: "$1,000 to $3,000",
   },
@@ -82,7 +75,7 @@ const ACCESS: (Choice & { maxHours: number; short: string })[] = [
 const TOOLING: (Choice & { minRank: number; short: string })[] = [
   {
     label: "Just the essentials",
-    hint: "Balance, term progress and rewards",
+    hint: "Balance, days accruing and rewards",
     minRank: 1,
     short: "the essentials only",
   },
@@ -474,10 +467,8 @@ export default function TierMatch() {
                   </p>
                 </div>
                 <div className="inset p-3">
-                  <p className="eyebrow">Per term</p>
-                  <p className="metric mt-1 text-base text-[var(--gain)]">
-                    {money(termReward(best.entry))}
-                  </p>
+                  <p className="eyebrow">Withdrawals</p>
+                  <p className="metric mt-1 text-base">every {WITHDRAW_INTERVAL_DAYS} days</p>
                 </div>
                 <div className="inset p-3">
                   <p className="eyebrow">Settlement</p>
@@ -485,8 +476,9 @@ export default function TierMatch() {
                 </div>
               </div>
               <p className="mt-2.5 text-[11px] leading-relaxed text-[var(--text-low)]">
-                Figures are for a position at the entry amount over one {CYCLE_DAYS}-day term at the
-                programme rate of {(CYCLE_RETURN * 100).toFixed(0)}%.
+                The daily figure is for a position at the entry amount, at the programme rate of{" "}
+                {(DAILY_RATE * 100).toFixed(0)}% of principal a day. There is no end date, so the
+                total depends on how long you leave it in place.
               </p>
             </div>
 

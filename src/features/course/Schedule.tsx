@@ -109,7 +109,7 @@ function Row({ leg, course }: { leg: CourseLeg; course: Course }) {
         </p>
         <p className="mt-0.5 text-xs text-[var(--text-low)]">
           {leg.state === "filled"
-            ? `Placed, term matures ${relative(leg.dueAt + 30 * 86_400_000)}`
+            ? `Placed ${relative(leg.dueAt)}, accruing since`
             : `${fullDate(leg.dueAt)}, ${relative(leg.dueAt)}`}
         </p>
       </div>

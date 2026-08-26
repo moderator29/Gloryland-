@@ -12,15 +12,15 @@ import {
   BALANCE_NETWORK,
 } from "@/domain/ledger";
 import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
+  WITHDRAW_INTERVAL_DAYS,
   TIERS,
   tierForAmount,
   dailyReward,
-  termReward,
+  rewardOver,
 } from "@/domain/tiers";
 import { ASSETS, assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
+import { AddressQr } from "@/features/deposit/AddressQr";
 import { useMarket } from "@/hooks/useMarket";
 import { useLedger } from "@/hooks/useLedger";
 import { Receipt, ConfirmationTracker, reference, type ReceiptData } from "@/features/deposit";
@@ -65,7 +65,6 @@ export default function VaultNew() {
   const [assetId, setAssetId] = useState<AssetId>("btc");
   const [fromBalance, setFromBalance] = useState(presetBalance);
   const [confirmed, setConfirmed] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [saving, setSaving] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -94,18 +93,6 @@ export default function VaultNew() {
   // the one the block would have closed.
   const amountValid = value >= minimum && tier !== null;
   const valid = amountValid && balanceCovers;
-
-  const copyAddress = async () => {
-    if (!meta.address) return;
-    try {
-      await navigator.clipboard.writeText(meta.address);
-      setCopied(true);
-      toast.success(`${meta.symbol} address copied`);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Could not copy. Select the address and copy it manually.");
-    }
-  };
 
   const useBalance = () => {
     setFromBalance(true);
@@ -299,27 +286,26 @@ export default function VaultNew() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-[var(--text-low)]">Term reward</p>
+                    <p className="text-[11px] text-[var(--text-low)]">
+                      By day {WITHDRAW_INTERVAL_DAYS}
+                    </p>
                     <p className="metric mt-1 text-base text-[var(--gain)] sm:text-lg">
-                      {money(termReward(value))}
+                      {money(rewardOver(value, WITHDRAW_INTERVAL_DAYS))}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-[var(--text-low)]">At maturity</p>
+                    <p className="text-[11px] text-[var(--text-low)]">By day 30</p>
                     <p className="metric mt-1 text-base sm:text-lg">
-                      {money(value + termReward(value))}
+                      {money(rewardOver(value, 30))}
                     </p>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <Progress value={0} height={5} label="Term not started" />
-                  <div className="mt-1.5 flex justify-between text-[11px] text-[var(--text-low)]">
-                    <span>Day 0</span>
-                    <span>
-                      Day {CYCLE_DAYS}, {(CYCLE_RETURN * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
+                {/* No progress bar. There is no end for a bar to fill toward:
+                    the first date that matters is the withdrawal window. */}
+                <p className="mt-4 text-[11px] leading-relaxed text-[var(--text-low)]">
+                  Accrual starts the day it opens and does not stop. The first withdrawal can be
+                  requested {WITHDRAW_INTERVAL_DAYS} days from now.
+                </p>
               </motion.section>
             )}
 
@@ -452,28 +438,9 @@ export default function VaultNew() {
                     </div>
                   </div>
 
-                  {/* Absent unless a real address is configured. There is no custody
-                      behind this build, so a string here would be a destination
-                      nobody owns, and the step below still records the placement
-                      against the member's own ledger. */}
-                  {meta.address ? (
-                    <>
-                      <p className="eyebrow mt-4">{meta.network} address</p>
-                      <p className="machine inset mt-2 p-3 text-[11px] leading-relaxed text-[var(--text)]">
-                        {meta.address}
-                      </p>
-                      <button onClick={copyAddress} className="btn btn-secondary mt-2.5 w-full">
-                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        {copied ? "Copied" : "Copy address"}
-                      </button>
-                    </>
-                  ) : (
-                    <p className="inset mt-4 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
-                      Funding is not open in this build. There is no wallet behind the product yet
-                      and no address that could receive a transfer, so none is shown. Continuing
-                      still opens the term against your own ledger so you can watch it run.
-                    </p>
-                  )}
+                  <div className="inset mt-4 p-4">
+                    <AddressQr asset={meta} size={156} />
+                  </div>
                 </>
               )}
             </section>
@@ -487,9 +454,9 @@ export default function VaultNew() {
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
                 />
                 <span className="text-xs leading-relaxed text-[var(--text-mid)]">
-                  I understand capital is committed for the {CYCLE_DAYS} day term, that projections
-                  are illustrative rather than guaranteed, and that digital asset investments carry
-                  risk including loss of principal.
+                  I understand that capital is not available on demand and can be requested every{" "}
+                  {WITHDRAW_INTERVAL_DAYS} days, that the rate is a target rather than a guarantee,
+                  and that capital is at risk.
                 </span>
               </label>
 
@@ -516,8 +483,8 @@ export default function VaultNew() {
 
               <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--text-low)]">
                 <Info className="mt-px h-3 w-3 shrink-0" />
-                This preview records the position in your browser. Custody and settlement require
-                the production backend.
+                Send the exact amount to the address above. Your position is credited once the
+                transfer is reviewed.
               </p>
             </section>
           </motion.div>
@@ -535,8 +502,8 @@ export default function VaultNew() {
                 <p className="eyebrow">Placed</p>
                 <p className="metric mt-2 text-3xl">{money(receipt.amount)}</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-low)]">
-                  Moved from your balance into a {CYCLE_DAYS} day term. Accrual starts now, and the
-                  balance now reads {money(snap.available, 2)}.
+                  Moved from your balance into a vault. Accrual starts now, and the balance now
+                  reads {money(snap.available, 2)}.
                 </p>
                 <p className="machine mt-3 text-[11px] text-[var(--text-low)]">
                   {receipt.reference}

@@ -89,7 +89,7 @@ export function Systems({ marketOk, ledgerOk, className = "" }: SystemsProps) {
     },
     {
       name: "Build",
-      detail: preview ? "Preview build, figures are local to this browser" : "Production build",
+      detail: preview ? "Figures are held in this browser" : "Live",
       tone: preview ? "attention" : "ok",
     },
   ];

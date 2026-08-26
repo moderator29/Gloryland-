@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { money, pct } from "@/components/system/format";
 import { LegalPage, ReviewNote, type LegalSection } from "@/components/landing/LegalLayout";
 
@@ -104,31 +104,32 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: "vaults",
-    heading: "Vault terms",
+    heading: "Vaults",
     body: (
       <>
         <p>
-          A vault is a fixed commitment of capital for {CYCLE_DAYS} days. When you open one, the
-          position is recorded with its principal, its opening timestamp and its maturity timestamp.
+          A vault is a commitment of capital with no fixed end. When you open one, the position is
+          recorded with its principal and its opening timestamp, and it accrues for as long as it
+          stays open.
         </p>
         <ul>
           <li>
-            <strong>Accrual.</strong> The published structure accrues {pct(DAILY_RATE, 2)} of
-            original principal per day, reaching {pct(CYCLE_RETURN, 0)} over a complete {CYCLE_DAYS}
-            -day term. Accrual is linear and does not compound within a term.
+            <strong>Accrual.</strong> The published structure accrues {pct(DAILY_RATE, 0)} of
+            original principal per day, every day the position remains open. Accrual is linear
+            against the original principal and does not compound on its own.
           </li>
           <li>
-            <strong>Maturity.</strong> A term does not renew by itself. At maturity you may request
-            settlement or open a new one. The single exception is a relay: where you armed one on a
-            position, the platform claims, closes and reopens that term with what it carried and
-            arms the next, without asking again. It does that the next time you open Rigel after
-            maturity, never before and never with a backdated timestamp, and it can be disarmed at
-            any point before it runs.
+            <strong>Compounding.</strong> Nothing folds back into principal by itself. A relay is
+            the instruction that does it: where you armed one on a position, the platform folds the
+            accrued reward into the principal and arms the next, without asking again. It runs the
+            next time you open Rigel, never before and never with a backdated timestamp, and it can
+            be disarmed at any point.
           </li>
           <li>
-            <strong>Early exit.</strong> Capital in an open term is not available on demand. A
-            request to exit early is handled as an exception at our discretion and forfeits accrual
-            on the unfinished term.
+            <strong>Withdrawal.</strong> Capital in an open vault is not available on demand. A
+            withdrawal may be requested once every {WITHDRAW_INTERVAL_DAYS} days. A request is
+            reviewed against the settlement target published for your tier, and may be delayed or
+            declined.
           </li>
         </ul>
         <p>
@@ -154,7 +155,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          <strong>Funding is not open.</strong> This build issues no deposit address, holds no
+          <strong>Funding.</strong> Deposit addresses are published in the product. Rigel holds no
           custody and cannot settle a withdrawal, so no value can enter or leave it. The two
           paragraphs that follow describe how deposits and withdrawals work once that exists, and
           they govern nothing until then.
@@ -373,10 +374,10 @@ export default function TermsOfService() {
       updated={UPDATED}
       summary={
         <>
-          A vault is a {CYCLE_DAYS}-day commitment: capital is not available on demand once a term
-          is open, and the published {pct(CYCLE_RETURN, 0)} structure is a target rather than a
-          guaranteed payment. Funding is not open in this build, there is no password on your
-          account, and your record lives in your own browser. Nothing here is advice.
+          A vault accrues {pct(DAILY_RATE, 0)} of principal a day with no fixed end. Capital is not
+          available on demand: a withdrawal may be requested every {WITHDRAW_INTERVAL_DAYS} days,
+          and the published rate is a target rather than a guaranteed payment. Your record lives in
+          your own browser. Nothing here is advice.
         </>
       }
       sections={SECTIONS}

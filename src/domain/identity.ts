@@ -16,7 +16,7 @@
  *    whatever is chosen here.
  */
 
-import { CYCLE_DAYS, CYCLE_RETURN, TIERS } from "./tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward } from "./tiers";
 
 /* ── the model ──────────────────────────────────────────────────────────── */
 
@@ -45,7 +45,7 @@ export type Approach = {
   icon: "steady" | "compound" | "ladder" | "watching";
 };
 
-const termPct = `${Math.round(CYCLE_RETURN * 100)}%`;
+const dayPct = `${Math.round(DAILY_RATE * 100)}%`;
 
 /**
  * Four ways of running the same instrument. None of them change the rate, and
@@ -57,24 +57,24 @@ export const APPROACHES: Approach[] = [
     id: "steady",
     name: "Steady",
     pitch: "One term at a time. See it through before deciding anything else.",
-    effect: `Surfaces lead with the single open term, its day count and what it returns at maturity. Insights stays quiet until the term is close to done.`,
-    tradeoff: `Capital sits idle between terms unless you place it again, and idle capital earns nothing.`,
+    effect: `Surfaces lead with the single open position, how long it has been accruing and what it adds a day. Insights stays quiet while nothing needs deciding.`,
+    tradeoff: `Reward left inside the position earns nothing, because accrual runs on principal alone.`,
     icon: "steady",
   },
   {
     id: "compound",
     name: "Compounding",
-    pitch: "Roll principal and reward straight into the next term.",
-    effect: `Maturity leads with the rollover action rather than settlement, and Trajectory projects forward on the rolled figure.`,
-    tradeoff: `Nothing reaches your available balance while you keep rolling, so the position is not liquid until you stop.`,
+    pitch: "Fold the reward back into principal so it accrues too.",
+    effect: `The position leads with the compounding action rather than the claim, and Trajectory projects forward on the folded figure.`,
+    tradeoff: `Nothing reaches your available balance while you keep folding, so there is nothing to withdraw until you stop.`,
     icon: "compound",
   },
   {
     id: "ladder",
     name: "Laddered",
-    pitch: "Stagger placements so capital comes back in tranches, not one cliff.",
-    effect: `Horizon opens on the maturity calendar and the split planner, so the schedule is the first thing you see.`,
-    tradeoff: `The total reward is identical to placing it all at once. Laddering buys you timing, not yield.`,
+    pitch: "Build a position in stages rather than in one decision.",
+    effect: `Horizon opens on the withdrawal calendar and Course on the placement rhythm, so the dates are the first thing you see.`,
+    tradeoff: `Capital waiting to be placed accrues nothing, so staging costs the days it waits and never makes them back.`,
     icon: "ladder",
   },
   {
@@ -82,7 +82,7 @@ export const APPROACHES: Approach[] = [
     name: "Watching",
     pitch: "Not placing yet. Learn the mechanics first.",
     effect: `Home leads with worked examples and the glossary instead of an empty portfolio, and nothing prompts you to fund.`,
-    tradeoff: `Nothing accrues while you watch. Every figure you see is an illustration until you open a term.`,
+    tradeoff: `Nothing accrues while you watch. Every figure you see is an illustration until you open a position.`,
     icon: "watching",
   },
 ];
@@ -287,9 +287,8 @@ export const START_BANDS = TIERS.map((t) => ({
   tierId: t.id,
   label: t.name,
   amount: t.entry,
-  daily: (t.entry * CYCLE_RETURN) / CYCLE_DAYS,
-  term: t.entry * CYCLE_RETURN,
+  daily: dailyReward(t.entry),
   settlementHours: t.settlementHours,
   /** Stated once per band so no band can read as a better rate than another. */
-  note: `${termPct} across ${CYCLE_DAYS} days, the same as every rung.`,
+  note: `${dayPct} of principal a day, the same as every rung, with a withdrawal every ${WITHDRAW_INTERVAL_DAYS} days.`,
 }));

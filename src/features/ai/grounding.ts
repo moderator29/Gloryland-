@@ -31,10 +31,14 @@ export type MemberState = {
   /** Nothing has ever been placed. */
   empty: boolean;
   hasOpen: boolean;
-  /** Open positions that finished their term and are earning nothing. */
-  matured: Position[];
-  /** The soonest maturity still ahead, if there is one. */
-  nextMaturity: Position | null;
+  /**
+   * Reward sitting outside principal, which earns nothing until it is folded
+   * back in. This replaced a matured list: positions no longer end, so the
+   * thing worth flagging is idle reward rather than a finished term.
+   */
+  unfolded: number;
+  /** The largest open position, which is the one worth naming first. */
+  largest: Position | null;
   claimable: number;
   idleCash: number;
   /** Within reach of the next rung, and there is a next rung. */
@@ -43,20 +47,19 @@ export type MemberState = {
   standingFromPeak: boolean;
   /** Standing instructions currently in force. */
   relaysArmed: Relay[];
-  /** Armed, matured and waiting to run. */
+  /** Armed, past its fire time and waiting to run. */
   relaysDue: Relay[];
 };
 
 export function memberState(snap: Snapshot): MemberState {
   const open = snap.activePositions;
-  const matured = open.filter((p) => p.matured);
-  const ahead = open.filter((p) => !p.matured).sort((a, b) => a.maturesAt - b.maturesAt);
+  const largest = [...open].sort((a, b) => b.principal - a.principal)[0] ?? null;
 
   return {
     empty: snap.positions.length === 0,
     hasOpen: open.length > 0,
-    matured,
-    nextMaturity: ahead[0] ?? null,
+    unfolded: snap.rewardsPending,
+    largest,
     claimable: snap.rewardsPending,
     idleCash: snap.available,
     nearNextTier: Boolean(snap.nextTier) && snap.tierProgress >= NEAR_TIER && snap.toNextTier > 0,
@@ -72,8 +75,9 @@ export { IDLE_FLOOR, CLAIM_FLOOR };
 const POSITION_LIMIT = 6;
 
 function positionLine(p: Position): string {
-  const state = p.matured ? "matured, accrual stopped" : `day ${p.daysElapsed.toFixed(1)} of 30`;
-  return `  ${p.tier.name}, ${money(p.principal)} principal, ${state}, ${money(p.accrued, 2)} accrued, ${money(p.claimable, 2)} claimable, matures ${fullDate(p.maturesAt)}`;
+  // No term, so no progress through one: the honest reading is how long it has
+  // been running and what it adds each day it keeps running.
+  return `  ${p.tier.name}, ${money(p.principal)} principal, opened ${fullDate(p.openedAt)}, running ${p.daysElapsed.toFixed(1)} days, ${money(p.accrued, 2)} accrued, ${money(p.claimable, 2)} claimable, ${money(p.dailyReward, 2)} per day`;
 }
 
 /**
@@ -125,20 +129,25 @@ export function positionBriefing(snap: Snapshot, approach: Approach): string {
       lines.push(`  and ${open.length - POSITION_LIMIT} more not listed here`);
     }
   } else if (!state.empty) {
-    lines.push("Open positions: none, every position has been settled");
+    lines.push("Open positions: none, every position has been closed");
   }
 
-  if (state.matured.length > 0) {
-    const held = state.matured.reduce((s, p) => s + p.principal, 0);
+  lines.push(
+    snap.withdrawAllowed
+      ? "Withdrawal window: open now, a request may be made today"
+      : `Withdrawal window: opens ${fullDate(snap.withdrawUnlocksAt)}, ${snap.daysUntilWithdraw.toFixed(1)} days away`,
+  );
+
+  if (state.unfolded > 0) {
     lines.push(
-      `Matured and not yet settled: ${state.matured.length} holding ${money(held)} of principal, earning nothing`,
+      `Reward sitting outside principal: ${money(state.unfolded, 2)}, earning nothing until it is claimed or folded back in by a relay`,
     );
   }
 
   if (state.relaysArmed.length > 0) {
     const carry = state.relaysArmed.reduce((sum, r) => sum + r.carries, 0);
     lines.push(
-      `Relays armed: ${state.relaysArmed.length}, carrying ${money(carry)} into new terms at maturity. Modes: ${state.relaysArmed.map((r) => r.mode).join(", ")}.`,
+      `Relays armed: ${state.relaysArmed.length}, folding ${money(carry)} of accrued reward back into principal when they next run. Modes: ${state.relaysArmed.map((r) => r.mode).join(", ")}.`,
     );
   }
   if (state.relaysDue.length > 0) {

@@ -24,11 +24,7 @@ export function MarketPanel({ compact = false }: { compact?: boolean }) {
         <div className="min-w-0">
           <h2 className="text-[15px] font-semibold text-[var(--text-hi)]">Market</h2>
           <p className="mt-0.5 truncate text-xs text-[var(--text-low)]">
-            {stale
-              ? "Showing last known prices"
-              : at
-                ? `Updated ${relative(at)}`
-                : "Live prices from CoinGecko"}
+            {stale ? "Showing last known prices" : at ? `Updated ${relative(at)}` : "Live prices"}
           </p>
         </div>
         <button onClick={refresh} className="btn btn-ghost !px-2" aria-label="Refresh prices">
@@ -60,7 +56,7 @@ export function MarketPanel({ compact = false }: { compact?: boolean }) {
               >
                 <Link
                   to={`/app/market/${c.id}`}
-                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[rgba(46,139,255,0.05)] sm:gap-4 sm:px-5"
+                  className="lift flex items-center gap-3 px-4 py-3 hover:bg-[rgba(46,139,255,0.05)] sm:gap-4 sm:px-5"
                 >
                   {meta && <CoinLogo asset={meta} size={34} />}
 

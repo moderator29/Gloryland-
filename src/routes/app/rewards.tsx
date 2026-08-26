@@ -6,8 +6,8 @@ import { Gift, Send, Wallet } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { claimRewards, recordWithdrawal } from "@/domain/ledger";
 import { Value } from "@/components/system/Value";
-import { BandHead, Progress, Empty, RailStat } from "@/components/system/ui";
-import { money, fullDate, relative } from "@/components/system/format";
+import { BandHead, Empty, RailStat } from "@/components/system/ui";
+import { money, fullDate, relative, days } from "@/components/system/format";
 import { Explain } from "@/features/explain";
 
 export default function Rewards() {
@@ -86,7 +86,7 @@ export default function Rewards() {
         <div className="bento">
           {/* Tall primary: per-vault accrual */}
           <div className="bento-cell panel p-5 lg:col-span-7 lg:row-span-2 xl:p-6">
-            <BandHead title="Accruing now" hint="Rewards build continuously through each term" />
+            <BandHead title="Accruing now" hint="Rewards build continuously, with no end date" />
             {snap.activePositions.length ? (
               <div className="ledger">
                 {snap.activePositions.map((p) => (
@@ -103,9 +103,9 @@ export default function Rewards() {
                       <p className="mt-0.5 text-xs text-[var(--text-low)]">
                         {money(p.principal)} · {money(p.dailyReward, 2)}/day
                       </p>
-                      <div className="mt-2.5">
-                        <Progress value={p.progress} height={4} label={`${p.tier.name} term`} />
-                      </div>
+                      <p className="mt-0.5 text-xs text-[var(--text-low)]">
+                        {days(p.daysElapsed)} days accruing
+                      </p>
                     </div>
                   </Link>
                 ))}
@@ -115,7 +115,7 @@ export default function Rewards() {
                 icon={Gift}
                 art="ledger"
                 title="Nothing accruing"
-                body="Rewards begin the moment capital enters a vault and build every day of the term."
+                body="Rewards begin the moment capital enters a vault and build every day it stays there."
                 action={{ label: "Open a vault", to: "/app/vaults/new" }}
               />
             )}

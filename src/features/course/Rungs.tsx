@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import type { Plan } from "./rungs";
 import { money, fullDate, days } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
+import { DAILY_RATE } from "@/domain/tiers";
 
 /**
  * Which leg crosses which rung, and on what date.
@@ -26,9 +26,9 @@ export function Rungs({ plan, className = "" }: RungsProps) {
       <div className={`inset p-4 ${className}`}>
         <p className="text-sm text-[var(--text-hi)]">You hold the top rung already.</p>
         <p className="mt-1 text-xs leading-relaxed text-[var(--text-low)]">
-          A course still has a job here: it keeps capital entering terms on a rhythm rather than in
-          one decision, and every leg earns the same {(CYCLE_RETURN * 100).toFixed(0)}% across{" "}
-          {CYCLE_DAYS} days.
+          A course still has a job here: it keeps capital entering vaults on a rhythm rather than in
+          one decision, and every leg accrues the same {(DAILY_RATE * 100).toFixed(0)}% of its own
+          principal a day.
         </p>
       </div>
     );

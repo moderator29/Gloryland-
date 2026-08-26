@@ -10,8 +10,9 @@ import { BandHead } from "@/components/system/ui";
  * Standing: the instructions that are waiting on the member right now.
  *
  * The Desk is documented as where a member acts, and until now the only two
- * acts it offered were funding and withdrawing. An armed relay whose term has
- * matured, and a course leg whose date has arrived, are both acts too, and
+ * acts it offered were funding and withdrawing. An armed relay with a day of
+ * reward waiting on it, and a course leg whose date has arrived, are both acts
+ * too, and
  * both are currently invisible unless the member happens to open the vault or
  * the course they belong to.
  *
@@ -52,9 +53,12 @@ export function Standing({ snap, className = "" }: StandingProps) {
     if (!relay || !position) return;
     fireRelay(relay, position);
     playTierChord(position.tier.id);
-    toast.success(`${position.tier.name} vault rolled`, {
-      description: `${money(relay.carries)} carried into a new term.`,
-    });
+    toast.success(
+      relay.mode === "full"
+        ? `${position.tier.name} vault compounded`
+        : "Reward claimed to your balance",
+      { description: `${money(relay.carries, 2)} moved.` },
+    );
   };
 
   return (
@@ -79,8 +83,11 @@ export function Standing({ snap, className = "" }: StandingProps) {
                   {position.tier.name} relay is due
                 </span>
                 <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-low)]">
-                  {money(relay.carries)} has been still for {days(relay.overdueDays)} days, which is{" "}
-                  {money(relay.forgoneDaily, 2)} a day not accruing.
+                  {money(relay.carries, 2)} has been waiting {days(relay.overdueDays)} days to move
+                  {relay.forgoneDaily > 0
+                    ? `, which is ${money(relay.forgoneDaily, 2)} a day not accruing`
+                    : ""}
+                  .
                 </span>
               </span>
               <button

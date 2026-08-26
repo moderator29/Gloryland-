@@ -1,34 +1,33 @@
 /**
- * Echelon: one sum placed as several terms that start days apart.
+ * Echelon: what splitting one sum into placements days apart costs.
  *
- * A formation rather than a control. The name is the shape it makes on
- * Horizon, where each maturity is set back from the one ahead by a fixed
- * interval, and it keeps this concept apart from Ladder, which is the tier
- * progression and not this at all.
+ * It was a formation once. One sum placed as several terms that started days
+ * apart returned capital on several dates instead of one, and the argument was
+ * the stagger of those maturities. There are no maturities now, and liquidity
+ * is a member level window rather than a position level one, so the argument
+ * does not survive: the only thing a stagger changes is that the later legs
+ * accrue nothing while they wait.
  *
- * Nothing here writes to the ledger and nothing here schedules anything. The
- * planner is arithmetic over the tier ladder, the two components render it,
- * and a leg becomes a real position only when the member opens it.
+ * What is left is the arithmetic of that cost, and a surface honest enough to
+ * show it and recommend against itself. `plan` is the arithmetic, `Compare`
+ * renders it.
+ *
+ * Nothing here writes to the ledger and nothing here schedules anything. A leg
+ * becomes a real position only when the member opens it.
  */
 
-export { Schedule, type ScheduleProps } from "./Schedule";
 export { Compare, type CompareProps } from "./Compare";
 export {
   echelon,
   validate,
-  evenSpacing,
   legChoices,
   spacingChoices,
-  runningAt,
-  deployedAt,
   MIN_LEGS,
   MIN_SPACING_DAYS,
   MAX_SPACING_DAYS,
   type EchelonPlan,
   type EchelonLeg,
   type EchelonProblem,
-  type AccrualPoint,
   type Comparison,
-  type Steady,
   type Validity,
 } from "./plan";

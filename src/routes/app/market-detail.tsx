@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowDown, ArrowUp, Copy, Check } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMarket, useMarketHistory, WINDOWS, type Window } from "@/hooks/useMarket";
 import { assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
+import { AddressQr } from "@/features/deposit/AddressQr";
 import { Crumbs, Skeleton } from "@/components/system/ui";
 import { money, moneyCompact } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -24,7 +24,6 @@ export default function MarketDetail() {
   const meta = assetById((assetId ?? "") as AssetId);
   const { coins } = useMarket();
   const [win, setWin] = useState<Window>("1D");
-  const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
 
   const coin = coins.find((c) => c.id === meta?.id);
@@ -55,18 +54,6 @@ export default function MarketDetail() {
 
   const up = (stats?.pct ?? coin?.change24h ?? 0) >= 0;
   const tint = up ? "var(--gain)" : "var(--loss)";
-
-  const copyAddress = async () => {
-    if (!meta.address) return;
-    try {
-      await navigator.clipboard.writeText(meta.address);
-      setCopied(true);
-      toast.success(`${meta.symbol} address copied`);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Could not copy. Select the address and copy it manually.");
-    }
-  };
 
   return (
     <div className="space-y-5">
@@ -222,46 +209,13 @@ export default function MarketDetail() {
       <section className="panel p-5">
         <p className="eyebrow">Fund with {meta.symbol}</p>
         <p className="mt-1.5 text-xs text-[var(--text-low)]">{meta.network}</p>
-        {/* Absent unless a real address is configured. There is no custody
-                  behind this build, so a string here would be a destination
-                  nobody owns. */}
-        {meta.address ? (
-          <>
-            <p className="inset mt-3 break-all p-3 font-mono text-[11px] leading-relaxed text-[var(--text)]">
-              {meta.address}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button onClick={copyAddress} className="btn btn-secondary flex-1">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.span
-                    key={copied ? "y" : "n"}
-                    initial={reduce ? false : { opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
-                    transition={{ duration: reduce ? 0 : 0.14 }}
-                    className="inline-flex items-center gap-2"
-                  >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? "Copied" : "Copy address"}
-                  </motion.span>
-                </AnimatePresence>
-              </button>
-              <Link to="/app/vaults/new" className="btn btn-primary flex-1">
-                Open a vault
-              </Link>
-            </div>
-          </>
-        ) : (
-          <p className="inset mt-3 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
-            Funding is not open in this build. There is no wallet behind the product yet and no
-            address that could receive a transfer, so none is shown.
-          </p>
-        )}
+        <div className="inset mt-3 p-4">
+          <AddressQr asset={meta} size={168} />
+        </div>
+        <Link to="/app/vaults/new" className="btn btn-primary mt-3 w-full">
+          Open a vault
+        </Link>
       </section>
-
-      <p className="pb-2 text-center text-[11px] text-[var(--text-low)]">
-        Prices from CoinGecko. Figures are indicative and refresh about every 60 seconds.
-      </p>
     </div>
   );
 }

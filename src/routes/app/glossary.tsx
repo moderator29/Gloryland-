@@ -151,8 +151,8 @@ export default function Glossary() {
         <div className="min-w-0">
           {groups.length === 0 ? (
             <p className="inset p-5 text-sm text-[var(--text-low)]">
-              Nothing matches {`"${query}"`}. Try a term from a figure on screen, such as accrual,
-              maturity or standing.
+              Nothing matches {`"${query}"`}. Try a word from a figure on screen, such as accrual,
+              compounding or standing.
             </p>
           ) : (
             groups.map((g, gi) => (

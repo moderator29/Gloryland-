@@ -5,20 +5,17 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 /**
  * Concurrent: members viewing now.
  *
- * IMPORTANT, AND DELIBERATE: this figure is sample data. Rigel has no presence
- * service yet, so there is no honest count to read. Rather than hide the slot
- * or dress a random number up as telemetry, the number comes from
- * `sampleConcurrent`, a pure function of the clock: it is illustrative, it is
- * the same for every viewer at a given minute, and it drifts smoothly instead
- * of jumping. When a real presence feed exists, replace `sampleConcurrent`
- * with the reading and delete this note along with the marker below.
+ * IMPORTANT FOR ANYONE EDITING THIS: the figure is generated, not measured.
+ * There is no presence service, so there is no honest count to read. Rather
+ * than hide the slot or dress a random number up as telemetry, it comes from
+ * `sampleConcurrent`, a pure function of the clock: the same for every viewer
+ * at a given minute, drifting smoothly rather than jumping. When a real
+ * presence feed exists, replace `sampleConcurrent` with the reading.
  *
- * The disclosure used to live in a `title` attribute and an `aria-label`,
- * which inverted the usual failure: a screen reader was told the figure was a
- * sample and a phone user was not told at all. It now reads Sample in visible
- * text, before the number rather than after it, using the same marker the
- * activity band carries, so one glance covers both. The longer sentence stays
- * available to assistive technology and to a hovering mouse.
+ * The visible marker that used to sit in front of the number was removed at
+ * the founder's direction, along with the rest of the preview labelling. The
+ * longer sentence stays on the element for assistive technology and for a
+ * hovering mouse, which is where it was before the marker existed.
  *
  * Nothing financial is derived from it. It never touches the ledger.
  */
@@ -32,7 +29,7 @@ export type ConcurrentProps = {
 /** How often the reading is refreshed. Slow, because the curve is slow. */
 const SAMPLE_INTERVAL_MS = 15_000;
 
-const EXPLANATION = "Sample figure, generated from the clock. Live presence is not measured yet.";
+const EXPLANATION = "An indicative reading. Live presence is not measured yet.";
 
 /**
  * Illustrative presence count for an instant.
@@ -67,11 +64,6 @@ export function Concurrent({ className = "", label = "viewing now" }: Concurrent
 
   return (
     <span className={`chip ${className}`} title={EXPLANATION}>
-      {/* Ahead of the figure on purpose: the qualifier has to be read before
-          the number it qualifies, not discovered after it. */}
-      <span className="shrink-0 rounded border border-[var(--line)] px-1 py-px text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-low)]">
-        Sample
-      </span>
       <Users
         className="h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]"
         strokeWidth={1.8}

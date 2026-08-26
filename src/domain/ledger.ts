@@ -48,9 +48,10 @@
  */
 
 import {
-  CYCLE_DAYS,
   DAILY_RATE,
   TIERS,
+  WITHDRAW_INTERVAL_DAYS,
+  dailyReward,
   tierById,
   tierForAmount,
   type Tier,
@@ -72,7 +73,7 @@ export type EventKind =
   | "course.fill";
 
 export type LedgerEvent =
-  /** Capital placed into a vault. Starts a term. */
+  /** Capital placed into a vault. Starts accruing, and keeps accruing. */
   | {
       id: string;
       kind: "open";
@@ -85,7 +86,7 @@ export type LedgerEvent =
        * True when this position was funded from the balance already in the
        * account rather than from money brought in from outside.
        *
-       * Without it the two cases are indistinguishable, and settling a term
+       * Without it the two cases are indistinguishable, and closing a position
        * then re-placing the same capital counted as if fresh money had
        * arrived: the balance was credited on settlement and never debited on
        * placement, so the portfolio doubled on every roll and tier standing
@@ -95,9 +96,10 @@ export type LedgerEvent =
        */
       fromAvailable?: boolean;
       /**
-       * When the term begins, if that is not the moment the capital was
-       * committed. Absent means it began on `at`, which is every event written
-       * before this field existed and every ordinary placement since.
+       * When the position starts accruing, if that is not the moment the
+       * capital was committed. Absent means it began on `at`, which is every
+       * event written before this field existed and every ordinary placement
+       * since.
        *
        * The write still happens now. Nothing here schedules a future write and
        * nothing moves a member's money for them: the capital is committed at
@@ -112,13 +114,14 @@ export type LedgerEvent =
   | { id: string; kind: "claim"; at: number; amount: number; positionId: string }
   /** Cash sent out to an external address. */
   | { id: string; kind: "withdraw"; at: number; amount: number; address: string }
-  /** A matured position returned its principal to available cash. */
+  /** A position was closed and returned its principal to available cash. */
   | { id: string; kind: "close"; at: number; positionId: string }
   /**
-   * A standing instruction on a position: at maturity, carry it into a new
-   * term rather than letting it sit still. The latest relay event for a
-   * position wins, so arming, changing mode and disarming are one mechanism
-   * and the whole history stays readable in Ledger.
+   * A standing instruction on a position: once a whole day of reward has
+   * accrued, act on it rather than leaving it outside the principal. The
+   * latest relay event for a position wins, so arming, changing mode and
+   * disarming are one mechanism and the whole history stays readable in
+   * Ledger.
    */
   | { id: string; kind: "relay.set"; at: number; positionId: string; mode: RelayMode }
   | { id: string; kind: "relay.clear"; at: number; positionId: string }
@@ -153,7 +156,14 @@ export type LedgerEvent =
       positionId: string;
     };
 
-/** What a relay carries forward. */
+/**
+ * What a standing instruction does with accrued reward.
+ *
+ * `full` compounds: the reward is folded into principal, so it starts accruing
+ * too. `principal` harvests: the reward moves to available cash and the
+ * principal keeps running untouched. Both values were written by earlier
+ * builds and both are still read, because the log is append only.
+ */
 export type RelayMode = "full" | "principal";
 
 export type CourseLegState = "filled" | "due" | "scheduled" | "lapsed";
@@ -187,7 +197,13 @@ export type Course = {
   nextDue: CourseLeg | null;
   /** The next leg not yet due, for a "next on" line. */
   upcoming: CourseLeg | null;
-  /** Capital that enters terms across any thirty day stretch, at this rhythm. */
+  /**
+   * Capital this rhythm commits across any thirty day stretch.
+   *
+   * Thirty days is a calendar window and nothing more. It is not a term, there
+   * is no term, and the figure exists only so two rhythms can be compared on
+   * one span rather than on their own intervals.
+   */
   per30: number;
   /** Legs that went unfilled and were overtaken by a later one. */
   lapsedCount: number;
@@ -200,13 +216,12 @@ export type Position = {
   principal: number;
   /** When the capital was committed, which is when the event was written. */
   openedAt: number;
-  /** When the term begins. The same as `openedAt` unless a start was set. */
+  /** When accrual begins. The same as `openedAt` unless a start was set. */
   startsAt: number;
-  /** The term has begun, so this principal is accruing. */
+  /** Accrual has begun, so this principal is earning. */
   started: boolean;
-  /** Time until the term begins. Zero once it has. */
+  /** Time until accrual begins. Zero once it has. */
   startsIn: number;
-  maturesAt: number;
   asset: string;
   network: string;
   /**
@@ -216,46 +231,72 @@ export type Position = {
    * to read it from somewhere other than the event.
    */
   fromAvailable: boolean;
-  /** 0..1 through the 30-day term. */
-  progress: number;
-  /** Days elapsed, fractional, clamped to the term. */
+  /**
+   * Days this position has been accruing, fractional and unbounded.
+   *
+   * Nothing caps it. A position left in place for four months reads a hundred
+   * and twenty days here, because that is how long it accrued for. There is no
+   * term to measure progress through and no remaining days to count down.
+   */
   daysElapsed: number;
-  daysRemaining: number;
   /** Total rewards this position has generated so far. */
   accrued: number;
   /** Rewards already moved out via claims. */
   claimed: number;
   /** Rewards available to claim right now. */
   claimable: number;
-  /** What the position returns across the whole term. */
-  termReward: number;
+  /** Reward this principal adds every day it stays in place. */
   dailyReward: number;
-  matured: boolean;
   closed: boolean;
+  /**
+   * When the position was closed, or null while it is open.
+   *
+   * Carried because a surface listing closed positions has to name a date, and
+   * before this existed the nearest thing to hand was the maturity date, which
+   * was not when anything happened and no longer exists at all.
+   */
+  closedAt: number | null;
 };
+
+/**
+ * Days of reward that must have accrued before a relay has anything to act on.
+ *
+ * One day, because the rate is stated per day and a fold of a part day would
+ * compound a figure the member cannot check against it. It is also what stops
+ * a relay firing on every tick: a fold restarts the clock, so an armed relay
+ * writes at most one batch a day rather than one a second.
+ */
+export const RELAY_MIN_DAYS = 1;
 
 /**
  * A relay as the product sees it, derived rather than stored.
  *
- * `carries` reads the position's own `claimable`, not principal times the
- * term rate, so a member who claimed mid term carries principal plus whatever
- * is actually left. Anything else would quote a figure the ledger cannot pay.
+ * `carries` reads the position's own `claimable`, never principal times some
+ * assumed run of days, so a member who has already claimed moves whatever is
+ * actually left. Anything else would quote a figure the ledger cannot pay.
  */
 export type Relay = {
   positionId: string;
   mode: RelayMode;
   setAt: number;
-  /** The instruction stands: latest event is a set, and the term is still open. */
+  /** The instruction stands: latest event is a set, and the position is open. */
   armed: boolean;
-  /** When it will fire, which is the position's maturity. */
+  /** When a whole day of unclaimed reward will have accrued on this position. */
   firesAt: number;
-  /** Armed, matured and not yet settled, so it is waiting to run. */
+  /** Armed, past `firesAt` and not yet run, so it is waiting. */
   due: boolean;
-  /** What the new term would open with. */
+  /** What the instruction moves when it runs. */
   carries: number;
-  /** How long it has been sitting matured and earning nothing. */
+  /** How long it has been sitting past its fire date. */
   overdueDays: number;
-  /** What that idleness costs per day, at the rate the carry would earn. */
+  /**
+   * What the delay costs per day.
+   *
+   * Reward accrues on principal alone, so a reward left outside the principal
+   * earns nothing. Folding it in is what puts it to work, which makes the cost
+   * of waiting exactly what the unfolded reward would have earned. A harvest
+   * forgoes nothing, because it was never going to put the reward to work.
+   */
   forgoneDaily: number;
 };
 
@@ -265,9 +306,9 @@ export type Snapshot = {
   /** Principal at work right now: open, started, accruing. */
   deployed: number;
   /**
-   * Principal committed to a term that has not begun yet.
+   * Principal committed but not yet accruing, because a later start was named.
    *
-   * Held apart from `deployed` because it is not accruing. It is still the
+   * Held apart from `deployed` because it is not earning. It is still the
    * member's money, so it counts in `portfolioValue`, and if it was funded
    * from the balance it has already left `available`.
    */
@@ -288,6 +329,25 @@ export type Snapshot = {
    */
   overdrawn: number;
   withdrawn: number;
+  /**
+   * The moment of the last withdrawal request, or null if none has been made.
+   * The window below is measured from it and from nothing else.
+   */
+  lastWithdrawAt: number | null;
+  /**
+   * When the next withdrawal request may be made.
+   *
+   * A member who has never withdrawn reads `now`, because a first request is
+   * allowed immediately: the interval measures the gap after a withdrawal and
+   * there is no gap before the first one. Reading `now` rather than a sentinel
+   * means every surface can print it as a date without a special case, and
+   * `withdrawAllowed` is true either way.
+   */
+  withdrawUnlocksAt: number;
+  /** A withdrawal request may be made right now. */
+  withdrawAllowed: boolean;
+  /** Days until the window opens, fractional. Zero when it is open. */
+  daysUntilWithdraw: number;
   /** Everything the member owns right now, scheduled principal included. */
   portfolioValue: number;
   /** External capital ever brought in. Excludes anything re-placed from the
@@ -306,7 +366,7 @@ export type Snapshot = {
   netGain: number;
   /** netGain as a fraction of contributed. */
   returnPct: number;
-  /** Sum of daily accrual across active positions. */
+  /** Sum of daily accrual across every position currently earning. */
   dailyRate: number;
   tier: Tier | null;
   nextTier: Tier | null;
@@ -323,9 +383,9 @@ export type Snapshot = {
   /** Every position that has ever had a relay instruction, armed or not. */
   relays: Relay[];
   relaysArmed: Relay[];
-  /** Armed relays whose term has matured and which are waiting to run. */
+  /** Armed relays with a whole day of reward waiting on them. */
   relaysDue: Relay[];
-  /** Total capital those due relays would put back to work. */
+  /** Total capital those due relays would move. */
   relayCarry: number;
   /** What leaving them unfired costs per day. */
   relayForgoneDaily: number;
@@ -537,7 +597,7 @@ export function append(event: NewEvent): LedgerEvent {
  * Write several events as one.
  *
  * A relay firing is a claim, a close and an open that only make sense
- * together: persisting them one at a time would leave a log where the term
+ * together: persisting them one at a time would leave a log where the position
  * closed and nothing reopened if the write failed halfway. One read, one
  * write, one notification.
  */
@@ -575,18 +635,40 @@ function round2(n: number): number {
 }
 
 /**
- * Rewards a position has generated by `now`. Accrual is continuous across the
- * term and stops at maturity, so a matured position holds at exactly 30%.
+ * Rewards a position has generated by `now`.
+ *
+ * Accrual is continuous and has no end date. The only thing that stops it is
+ * the position being closed: without that bound a settled position would keep
+ * earning forever, inflating rewards that can never be claimed against
+ * anything. There is no upper bound on the days, because there is no term to
+ * bound them with.
  */
 function accruedAt(principal: number, startsAt: number, now: number, closedAt?: number): number {
-  // Accrual stops at whichever comes first: maturity, settlement, or now. Without
-  // the settlement bound a position closed early would keep earning to a full
-  // term, inflating rewards that can never be claimed against anything.
   const end = closedAt !== undefined ? Math.min(now, closedAt) : now;
-  // The clamp at zero is what keeps a term that has not started yet at nothing
-  // earned, rather than running the clock backwards from its start date.
-  const days = clamp((end - startsAt) / DAY_MS, 0, CYCLE_DAYS);
+  // The floor at zero is what keeps a position that has not started yet at
+  // nothing earned, rather than running the clock backwards from its start.
+  const days = Math.max(0, (end - startsAt) / DAY_MS);
   return principal * DAILY_RATE * days;
+}
+
+/**
+ * When the next withdrawal request is allowed, and whether it is allowed now.
+ *
+ * Exported because Horizon projects windows forward from a date that is not
+ * `now`, and two implementations of the same interval would eventually
+ * disagree about which day a member can act on.
+ */
+export function withdrawWindow(
+  lastWithdrawAt: number | null,
+  now: number,
+): { withdrawUnlocksAt: number; withdrawAllowed: boolean; daysUntilWithdraw: number } {
+  const unlocksAt =
+    lastWithdrawAt === null ? now : lastWithdrawAt + WITHDRAW_INTERVAL_DAYS * DAY_MS;
+  return {
+    withdrawUnlocksAt: unlocksAt,
+    withdrawAllowed: now >= unlocksAt,
+    daysUntilWithdraw: Math.max(0, (unlocksAt - now) / DAY_MS),
+  };
 }
 
 /**
@@ -594,8 +676,8 @@ function accruedAt(principal: number, startsAt: number, now: number, closedAt?: 
  *
  * Exported because a planner needs to know what standing a plan would reach
  * before any of it exists in the log, and two implementations of this would
- * eventually disagree. The tie break is the point: a term that settles at the
- * same instant another opens must lower the running total first, otherwise
+ * eventually disagree. The tie break is the point: a position that closes at
+ * the same instant another opens must lower the running total first, otherwise
  * that instant reads as if both were running and the peak lands at the sum.
  */
 export function peakDeployedOf(spans: { at: number; amount: number; endsAt: number }[]): number {
@@ -615,6 +697,15 @@ export function peakDeployedOf(spans: { at: number; amount: number; endsAt: numb
 
 /** Upper bound on a generated schedule, so an open ended course terminates. */
 const MAX_LEGS = 60;
+
+/**
+ * The window a rhythm is expressed over, so two intervals can be compared.
+ *
+ * A calendar month, near enough, and nothing to do with how long capital is
+ * left in place. Positions have no length: this is only the span the product
+ * quotes a placement rhythm across.
+ */
+const RHYTHM_WINDOW_DAYS = 30;
 
 /**
  * Turn one course instruction into a schedule.
@@ -671,7 +762,7 @@ function buildCourse(
     placed: filled.reduce((sum, l) => sum + l.amount, 0),
     nextDue: stopped ? null : (schedule.find((l) => l.state === "due") ?? null),
     upcoming: schedule.find((l) => l.state === "scheduled") ?? null,
-    per30: set.amount * Math.floor(CYCLE_DAYS / every),
+    per30: set.amount * Math.floor(RHYTHM_WINDOW_DAYS / every),
     lapsedCount: schedule.filter((l) => l.state === "lapsed").length,
   };
 }
@@ -700,12 +791,11 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const positions: Position[] = opens.map((o) => {
     const tier = tierById(o.tierId) ?? TIERS[0];
     const closedAt = closedAtById.get(o.id);
-    // A term runs from its start date, which is the moment the capital was
+    // Accrual runs from the start date, which is the moment the capital was
     // committed unless the placement named a later one.
     const startsAt = o.startsAt !== undefined && o.startsAt > o.at ? o.startsAt : o.at;
-    const maturesAt = startsAt + CYCLE_DAYS * DAY_MS;
     const effectiveNow = closedAt !== undefined ? Math.min(now, closedAt) : now;
-    const daysElapsed = clamp((effectiveNow - startsAt) / DAY_MS, 0, CYCLE_DAYS);
+    const daysElapsed = Math.max(0, (effectiveNow - startsAt) / DAY_MS);
     const accrued = accruedAt(o.amount, startsAt, now, closedAt);
     const claimed = claims.filter((c) => c.positionId === o.id).reduce((s, c) => s + c.amount, 0);
     return {
@@ -717,28 +807,24 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
       startsAt,
       started: now >= startsAt,
       startsIn: Math.max(0, startsAt - now),
-      maturesAt,
       asset: o.asset,
       network: o.network,
       fromAvailable: o.fromAvailable === true,
-      progress: daysElapsed / CYCLE_DAYS,
       daysElapsed,
-      daysRemaining: Math.max(0, CYCLE_DAYS - daysElapsed),
       accrued,
       claimed,
       claimable: Math.max(0, accrued - claimed),
-      termReward: o.amount * DAILY_RATE * CYCLE_DAYS,
-      dailyReward: o.amount * DAILY_RATE,
-      matured: now >= maturesAt,
+      dailyReward: dailyReward(o.amount),
       closed: closedAt !== undefined,
+      closedAt: closedAt ?? null,
     };
   });
 
   const active = positions.filter((p) => !p.closed);
 
-  // Deployed is principal actually at work. Capital committed to a term that
-  // has not begun is held apart, because it is not accruing and showing it as
-  // deployed would overstate what the portfolio is earning.
+  // Deployed is principal actually at work. Capital committed but not yet
+  // accruing is held apart, because showing it as deployed would overstate what
+  // the portfolio is earning.
   const deployed = active.filter((p) => p.started).reduce((s, p) => s + p.principal, 0);
   const scheduled = active.filter((p) => !p.started).reduce((s, p) => s + p.principal, 0);
   const rewardsAccrued = positions.reduce((s, p) => s + p.accrued, 0);
@@ -749,7 +835,7 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
 
   // Capital re-placed from the balance leaves the balance. Capital brought in
   // from outside never touched it, so it must not be debited here. It leaves
-  // when the placement is committed, not when the term starts, because that is
+  // when the placement is committed, not when accrual starts, because that is
   // when the member parted with it.
   const recycled = opens.filter((o) => o.fromAvailable).reduce((s, o) => s + o.amount, 0);
   // Held in two figures rather than one clamped one. `available` can never be
@@ -768,8 +854,8 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   // total before the next open raises it again.
   // A position that never closed is still running, so its span ends at the
   // far future rather than at a date that would lower the peak early.
-  // The span opens at the term's start, not at the commitment, and a term that
-  // has not started yet is left out entirely: capital that has not begun
+  // The span opens where accrual starts, not at the commitment, and a position
+  // that has not started yet is left out entirely: capital that has not begun
   // accruing has never been deployed, so it cannot raise a peak today. It
   // enters the reading on the day it starts, like any other placement.
   const peakDeployed = peakDeployedOf(
@@ -798,7 +884,8 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     if (!p) continue;
     const mode: RelayMode = e.kind === "relay.set" ? e.mode : "full";
     const armed = e.kind === "relay.set" && !p.closed;
-    const due = armed && p.matured;
+    const firesAt = relayFiresAt(p);
+    const due = armed && p.started && now >= firesAt;
     // The same function the firing uses, so the figure quoted on the panel is
     // the figure the batch writes, to the cent.
     const carries = carryOf(p, mode);
@@ -807,11 +894,13 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
       mode,
       setAt: e.at,
       armed,
-      firesAt: p.maturesAt,
+      firesAt,
       due,
       carries,
-      overdueDays: due ? Math.max(0, (now - p.maturesAt) / DAY_MS) : 0,
-      forgoneDaily: due ? carries * DAILY_RATE : 0,
+      overdueDays: due ? Math.max(0, (now - firesAt) / DAY_MS) : 0,
+      // Only a compounding relay forgoes anything by waiting. A harvest moves
+      // the reward to cash, which does not accrue either, so nothing is lost.
+      forgoneDaily: due && mode === "full" ? p.claimable * DAILY_RATE : 0,
     });
   }
   relays.sort((a, b) => a.firesAt - b.firesAt);
@@ -843,6 +932,15 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const relaysArmed = relays.filter((r) => r.armed);
   const relaysDue = relays.filter((r) => r.due);
 
+  // The withdrawal window is a member level rule, read off the last request
+  // rather than off any position, because it governs cash leaving the account
+  // and not what any one vault is doing.
+  const lastWithdrawAt = withdraws.reduce<number | null>(
+    (latest, w) => (latest === null || w.at > latest ? w.at : latest),
+    null,
+  );
+  const window = withdrawWindow(lastWithdrawAt, now);
+
   const standing = Math.max(contributed, peakDeployed);
   // Scheduled principal is counted here and nowhere near `deployed`. It is the
   // member's money either way: if it came from the balance it has already been
@@ -866,14 +964,16 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     available,
     overdrawn,
     withdrawn,
+    lastWithdrawAt,
+    ...window,
     portfolioValue,
     contributed,
     peakDeployed,
     standing,
     netGain,
     returnPct: contributed > 0 ? netGain / contributed : 0,
-    // What is accruing right now: open, started, still inside its term.
-    dailyRate: active.filter((p) => p.started && !p.matured).reduce((s, p) => s + p.dailyReward, 0),
+    // What is accruing right now: open and started. Nothing else stops it.
+    dailyRate: active.filter((p) => p.started).reduce((s, p) => s + p.dailyReward, 0),
     tier,
     nextTier: next,
     tierProgress,
@@ -951,8 +1051,9 @@ export const FUNDING_TOLERANCE = 0.01;
  * What a balance-funded placement records as its origin.
  *
  * No asset arrived and no chain carried it, so naming one would describe a
- * transfer that never happened. A rolled term is the one exception: it keeps
- * the asset the capital originally came in as, because that trail is real.
+ * transfer that never happened. A compounded position is the one exception: it
+ * keeps the asset the capital originally came in as, because that trail is
+ * real.
  */
 export const BALANCE_ASSET = "USD";
 export const BALANCE_NETWORK = "Account balance";
@@ -988,8 +1089,8 @@ export function fundingShortfall(amount: number, available: number): number {
  * replay of what happened: clamping a negative balance there hides an overdraw
  * rather than preventing one, and the event would still be in the log. Refusing
  * the write is the only place the invariant actually holds, and it is the
- * reason a hand-typed amount on the placement URL cannot open a term funded by
- * cash that does not exist.
+ * reason a hand-typed amount on the placement URL cannot open a position funded
+ * by cash that does not exist.
  *
  * Returns a result rather than throwing, because every caller is a click.
  */
@@ -1001,7 +1102,7 @@ export function openPosition(input: {
   at?: number;
   /** Set when the placement is funded from the account balance. */
   fromAvailable?: boolean;
-  /** Set when the term begins later than the moment it is committed. */
+  /** Set when accrual begins later than the moment the capital is committed. */
   startsAt?: number;
 }): Placement {
   if (input.fromAvailable) {
@@ -1023,7 +1124,7 @@ export function recordWithdrawal(amount: number, address: string) {
   return append({ kind: "withdraw", amount, address });
 }
 
-/** Set a course, or replace the terms of one already running. */
+/** Set a course, or replace the amount and rhythm of one already running. */
 export function setCourse(input: {
   courseId?: string;
   amount: number;
@@ -1064,38 +1165,58 @@ export function disarmRelay(positionId: string) {
 }
 
 /**
- * What a term carries into the next one.
+ * When a position will have a whole day of unclaimed reward on it.
  *
- * `claimable`, never `accrued`. Accrued is everything the position has ever
- * generated, including rewards the member has already claimed and may well
- * have withdrawn. Carrying that figure would open a term on money the ledger
- * cannot pay out twice. One function, so the panel, the insight and the write
- * cannot quote three different amounts.
+ * Derived from what the position has already claimed rather than from its age,
+ * so a relay that has just folded, or a member who claimed by hand, both push
+ * the next fold out by a full day instead of the instruction firing again on
+ * the next tick. Pure, so the panel can print the date the derivation uses.
  */
-export function carryOf(position: Position, mode: RelayMode = "full"): number {
-  const claiming = mode === "full" ? position.claimable : 0;
-  return round2(position.principal + claiming);
+export function relayFiresAt(position: Position): number {
+  const perDay = position.dailyReward;
+  if (perDay <= 0) return position.startsAt;
+  const days = position.claimed / perDay + RELAY_MIN_DAYS;
+  return position.startsAt + days * DAY_MS;
 }
 
 /**
- * The events that settle a matured term and re-place what it carried.
+ * What a standing instruction moves when it runs.
  *
- * Built here and written by one `appendMany`, so a roll can never be half
- * recorded. Two rules hold it honest. Every event is stamped now rather than at
- * the maturity date, because backdating would fabricate accrual for the days
- * the capital actually sat still. And the new position is marked as funded from
- * the balance, because the money was already counted when it first arrived, so
- * counting it again would inflate the portfolio and buy tier standing that was
- * never paid for.
+ * `claimable`, never `accrued`. Accrued is everything the position has ever
+ * generated, including rewards the member has already claimed and may well
+ * have withdrawn. Moving that figure would place capital the ledger cannot pay
+ * out twice. One function, so the panel, the insight and the write cannot
+ * quote three different amounts.
+ *
+ * A compounding relay moves principal and reward together, because both end up
+ * in the new position. A harvest moves the reward alone: the principal is not
+ * touched, so naming it would overstate what happens.
  */
-function carryBatch(position: Position, mode: RelayMode, rearm: RelayMode | null, nextId: string) {
-  const carry = carryOf(position, mode);
+export function carryOf(position: Position, mode: RelayMode = "full"): number {
+  return round2(mode === "full" ? position.principal + position.claimable : position.claimable);
+}
+
+/**
+ * The events that fold a position's reward into its principal.
+ *
+ * A position's principal is fixed by the event that opened it, so compounding
+ * is a close and a re-open at the larger figure rather than an edit. Built here
+ * and written by one `appendMany`, so a fold can never be half recorded.
+ *
+ * Two rules hold it honest. Every event is stamped now rather than backdated,
+ * because a fold that claimed to have happened days ago would fabricate accrual
+ * on capital that was not yet in the new position. And the new position is
+ * marked as funded from the balance, because the money was already counted when
+ * it first arrived, so counting it again would inflate the portfolio and buy
+ * tier standing that was never paid for.
+ */
+function compoundBatch(position: Position, rearm: boolean, nextId: string) {
+  const carry = carryOf(position, "full");
   const tier = tierForAmount(carry) ?? position.tier;
-  const claiming = mode === "full" ? position.claimable : 0;
 
   return [
-    ...(claiming >= 0.01
-      ? [{ kind: "claim" as const, positionId: position.id, amount: claiming }]
+    ...(position.claimable >= 0.01
+      ? [{ kind: "claim" as const, positionId: position.id, amount: round2(position.claimable) }]
       : []),
     { kind: "close" as const, positionId: position.id },
     {
@@ -1107,25 +1228,36 @@ function carryBatch(position: Position, mode: RelayMode, rearm: RelayMode | null
       network: position.network,
       fromAvailable: true,
     } as NewEvent,
-    ...(rearm ? [{ kind: "relay.set" as const, positionId: nextId, mode: rearm }] : []),
+    ...(rearm ? [{ kind: "relay.set" as const, positionId: nextId, mode: "full" as const }] : []),
   ];
 }
 
 /**
- * Run one due relay: settle the matured term and open the next with what it
- * carried, as a single write.
+ * Run one due relay.
+ *
+ * A compounding relay folds the reward into a larger position and re-arms on
+ * it, so a member arms once rather than every day. A harvest is a single claim:
+ * the principal is untouched and keeps accruing, so there is nothing to close,
+ * nothing to re-open, and the instruction already on the position still stands.
  */
 export function fireRelay(relay: Relay, position: Position): LedgerEvent[] {
   if (!relay.due) return [];
-  // The chain continues, so a member arms once rather than every month.
-  return appendMany(carryBatch(position, relay.mode, relay.mode, newId()));
+  if (relay.mode === "principal") {
+    if (position.claimable < 0.01) return [];
+    return appendMany([
+      { kind: "claim", positionId: position.id, amount: round2(position.claimable) },
+    ]);
+  }
+  return appendMany(compoundBatch(position, true, newId()));
 }
 
 /**
- * Settle a matured term to cash: claim what is left, then close, as one write.
+ * Close a position to cash: claim what is left, then close, as one write.
  *
- * Same reason as the roll. A claim that persists without its close leaves a
- * position that looks open and has nothing left in it.
+ * Same reason as the fold. A claim that persists without its close leaves a
+ * position that looks open and has nothing left in it. Nothing is forfeited by
+ * closing: accrual is paid for the days it actually ran, and the principal
+ * returns to the balance in full.
  */
 export function settlePosition(position: Position): LedgerEvent[] {
   if (position.closed) return [];
@@ -1137,61 +1269,62 @@ export function settlePosition(position: Position): LedgerEvent[] {
   ]);
 }
 
-export type Roll = {
+export type Compound = {
   events: LedgerEvent[];
-  /** The term that opened, so the caller can take the member to it. */
+  /** The position that opened, so the caller can take the member to it. */
   positionId: string;
   /** What it opened with. */
   carry: number;
 };
 
 /**
- * Roll a matured term by hand: claim, settle and re-place, as one write.
+ * Fold a position's reward into its principal by hand: claim, close and
+ * re-place, as one write.
  *
  * The same batch a relay fires, minus the re-arming, because a member who
- * rolled once has not asked for it to happen again. Written together rather
- * than as a claim, then a close, then an open on another screen: that sequence
- * can be abandoned halfway, which leaves a settled position and no new one,
- * and is the exact failure `appendMany` exists to stop.
+ * compounded once has not asked for it to happen every day. Written together
+ * rather than as a claim, then a close, then an open on another screen: that
+ * sequence can be abandoned halfway, which leaves a closed position and no new
+ * one, and is the exact failure `appendMany` exists to stop.
  *
- * Refused before maturity. A term that has not finished has nothing to carry,
- * and an early exit is not a thing this product grants.
+ * Refused when there is nothing to fold. A reward under a cent would close a
+ * position and re-open it at the same figure, writing three events that change
+ * nothing and restarting the clock the fold is measured on.
  */
-export function rollPosition(position: Position): Roll | null {
-  if (!position.matured || position.closed) return null;
+export function compoundPosition(position: Position): Compound | null {
+  if (position.closed || position.claimable < 0.01) return null;
   const nextId = newId();
-  const events = appendMany(carryBatch(position, "full", null, nextId));
+  const events = appendMany(compoundBatch(position, false, nextId));
   return { events, positionId: nextId, carry: carryOf(position, "full") };
 }
 
 /**
- * What ending a term before maturity would mean, in dollars.
+ * What closing a position right now returns, in dollars.
  *
- * Stated, not offered. An early exit is an exception the desk may refuse, not
- * a right and not a button, and this build has no desk. What the ledger can
- * answer honestly is what such an exit would cost, from this position's own
- * figures: the principal that comes back, the accrual sitting unclaimed in the
- * term that would be given up, and the rest of the term's reward that would
- * never be earned. Rewards already claimed are already cash and are not
- * counted here, because nothing in this product can take them back.
+ * There is no term to break and nothing to forfeit: accrual is paid for the
+ * days the capital actually ran, and closing simply stops it. What the member
+ * gives up is the future, and the only honest way to state that is per day,
+ * because how long they would have left it there is their decision and not a
+ * figure this product may assume on their behalf.
  */
-export type EarlyExit = {
-  /** Principal the position holds. */
+export type CloseValue = {
+  /** Principal that returns to the balance. */
   principal: number;
-  /** Unclaimed accrual on the unfinished term, which the exit forfeits. */
-  forfeited: number;
-  /** Reward the remaining days would have added, which is never earned. */
-  foregone: number;
-  /** Days still to run. */
-  daysRemaining: number;
+  /** Unclaimed reward, which is claimed on the way out rather than lost. */
+  claimable: number;
+  /** Principal and reward together: what the balance receives. */
+  returns: number;
+  /** Reward this principal stops earning from the moment it closes. */
+  forgoneDaily: number;
 };
 
-export function earlyExit(position: Position): EarlyExit {
+export function closeValue(position: Position): CloseValue {
+  const claimable = round2(position.claimable);
   return {
     principal: position.principal,
-    forfeited: round2(position.claimable),
-    foregone: round2(Math.max(0, position.termReward - position.accrued)),
-    daysRemaining: position.daysRemaining,
+    claimable,
+    returns: round2(position.principal + claimable),
+    forgoneDaily: position.dailyReward,
   };
 }
 

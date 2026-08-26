@@ -102,26 +102,51 @@ describe("identity", () => {
   });
 });
 
-describe("the four steps", () => {
-  async function reachApproach(user: ReturnType<typeof userEvent.setup>) {
+describe("the five steps", () => {
+  /** Step one: a name and a handle, then Continue. */
+  async function reachSecure(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText(/your name/i), "Marcus Adeyemi");
     const go = screen.getByRole("button", { name: /continue/i });
     await waitFor(() => expect(go).toBeEnabled(), { timeout: 3000 });
     await user.click(go);
   }
 
-  it("walks identity, approach, scale and a summary, and creates the member", async () => {
+  /** Step two: a password, its confirmation and six digits. */
+  async function fillSecure(user: ReturnType<typeof userEvent.setup>) {
+    // The step slides in, so the field is not in the document on the tick the
+    // click returns. Wait for the heading rather than for a timer.
+    await screen.findByRole("heading", { name: /lock the portal/i });
+    await user.type(screen.getByLabelText("Password"), "correct horse battery");
+    await user.type(screen.getByLabelText(/confirm password/i), "correct horse battery");
+    await user.type(screen.getByLabelText(/passcode digit 1/i), "284617");
+    const go = screen.getByRole("button", { name: /continue/i });
+    await waitFor(() => expect(go).toBeEnabled(), { timeout: 3000 });
+    await user.click(go);
+  }
+
+  async function reachApproach(user: ReturnType<typeof userEvent.setup>) {
+    await reachSecure(user);
+    await fillSecure(user);
+  }
+
+  it("walks identity, secure, approach, scale and a summary, and creates the member", async () => {
     const user = userEvent.setup();
     renderApp(<Gate>{inside()}</Gate>);
 
-    await reachApproach(user);
+    await reachSecure(user);
+    expect(await screen.findByRole("heading", { name: /lock the portal/i })).toBeInTheDocument();
+
+    // The step cannot be passed on a password alone, or on a mismatch.
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    await fillSecure(user);
+
     expect(
       await screen.findByRole("heading", { name: /how do you want to run it/i }),
     ).toBeInTheDocument();
 
     // Every option must state its own cost, so no option can read as free.
     await user.click(screen.getByRole("radio", { name: /compounding/i }));
-    expect(screen.getByText(/not liquid until you stop/i)).toBeInTheDocument();
+    expect(screen.getByText(/nothing to withdraw until you stop/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
     expect(
@@ -144,29 +169,73 @@ describe("the four steps", () => {
     const user = userEvent.setup();
     renderApp(<Gate>{inside()}</Gate>);
 
-    await reachApproach(user);
+    await reachSecure(user);
     await user.click(screen.getByRole("button", { name: /back/i }));
     expect(screen.getByLabelText(/your name/i)).toHaveValue("Marcus Adeyemi");
+  });
+
+  /**
+   * The secret never reaches the member record, and it never reaches storage
+   * in a form anyone can read. The credential check asserts the derivation
+   * itself; this asserts that the flow actually uses it.
+   */
+  it("stores a derivation of the password, never the password", async () => {
+    const user = userEvent.setup();
+    renderApp(<Gate>{inside()}</Gate>);
+
+    await reachApproach(user);
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /enter rigel/i }));
+    await screen.findByText("Signed in");
+
+    await waitFor(() => expect(localStorage.getItem("rgl_credentials_v1")).toBeTruthy(), {
+      timeout: 3000,
+    });
+    const everything = JSON.stringify(localStorage);
+    expect(everything).not.toContain("correct horse battery");
+    expect(everything).not.toContain("284617");
+    expect(localStorage.getItem("rgl_member_v2")).not.toContain("password");
   });
 });
 
 describe("what the gate promises", () => {
-  it("says plainly that no account is created", () => {
+  /**
+   * The claim changed when the password did, and it had to. Saying "no
+   * password is set" while setting one would be false; saying the password
+   * protects an account would be worse. It says what is true: a browser lock
+   * with no recovery.
+   */
+  it("says plainly that the password locks a browser, not an account", () => {
     renderApp(<Gate>{inside()}</Gate>);
-    expect(screen.getByText(/no account is created and no password is set/i)).toBeInTheDocument();
+    expect(screen.getByText(/locks this browser, not an account on a server/i)).toBeInTheDocument();
+    expect(screen.getByText(/no way to recover them/i)).toBeInTheDocument();
   });
 
+  /**
+   * The risk line was four sentences and is now one, at the founder's
+   * direction. It still has to be there, and it still has to be before the
+   * member enters rather than after.
+   */
   it("states the risk before the member enters", async () => {
     const user = userEvent.setup();
     renderApp(<Gate>{inside()}</Gate>);
+
     await user.type(screen.getByLabelText(/your name/i), "Marcus Adeyemi");
     const go = screen.getByRole("button", { name: /continue/i });
     await waitFor(() => expect(go).toBeEnabled(), { timeout: 3000 });
     await user.click(go);
+
+    await screen.findByRole("heading", { name: /lock the portal/i });
+    await user.type(screen.getByLabelText("Password"), "correct horse battery");
+    await user.type(screen.getByLabelText(/confirm password/i), "correct horse battery");
+    await user.type(screen.getByLabelText(/passcode digit 1/i), "284617");
+    await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: /continue/i }));
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
-    expect(await screen.findByText(/including the risk of total loss/i)).toBeInTheDocument();
-    expect(screen.getByText(/is investment advice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/capital is at risk/i)).toBeInTheDocument();
+    expect(screen.getByText(/targets, not guarantees/i)).toBeInTheDocument();
   });
 });

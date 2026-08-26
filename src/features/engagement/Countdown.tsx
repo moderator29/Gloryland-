@@ -4,9 +4,14 @@ import { useEffect, useState } from "react";
  * Countdown: a live read of the time left until a timestamp.
  *
  * The only input is the target instant, which callers take from the ledger
- * (a position's `maturesAt`), so this component cannot invent a date. It ticks
- * once per second, clears its interval on unmount, and past the target it
- * reads "Matured" and stops.
+ * (the next withdrawal window, a relay's fire date), so this component cannot
+ * invent a date. It ticks once per second, clears its interval on unmount, and
+ * past the target it reads its done label and stops.
+ *
+ * The default done label used to be "Matured". Nothing matures now, so it is
+ * the neutral "Ready": the callers that care say what is ready in their own
+ * words, and a countdown has no business naming an event it was only told the
+ * time of.
  *
  * It used to freeze under reduced motion, which meant a member who prefers
  * reduced motion watched a stopped clock for as long as they stayed on the
@@ -51,7 +56,7 @@ function format(remaining: number, compact: boolean): string {
 export function Countdown({
   to,
   compact = false,
-  doneLabel = "Matured",
+  doneLabel = "Ready",
   className = "",
 }: CountdownProps) {
   const [now, setNow] = useState(() => Date.now());

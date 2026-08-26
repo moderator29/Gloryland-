@@ -85,8 +85,8 @@ export function ConfirmationTracker({
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
-        Simulated in this preview build. Live confirmations require the chain watcher in the
-        production backend.
+        Network times are typical, not guaranteed. Your position is credited once the transfer is
+        reviewed.
       </p>
     </div>
   );

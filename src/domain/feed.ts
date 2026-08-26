@@ -26,7 +26,7 @@
  */
 
 import { money } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS, termReward } from "./tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward } from "./tiers";
 
 export type PostKind =
   | "insight"
@@ -283,7 +283,6 @@ export function bookmarkCount(): number {
 const HOUR = 3_600_000;
 const entry = TIERS[0];
 const top = TIERS[TIERS.length - 1];
-const termPct = `${Math.round(CYCLE_RETURN * 100)}%`;
 const dayPct = `${(DAILY_RATE * 100).toFixed(0)}%`;
 
 /**
@@ -305,12 +304,12 @@ const SEEDS: Seed[] = [
     body: `This is Signal, the desk's channel to every member. We publish here: how the mechanics work, what a tier changes, what shipped, and what we are thinking about. Only Rigel posts. You can like, save and share anything you find worth keeping.`,
   },
   {
-    id: "sig-term-basics",
+    id: "sig-accrual-basics",
     kind: "education",
     hoursAgo: 9,
-    title: `How the ${CYCLE_DAYS} day term works`,
-    tags: ["term", "accrual", "mechanics"],
-    body: `A vault runs a fixed ${CYCLE_DAYS} day term from the moment capital is placed. It accrues ${dayPct} of principal per day, which totals ${termPct} across the full term. On ${money(entry.entry)} that is ${money(termReward(entry.entry))} at maturity. Accrual stops at maturity: a matured vault holds at exactly ${termPct} and earns nothing further until the principal is settled or redeployed.`,
+    title: "How accrual works",
+    tags: ["accrual", "mechanics", "liquidity"],
+    body: `A vault accrues ${dayPct} of its principal per day from the moment capital is placed. There is no term and no maturity: it keeps accruing until you close it, so what a position comes to is a matter of how long you leave it there. On ${money(entry.entry)} that is ${money(dailyReward(entry.entry), 2)} a day. Accrual runs on principal alone, so reward left unclaimed inside a position earns nothing until it is folded back in.`,
   },
   {
     id: "sig-one-rate",
@@ -318,7 +317,7 @@ const SEEDS: Seed[] = [
     hoursAgo: 26,
     title: "One rate for every tier",
     tags: ["tiers", "principle"],
-    body: `Every rung of the ladder earns the same ${termPct} over ${CYCLE_DAYS} days. ${entry.name} and ${top.name} accrue at identical rates. Tiers differ on access, settlement speed and tooling, never on yield. We hold that line because a rate that moves with account size turns the headline number into a negotiation, and the number on your screen should mean the same thing for everyone.`,
+    body: `Every rung of the ladder earns the same ${dayPct} of principal a day. ${entry.name} and ${top.name} accrue at identical rates. Tiers differ on access, settlement speed and tooling, never on yield. We hold that line because a rate that moves with account size turns the headline number into a negotiation, and the number on your screen should mean the same thing for everyone.`,
   },
   {
     id: "sig-tier-changes",
@@ -343,7 +342,7 @@ const SEEDS: Seed[] = [
     hoursAgo: 80,
     title: "What a settlement target means",
     tags: ["settlement", "tiers"],
-    body: `A settlement target is the window the desk works to when a withdrawal is requested, from ${top.settlementHours} hours at ${top.name} to ${entry.settlementHours} hours at ${entry.name}. It is a service target, not a guarantee, and it starts when the request is placed rather than when a term matures. Network conditions on the asset you withdraw sit outside that window.`,
+    body: `A settlement target is the window the desk works to when a withdrawal is requested, from ${top.settlementHours} hours at ${top.name} to ${entry.settlementHours} hours at ${entry.name}. It is a service target, not a guarantee, and it starts when the request is placed. How often a request may be made is a separate rule and the same on every rung: once every ${WITHDRAW_INTERVAL_DAYS} days. Network conditions on the asset you withdraw sit outside that window.`,
   },
   {
     id: "sig-insights-surface",
@@ -351,7 +350,7 @@ const SEEDS: Seed[] = [
     hoursAgo: 104,
     title: "Insights reads your ledger, not the market",
     tags: ["product", "insights"],
-    body: `The Insights page does not forecast prices and does not sample anything. It reads the events in your own ledger, applies a short list of thresholds, and surfaces what those thresholds catch: a term about to mature, principal that has stopped accruing, rewards worth claiming, a tier within reach. Same inputs, same list, every time. If it is quiet, nothing needs you.`,
+    body: `The Insights page does not forecast prices and does not sample anything. It reads the events in your own ledger, applies a short list of thresholds, and surfaces what those thresholds catch: reward sitting outside a principal and earning nothing, a relay waiting to run, cash that cannot leave yet, a tier within reach. Same inputs, same list, every time. If it is quiet, nothing needs you.`,
   },
   {
     id: "sig-idle-capital",
@@ -359,7 +358,7 @@ const SEEDS: Seed[] = [
     hoursAgo: 130,
     title: "Cash in the account does not accrue",
     tags: ["capital", "accrual"],
-    body: `Available cash sits still. Only capital inside a vault earns, and only for the ${CYCLE_DAYS} days of its term. The same is true of a matured position that has not been settled: the term is over, so the balance is fixed until it moves. Worth a look at the end of any term, which is exactly when principal is most likely to be left waiting.`,
+    body: `Available cash sits still. Only principal inside a vault earns, and it earns for as long as it is left there. The same is true of reward already claimed: it is cash, so it is fixed until it is placed again. Worth a look after any withdrawal window, which is exactly when capital is most likely to be left waiting.`,
   },
   {
     id: "sig-local-ledger",
@@ -375,7 +374,7 @@ const SEEDS: Seed[] = [
     hoursAgo: 180,
     title: "Capital placed in a vault is at risk",
     tags: ["risk", "principle"],
-    body: `A fixed term rate is a stated structure, not a promise about the future. Capital placed into a vault is at risk, including the risk of total loss, and nothing published here is investment advice or a recommendation. Read the risk disclosure before you place capital, and size any position on the assumption that it may not return.`,
+    body: `Capital is at risk. A published rate is a target, not a promise, and nothing here is investment advice. Size any position on the assumption that it may not return.`,
   },
   {
     id: "sig-question-desk",

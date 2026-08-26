@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, ChevronRight, Compass, Lock, Scale } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
-import { TIERS, CYCLE_DAYS, CYCLE_RETURN, dailyReward } from "@/domain/tiers";
+import { TIERS, DAILY_RATE, WITHDRAW_INTERVAL_DAYS, dailyReward } from "@/domain/tiers";
 import { Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -18,8 +18,10 @@ export default function Tiers() {
         <p className="eyebrow">Programme</p>
         <h1 className="display mt-1 text-2xl sm:text-3xl">Tiers</h1>
         <p className="mt-2 max-w-xl text-sm text-[var(--text-low)]">
-          Every tier earns the same {(CYCLE_RETURN * 100).toFixed(0)}% across a {CYCLE_DAYS}-day
-          term. What changes as you progress is access, settlement speed and the depth of tooling.
+          Every tier earns the same {(DAILY_RATE * 100).toFixed(0)}% of principal a day, for as long
+          as capital is left in place, and a withdrawal can be requested every{" "}
+          {WITHDRAW_INTERVAL_DAYS} days on every rung. What changes as you progress is access,
+          settlement speed and the depth of tooling.
         </p>
       </div>
 

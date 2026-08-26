@@ -22,7 +22,7 @@ import { daysAway, deriveAway, markSeen, readLastSeen, type AwayItem } from "./a
 
 const ICONS = {
   relayDue: Repeat,
-  matured: Clock,
+  window: Clock,
   claimable: Gift,
   idle: Wallet,
 } as const;
@@ -112,7 +112,7 @@ export function AwayDigest({ snap, className = "" }: AwayDigestProps) {
 
 function Row({ item, onAct }: { item: AwayItem; onAct: () => void }) {
   const Icon = ICONS[item.kind];
-  const urgent = item.kind === "relayDue" || item.kind === "matured";
+  const urgent = item.kind === "relayDue" || item.kind === "window";
 
   return (
     <li className="rail-row">

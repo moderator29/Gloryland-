@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ChevronRight, Timer } from "lucide-react";
-import { CYCLE_DAYS, CYCLE_RETURN, TIERS, termReward } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, dailyReward } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { Counter } from "./Counter";
-import { TERM_RATE, TOP_TIER } from "./figures";
+import { DAY_RATE, TOP_TIER } from "./figures";
 import { Stagger, StaggerItem } from "./Reveal";
 
 /**
@@ -29,11 +29,11 @@ export function TierLadder() {
         <div className="min-w-0">
           <p className="eyebrow">Rate at every rung</p>
           <p className="figure-lead mt-2 text-[var(--accent-hi)]">
-            <Counter value={CYCLE_RETURN * 100} format={(n) => `${n.toFixed(0)}%`} />
+            <Counter value={DAILY_RATE * 100} format={(n) => `${n.toFixed(0)}%`} />
           </p>
         </div>
         <p className="max-w-sm text-sm leading-relaxed text-[var(--text-mid)]">
-          {TERM_RATE} over {CYCLE_DAYS} days, from {TIERS[0].name} at {money(TIERS[0].entry)} to{" "}
+          {DAY_RATE} of principal a day, from {TIERS[0].name} at {money(TIERS[0].entry)} to{" "}
           {TOP_TIER.name} at {money(TOP)}. Climbing the ladder buys settlement speed and tooling. It
           does not buy a better number.
         </p>
@@ -65,13 +65,13 @@ export function TierLadder() {
                       {tier.name}
                     </span>
                     {/* The same chip on all six rows. The repetition is the point. */}
-                    <span className="chip chip-accent tabular">{TERM_RATE} term</span>
+                    <span className="chip chip-accent tabular">{DAY_RATE} a day</span>
                   </span>
 
                   <span className="mt-1 block text-xs text-[var(--text-low)]">
                     <span className="metric text-[var(--text-mid)]">from {money(tier.entry)}</span>
                     <span className="mx-1.5">&middot;</span>
-                    {money(termReward(tier.entry))} at maturity on the entry amount
+                    {money(dailyReward(tier.entry), 2)} a day on the entry amount
                   </span>
 
                   <span className="mt-1.5 hidden text-sm leading-relaxed text-[var(--text-mid)] sm:block">

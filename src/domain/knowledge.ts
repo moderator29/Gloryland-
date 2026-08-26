@@ -1,16 +1,16 @@
 /**
  * The product, written down as data.
  *
- * Both assistants need to know what Rigel actually is: every surface, the term
- * arithmetic, the ladder, the flows a member walks through, what the ledger
- * stores and where it lives. That knowledge used to be a paragraph of prose
+ * Both assistants need to know what Rigel actually is: every surface, the
+ * accrual arithmetic, the ladder, the flows a member walks through, what the
+ * ledger stores and where it lives. That knowledge used to be a paragraph of prose
  * pasted into a system prompt, which is exactly the kind of copy that drifts
  * away from the code the week after it is written.
  *
  * Three rules hold this module together.
  *
  * 1. Every figure is computed from `./tiers` at module load. Nothing here
- *    types out a dollar amount, a rate or a term length by hand, so changing a
+ *    types out a dollar amount, a rate or an interval by hand, so changing a
  *    constant rewrites the briefing instead of leaving it stale.
  * 2. Nothing may be stated that the product cannot derive. No licences, no
  *    regulators, no partners, no member counts, no track record, no promise of
@@ -26,12 +26,11 @@
  */
 
 import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
   DAILY_RATE,
   TIERS,
+  WITHDRAW_INTERVAL_DAYS,
   dailyReward,
-  termReward,
+  rewardOver,
   type TierId,
 } from "./tiers";
 import { APPROACHES, type ApproachId } from "./identity";
@@ -52,7 +51,6 @@ function pctText(value: number): string {
   return `${Number((value * 100).toFixed(2))}%`;
 }
 
-export const TERM_PCT = pctText(CYCLE_RETURN);
 export const DAY_PCT = pctText(DAILY_RATE);
 
 const ENTRY_TIER = TIERS[0];
@@ -70,7 +68,7 @@ export type PlatformFacts = {
 
 export const PLATFORM: PlatformFacts = {
   name: "Rigel",
-  what: "A private digital asset vault platform. Capital is placed into a fixed term vault, accrues at a published rate, and is settled or placed again at maturity.",
+  what: "A private digital asset vault platform. Capital is placed into a vault, accrues at a published daily rate for as long as it is left in place, and can be closed or withdrawn on a fixed liquidity window.",
   buildState: [
     "This is a preview build. A member's ledger is held in their own browser, not on a server.",
     "There is no account server, no custody, no settlement network and no chain watcher connected yet.",
@@ -80,17 +78,16 @@ export const PLATFORM: PlatformFacts = {
   ],
 };
 
-/* ── term mechanics ─────────────────────────────────────────────────────── */
+/* ── accrual mechanics ──────────────────────────────────────────────────── */
 
-export type TermMechanics = {
-  days: number;
-  termReturn: number;
+export type AccrualMechanics = {
   dailyRate: number;
-  termPct: string;
   dailyPct: string;
+  /** Days between one withdrawal request and the next one allowed. */
+  withdrawIntervalDays: number;
   /** The arithmetic, one statement per line, in the order it is applied. */
   arithmetic: string[];
-  /** What each action does to a running term. */
+  /** What each action does to a running position. */
   lifecycle: { action: string; effect: string }[];
   /** A worked example at the first rung, built from the constants. */
   worked: string[];
@@ -98,63 +95,58 @@ export type TermMechanics = {
 
 const workedPrincipal = ENTRY_TIER.entry;
 
-export const TERM: TermMechanics = {
-  days: CYCLE_DAYS,
-  termReturn: CYCLE_RETURN,
+export const ACCRUAL: AccrualMechanics = {
   dailyRate: DAILY_RATE,
-  termPct: TERM_PCT,
   dailyPct: DAY_PCT,
+  withdrawIntervalDays: WITHDRAW_INTERVAL_DAYS,
   arithmetic: [
-    `A term is exactly ${CYCLE_DAYS} days. It is fixed at the instant the position opens and nothing moves it.`,
+    "A position has no term and no maturity. It starts accruing the instant capital is placed and keeps accruing until the member closes it.",
     `Accrual is ${DAY_PCT} of original principal per day, continuous rather than credited once a day at a fixed hour.`,
     "Accrued rewards = principal x daily rate x days elapsed, where days elapsed is whole and fractional.",
-    `Days elapsed is clamped to ${CYCLE_DAYS}, so accrual stops at maturity and a matured position holds at exactly ${TERM_PCT} of principal.`,
-    `Term reward = principal x ${TERM_PCT}. That is the ceiling on a position.`,
-    "Accrual is linear and does not compound inside a term.",
-    "If a position is settled before maturity, the accrual clock is cut at the settlement instant rather than at maturity.",
-    "Available cash = rewards claimed + principal returned by settled vaults - withdrawals - capital re-placed from the balance, floored at zero.",
+    "Days elapsed is not capped. A position left in place for a hundred days accrues for a hundred days.",
+    "Accrual is linear and does not compound on its own. Rewards accrue on principal alone, so reward left unclaimed inside a position earns nothing until it is folded back into principal.",
+    "Closing a position cuts the accrual clock at that instant. Nothing is forfeited: accrual is paid for the days the capital actually ran.",
+    "Available cash = rewards claimed + principal returned by closed vaults - withdrawals - capital re-placed from the balance, floored at zero.",
     "Portfolio value = deployed principal + unclaimed rewards + available cash. Withdrawn money is not counted in it.",
     "Net gain = portfolio value + withdrawn - contributed. Return to date = net gain / contributed.",
+    `A withdrawal request may be made once every ${WITHDRAW_INTERVAL_DAYS} days. The first request is allowed immediately, and the window runs from the last request rather than from any position.`,
   ],
   lifecycle: [
     {
       action: "Open",
-      effect: `Capital is placed and the ${CYCLE_DAYS} day term starts at that instant. There is no daily batch to wait for and no advantage to opening at a particular hour.`,
+      effect:
+        "Capital is placed and accrual starts at that instant. There is no daily batch to wait for and no advantage to opening at a particular hour.",
     },
     {
       action: "Claim",
       effect:
-        "Moves rewards that have already accrued into available cash. The term keeps running and accrual is unaffected.",
+        "Moves rewards that have already accrued into available cash. The position keeps running and accrual is unaffected.",
     },
     {
-      action: "Maturity",
-      effect: `Reached ${CYCLE_DAYS} days after opening. Accrual stops. The position stays open until the member settles it, and leaving it open past maturity costs nothing and adds nothing.`,
-    },
-    {
-      action: "Settle",
+      action: "Compound",
       effect:
-        "Closes the position and returns its principal to available cash. Settling before maturity ends accrual at that instant.",
+        "Claims the reward, closes the position and re-opens it at principal plus reward, as a single write. It is how reward starts accruing, because accrual runs on principal alone.",
     },
     {
-      action: "Roll",
+      action: "Close",
       effect:
-        "Settles a matured term and places the capital straight into a new one. Because that capital came from the balance rather than from outside, it is recorded as such and is not counted a second time as new contribution.",
+        "Closes the position and returns its principal to available cash, along with anything still unclaimed. Accrual stops at that instant.",
     },
     {
       action: "Withdraw",
-      effect: "Sends available cash to an external address. It does not touch an open position.",
+      effect: `Sends available cash to an external address, once every ${WITHDRAW_INTERVAL_DAYS} days. It does not touch an open position.`,
     },
     {
       action: "Relay",
       effect:
-        "A standing instruction on one position: at maturity, carry it into a new term rather than letting it sit still. Armed once, it keeps running term after term until it is disarmed.",
+        "A standing instruction on one position: once a whole day of reward has accrued, fold it into principal, or claim it to cash. Armed once, it keeps acting until it is disarmed.",
     },
   ],
   worked: [
     `${usd(workedPrincipal)} placed at ${ENTRY_TIER.name} accrues ${usd(dailyReward(workedPrincipal), 2)} a day.`,
-    `Across ${CYCLE_DAYS} days that is ${usd(termReward(workedPrincipal))} in rewards.`,
-    `At maturity the position holds ${usd(workedPrincipal + termReward(workedPrincipal))} in total, principal plus term reward.`,
-    `The same arithmetic runs at every rung. ${usd(TOP_TIER.entry)} at ${TOP_TIER.name} accrues ${usd(dailyReward(TOP_TIER.entry), 2)} a day and ${usd(termReward(TOP_TIER.entry))} across the term.`,
+    `Left in place for four days that is ${usd(rewardOver(workedPrincipal, 4))} in rewards, and for ten days it is ${usd(rewardOver(workedPrincipal, 10))}. Nothing stops it: the total is whatever the days come to.`,
+    "How long capital stays in place is the member's decision, so there is no total to quote for a position, only the rate and the days it has actually run.",
+    `The same arithmetic runs at every rung. ${usd(TOP_TIER.entry)} at ${TOP_TIER.name} accrues ${usd(dailyReward(TOP_TIER.entry), 2)} a day, which is the same fraction of principal as at ${ENTRY_TIER.name}.`,
   ],
 };
 
@@ -166,12 +158,8 @@ export type TierFact = {
   rank: number;
   entry: number;
   settlementHours: number;
-  /** What one day of the term returns at this rung's entry amount. */
+  /** What one day returns at this rung's entry amount. */
   dailyAtEntry: number;
-  /** What a full term returns at this rung's entry amount. */
-  termAtEntry: number;
-  /** Principal plus term reward at this rung's entry amount. */
-  maturityAtEntry: number;
   /** Further contribution needed to cross from the rung below. Zero at the first. */
   stepFromBelow: number;
   unlocks: string[];
@@ -185,8 +173,6 @@ export const TIER_FACTS: TierFact[] = TIERS.map((t, i) => ({
   entry: t.entry,
   settlementHours: t.settlementHours,
   dailyAtEntry: dailyReward(t.entry),
-  termAtEntry: termReward(t.entry),
-  maturityAtEntry: t.entry + termReward(t.entry),
   stepFromBelow: i === 0 ? 0 : t.entry - TIERS[i - 1].entry,
   unlocks: t.benefits,
   blurb: t.blurb,
@@ -200,7 +186,7 @@ export const STANDING: string[] = [
   "Standing does not fall when a position is settled or when cash is withdrawn.",
   `Below ${usd(ENTRY_TIER.entry)} there is no rung yet and standing reads as unranked.`,
   "Progress to the next rung is the distance travelled from the current rung's entry toward the next one, as a fraction of the gap between them.",
-  `Standing never changes the rate. Every rung earns the same ${TERM_PCT} across the same ${CYCLE_DAYS} days. What changes with standing is settlement speed, access and tooling.`,
+  `Standing never changes the rate. Every rung earns the same ${DAY_PCT} a day. What changes with standing is settlement speed, access and tooling.`,
 ];
 
 /* ── surfaces ───────────────────────────────────────────────────────────── */
@@ -223,7 +209,7 @@ export const SURFACES: Surface[] = [
     purpose: "The overview: portfolio value, standing, and what needs attention.",
     can: [
       "Read portfolio value, available cash, deployed principal and the daily rate",
-      "See the nearest maturity and the current rung",
+      "See the next withdrawal window and the current rung",
       "Reorder the sections of the page with Arrange",
     ],
   },
@@ -242,9 +228,9 @@ export const SURFACES: Surface[] = [
   {
     name: "Vaults",
     route: "/app/vaults",
-    purpose: "Every position and the term it is running.",
+    purpose: "Every position, and what each one has accrued so far.",
     can: [
-      "See principal, term progress, accrued rewards and maturity date per position",
+      "See principal, days accruing, accrued rewards and the daily figure per position",
       "Open a position to settle it or claim from it",
     ],
     aka: ["Portfolio", "Packages", "Positions"],
@@ -255,7 +241,7 @@ export const SURFACES: Surface[] = [
     purpose: "The guided deposit: three steps from an amount to a recorded position.",
     can: [
       "Enter an amount or tap a rung's entry figure",
-      "See per day, term reward and value at maturity before committing",
+      "See what the amount accrues per day, and over a few illustrative runs, before committing",
       "Choose a funding asset, copy the address and confirm",
       "Save a receipt carrying a quotable reference",
     ],
@@ -299,7 +285,7 @@ export const SURFACES: Surface[] = [
   {
     name: "Tier detail",
     route: "/app/tiers/:tierId",
-    purpose: "One rung in full: entry, per day, per term, settlement target and what is included.",
+    purpose: "One rung in full: entry, per day, settlement target and what is included.",
     can: ["Read one rung's figures and how current standing sits against it"],
   },
   {
@@ -316,12 +302,13 @@ export const SURFACES: Surface[] = [
   {
     name: "Horizon",
     route: "/app/horizon",
-    purpose: "The maturity calendar: every date the open positions have already committed to.",
+    purpose:
+      "The withdrawal calendar: when cash can next leave the account, and every window after it.",
     can: [
-      "Read maturities one month at a time and on a ninety day rail",
-      "Plan a staggered placement with the split planner",
+      "Read the next withdrawal window and the ones after it, one month at a time",
+      "See which windows have already been used",
     ],
-    aka: ["Payout calendar"],
+    aka: ["Payout calendar", "Maturity calendar"],
   },
   {
     name: "Markets",
@@ -364,7 +351,7 @@ export const SURFACES: Surface[] = [
     route: "/app/copilot",
     purpose:
       "The analyst assistant. Explains the member's own position and the mechanics behind it.",
-    can: ["Ask about a position, the term structure or the ladder"],
+    can: ["Ask about a position, how accrual works, or the ladder"],
   },
   {
     name: "Support",
@@ -397,7 +384,7 @@ export const SURFACES: Surface[] = [
     name: "Orientation",
     route: "/app/orientation",
     purpose: "The first run introduction, reachable by address at any time.",
-    can: ["Read four panels on how a term works and where things live"],
+    can: ["Read four panels on how a vault works and where things live"],
   },
   {
     name: "Settings",
@@ -457,7 +444,7 @@ export function surfaceByRoute(route: string): Surface | undefined {
 
 export type FlowStep = { title: string; detail: string };
 
-export type FlowId = "deposit" | "withdraw" | "claim" | "settle" | "roll" | "relay";
+export type FlowId = "deposit" | "withdraw" | "claim" | "close" | "compound" | "relay";
 
 export type Flow = {
   id: FlowId;
@@ -482,7 +469,7 @@ export const FLOWS: Flow[] = [
       },
       {
         title: "Read the projection",
-        detail: `Once the amount clears the minimum the form shows per day, term reward and value at maturity, computed at ${DAY_PCT} a day across ${CYCLE_DAYS} days, plus the rung the amount clears.`,
+        detail: `Once the amount clears the minimum the form shows what it accrues per day at ${DAY_PCT}, what a few illustrative runs of days would come to, and the rung the amount clears. There is no total for the position itself, because there is no end date to total to.`,
       },
       {
         title: "Funding asset",
@@ -495,12 +482,12 @@ export const FLOWS: Flow[] = [
       },
       {
         title: "Acknowledge",
-        detail: `Tick the acknowledgement: capital is committed for the ${CYCLE_DAYS} day term, projections are illustrative rather than guaranteed, and digital asset investments carry risk including loss of principal.`,
+        detail: `Tick the acknowledgement: capital is committed until it is closed and cash leaves only on the ${WITHDRAW_INTERVAL_DAYS} day withdrawal window, projections are illustrative rather than guaranteed, and digital asset investments carry risk including loss of principal.`,
       },
       {
         title: "Confirm",
         detail:
-          "Confirming writes one open event to the ledger carrying the amount, the rung, the asset and the network. The term starts at that instant.",
+          "Confirming writes one open event to the ledger carrying the amount, the rung, the asset and the network. Accrual starts at that instant.",
       },
       {
         title: "Receipt",
@@ -510,7 +497,7 @@ export const FLOWS: Flow[] = [
     ],
     notes: [
       "The confirmation tracker advances on a timer because this build has no chain watcher. The surface says so in place rather than implying a live network reading.",
-      "A roll arrives at the same form with the capital carried across, and is recorded as funded from the account balance so it is not counted twice as new contribution.",
+      "A compound arrives at the same form with the capital carried across, and is recorded as funded from the account balance so it is not counted twice as new contribution.",
       "This build records the position in the browser. Custody and settlement require the production backend.",
     ],
   },
@@ -522,7 +509,11 @@ export const FLOWS: Flow[] = [
       {
         title: "Have available cash",
         detail:
-          "Only available cash can be withdrawn. Rewards still inside a position are not available until they are claimed, and principal is not available until the position is settled.",
+          "Only available cash can be withdrawn. Rewards still inside a position are not available until they are claimed, and principal is not available until the position is closed.",
+      },
+      {
+        title: "Be inside the window",
+        detail: `A withdrawal request may be made once every ${WITHDRAW_INTERVAL_DAYS} days. The first request is allowed immediately. After one is filed, the next can be made ${WITHDRAW_INTERVAL_DAYS} days later, and the product shows that date.`,
       },
       {
         title: "Amount",
@@ -537,11 +528,12 @@ export const FLOWS: Flow[] = [
       },
       {
         title: "Settlement",
-        detail: `The settlement target attached to the member's rung is the window the desk works to, counted from when the request is filed rather than from when a term matured. Targets run from ${ENTRY_TIER.settlementHours} hours at ${ENTRY_TIER.name} to ${TOP_TIER.settlementHours} hours at ${TOP_TIER.name}.`,
+        detail: `The settlement target attached to the member's rung is the window the desk works to, counted from when the request is filed. Targets run from ${ENTRY_TIER.settlementHours} hours at ${ENTRY_TIER.name} to ${TOP_TIER.settlementHours} hours at ${TOP_TIER.name}.`,
       },
     ],
     notes: [
       "A settlement target is an operational target, published so it can be measured against. It is not a contractual deadline and it is not a network guarantee.",
+      `The ${WITHDRAW_INTERVAL_DAYS} day interval between requests is the same at every rung. Standing buys a faster target on a request, never a more frequent one.`,
       "The Terms describe withdrawals going only to destinations registered in advance, with a hold window on a new destination. That registration is part of the production service and is not in this preview build.",
       "Withdrawals can also be filed from Yield.",
     ],
@@ -554,7 +546,7 @@ export const FLOWS: Flow[] = [
       {
         title: "Rewards accrue continuously",
         detail:
-          "Anything accrued and not yet claimed is claimable at any point during the term. There is nothing to wait for.",
+          "Anything accrued and not yet claimed is claimable at any point. There is nothing to wait for.",
       },
       {
         title: "Claim",
@@ -564,40 +556,42 @@ export const FLOWS: Flow[] = [
       {
         title: "Where it lands",
         detail:
-          "Claimed rewards move into available cash. The term keeps running and accrual is unaffected.",
+          "Claimed rewards move into available cash. The position keeps running and accrual is unaffected.",
       },
     ],
     notes: [
-      "Claiming and settling are different moves. A claim moves rewards and leaves the term open. Settling closes the position and returns principal.",
+      "Claiming and closing are different moves. A claim moves rewards and leaves the position open. Closing ends it and returns principal.",
+      "Claimed cash accrues nothing. Compounding folds the reward back into principal instead, which is the only way reward starts earning on its own.",
     ],
   },
   {
-    id: "settle",
-    name: "Settling a position",
+    id: "close",
+    name: "Closing a position",
     route: "/app/vaults",
     steps: [
       {
-        title: "Maturity",
-        detail: `A position matures ${CYCLE_DAYS} days after it opened and stops accruing there.`,
+        title: "Decide to stop",
+        detail:
+          "There is no maturity and no date the product decides for the member. A position runs until it is closed, and closing is available at any point.",
       },
       {
-        title: "Settle",
+        title: "Close",
         detail:
-          "Settling writes one close event and returns that position's principal to available cash.",
+          "Closing claims anything still unclaimed and writes one close event, returning that position's principal to available cash. The two are written together, so a claim can never persist without its close.",
       },
       {
         title: "Then what",
-        detail: "The principal can be withdrawn, or placed into a new term.",
+        detail: `The principal can be placed again, or withdrawn on the next ${WITHDRAW_INTERVAL_DAYS} day window.`,
       },
     ],
     notes: [
-      "A matured position left open earns nothing further. That is the single most common reason a member's daily rate stops moving.",
-      "Settling before maturity is an exception handled at the platform's discretion. It forfeits accrual on the unfinished term and may not be granted at all.",
+      "Nothing is forfeited by closing. Accrual is paid for the days the capital actually ran and stops at that instant.",
+      "Cash in the balance accrues nothing. Principal left closed is the most common reason a member's daily rate stops moving.",
     ],
   },
   {
     id: "relay",
-    name: "Relay: rolling a term without deciding again",
+    name: "Relay: compounding without deciding again",
     route: "/app/vaults/:id",
     steps: [
       {
@@ -606,43 +600,43 @@ export const FLOWS: Flow[] = [
           "A relay is armed on one position, from that position's own panel. The first time a member arms one they confirm explicitly, because a relay writes to the ledger later without asking again.",
       },
       {
-        title: "Choose what it carries",
+        title: "Choose what it does",
         detail:
-          "Full carries principal plus whatever rewards are still unclaimed on that position. Principal carries the principal alone and leaves the rewards to be claimed.",
+          "Compound folds the reward into principal, closing the position and re-opening it at principal plus reward, so the reward starts accruing too. Harvest claims the reward into available cash and leaves the principal running untouched.",
       },
       {
-        title: "It fires at maturity",
+        title: "It fires once a day of reward has accrued",
         detail:
-          "When the term matures, the relay settles it and opens a new one with what it carried, as a single write. The new position is armed too, so a member arms once rather than every term.",
+          "Accrual is stated per day, so a relay acts on whole days. A compound re-opens the position and re-arms itself on the new one, which restarts the clock, so an armed relay writes at most one batch a day.",
       },
       {
         title: "Disarm any time",
         detail:
-          "Disarming leaves the term running and the position settles by hand instead. The instruction can be changed or removed while the term is still open.",
+          "Disarming leaves the position running exactly as it is. The instruction can be changed or removed at any point.",
       },
     ],
     notes: [
-      "A relay fires when the member next opens the product after maturity, never before. Nothing runs while nobody is there.",
-      "Its events are stamped at the moment they are written, never backdated to the maturity date. Backdating would fabricate accrual for days the capital actually sat still.",
-      "What it carries is read off the position's own claimable figure, not principal times the term rate, so a member who claimed mid term carries what is genuinely left.",
-      "The new position is recorded as funded from the account balance, so a relay never inflates contributed or buys standing that was not paid for.",
+      "A relay fires when the member next opens the product, never before. Nothing runs while nobody is there.",
+      "Its events are stamped at the moment they are written, never backdated. Backdating would fabricate accrual for days the capital actually sat in the reward rather than in the principal.",
+      "What it moves is read off the position's own claimable figure, so a member who claimed by hand moves what is genuinely left.",
+      "A compounded position is recorded as funded from the account balance, so a relay never inflates contributed or buys standing that was not paid for.",
       "Automatic firing can be turned off, in which case due relays are run by hand.",
     ],
   },
   {
-    id: "roll",
-    name: "Rolling a matured term by hand",
-    route: "/app/vaults/new",
+    id: "compound",
+    name: "Compounding a position by hand",
+    route: "/app/vaults/:id",
     steps: [
       {
-        title: "Settle and re-place",
+        title: "Why it is not automatic",
         detail:
-          "A roll settles the matured term and places the capital straight into a new one, in the same movement.",
+          "Accrual runs on principal alone. Reward sitting unclaimed inside a position earns nothing, so it only starts earning once it is folded into principal.",
       },
       {
-        title: "What carries",
+        title: "Claim, close and re-place",
         detail:
-          "Principal carries. Rewards carry too if they have been claimed into the balance first.",
+          "Compounding claims what is unclaimed, closes the position and opens a new one at principal plus reward, as a single write. Half of that sequence would leave a closed position and no new one.",
       },
       {
         title: "How it is recorded",
@@ -651,7 +645,7 @@ export const FLOWS: Flow[] = [
       },
     ],
     notes: [
-      "Standing is measured on the greater of contributed and peak deployed, so rolling still moves a member up the ladder as the position grows.",
+      "Standing is measured on the greater of contributed and peak deployed, so compounding still moves a member up the ladder as the position grows.",
     ],
   },
 ];
@@ -696,7 +690,7 @@ export const LEDGER_MODEL: LedgerModel = {
       kind: "open",
       carries:
         "amount, tier, asset, network, and a flag when the capital came from the account balance",
-      meaning: "Capital placed into a vault. Starts a term.",
+      meaning: "Capital placed into a vault. Starts accruing, and keeps accruing.",
     },
     {
       kind: "claim",
@@ -717,7 +711,7 @@ export const LEDGER_MODEL: LedgerModel = {
       kind: "relay.set",
       carries: "position id and mode, either full or principal",
       meaning:
-        "A standing instruction to carry this position into a new term at maturity. The latest instruction for a position wins, so arming, changing mode and disarming are one mechanism and the whole history stays readable.",
+        "A standing instruction on this position: once a whole day of reward has accrued, fold it into principal or claim it to cash. The latest instruction for a position wins, so arming, changing mode and disarming are one mechanism and the whole history stays readable.",
     },
     {
       kind: "relay.clear",
@@ -727,7 +721,7 @@ export const LEDGER_MODEL: LedgerModel = {
   ],
   derived: [
     "The log is append only. Events are never edited or deleted to make a figure come out differently.",
-    "Every figure in the product is replayed from that log plus the clock: portfolio value, accrued rewards, available cash, standing, term progress, the maturity calendar and the performance charts.",
+    "Every figure in the product is replayed from that log plus the clock: portfolio value, accrued rewards, available cash, standing, days accruing, the withdrawal calendar and the performance charts.",
     "The same events and the same clock always produce the same figures, which is why two surfaces never disagree.",
   ],
   storage: [
@@ -757,7 +751,7 @@ export const APPROACH_FACTS: ApproachFact[] = APPROACHES.map((a) => ({
 }));
 
 export const APPROACH_RULE =
-  "An approach is a stated intention, not a product a member buys. It changes what the interface leads with and nothing else: never the rate, never the term, never what the ledger computes.";
+  "An approach is a stated intention, not a product a member buys. It changes what the interface leads with and nothing else: never the rate, never the withdrawal window, never what the ledger computes.";
 
 /* ── glossary ───────────────────────────────────────────────────────────── */
 
@@ -767,11 +761,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Vault",
     definition:
-      "One position: capital placed under a fixed term. A member can run several at once.",
-  },
-  {
-    term: "Term",
-    definition: `The fixed ${CYCLE_DAYS} day window a vault runs, starting the instant capital is placed.`,
+      "One position: capital placed and accruing. It has no end date and runs until it is closed. A member can run several at once.",
   },
   {
     term: "Principal",
@@ -780,12 +770,12 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: "Accrual",
-    definition: `${DAY_PCT} of principal per day, continuous through the term rather than paid in a lump at the end.`,
+    definition: `${DAY_PCT} of principal per day, continuous rather than credited in a lump at any point.`,
   },
   {
     term: "Accrued rewards",
     definition:
-      "What one position has earned so far, measured against the clock and capped at the term.",
+      "What one position has earned so far, measured against the clock. Nothing caps it, because there is no end date to cap it at.",
   },
   {
     term: "Claimable",
@@ -794,39 +784,35 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Claim",
     definition:
-      "Moving accrued rewards out of a position and into available cash. The term keeps running.",
+      "Moving accrued rewards out of a position and into available cash. The position keeps running.",
   },
   {
-    term: "Term reward",
-    definition: `What a position accrues across a full term: principal x ${TERM_PCT}. It is a ceiling, not a forecast.`,
+    term: "Withdrawal window",
+    definition: `The interval between one withdrawal request and the next: ${WITHDRAW_INTERVAL_DAYS} days. A first request is allowed immediately, and the window is the same at every rung.`,
   },
   {
-    term: "Maturity",
-    definition: `The instant a term completes, ${CYCLE_DAYS} days after opening. Accrual stops and the position holds at ${TERM_PCT}.`,
-  },
-  {
-    term: "Settle",
+    term: "Close",
     definition:
-      "Closing a position so its principal returns to available cash. Distinct from maturity, which is fixed at open.",
+      "Ending a position so its principal returns to available cash, along with anything unclaimed. Available at any point, and nothing is forfeited by it.",
   },
   {
-    term: "Roll",
+    term: "Compound",
     definition:
-      "Settling a matured term and placing the same capital into a new one in one movement.",
+      "Claiming a position's reward, closing it and re-opening it at principal plus reward, in one movement. It is what makes reward start accruing, because accrual runs on principal alone.",
   },
   {
     term: "Redeploy",
-    definition: "Putting idle cash back to work in a new term. Idle cash accrues nothing.",
+    definition: "Putting idle cash back to work in a vault. Idle cash accrues nothing.",
   },
   {
     term: "Relay",
     definition:
-      "A standing instruction on one position: at maturity, carry it into a new term rather than letting it sit still. Armed once, it continues term after term until disarmed.",
+      "A standing instruction on one position: once a whole day of reward has accrued, fold it into principal or claim it to cash. Armed once, it keeps acting until disarmed.",
   },
   {
     term: "Relay mode",
     definition:
-      "What a relay carries. Full carries principal plus whatever rewards are still unclaimed on that position. Principal carries the principal alone.",
+      "What a relay does. Compound folds principal and reward into a new, larger position. Harvest claims the reward to cash and leaves the principal running.",
   },
   {
     term: "Available cash",
@@ -876,7 +862,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Daily rate",
     definition:
-      "The sum of daily accrual across open positions that have not yet matured. A matured position contributes nothing to it.",
+      "The sum of daily accrual across every open position that has started. Nothing removes a position from it except closing it.",
   },
   {
     term: "Ledger",
@@ -889,12 +875,11 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: "Horizon",
-    definition:
-      "The maturity calendar. Not a forecast: the dates open positions have already committed to.",
+    definition: `The withdrawal calendar. Not a forecast: the dates a request can be filed, ${WITHDRAW_INTERVAL_DAYS} days apart, counted from the last one.`,
   },
   {
     term: "Trajectory",
-    definition: "The forward timeline of capital maturing.",
+    definition: "The forward timeline of what open capital is accruing.",
   },
   {
     term: "Signal",
@@ -960,7 +945,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "First Light",
     definition:
-      "The panel shown before a first placement. It is an explanation of the ordinary term arithmetic, not an offer and not a bonus.",
+      "The panel shown before a first placement. It is an explanation of the ordinary accrual arithmetic, not an offer and not a bonus.",
   },
   {
     term: "Crest",
@@ -989,15 +974,16 @@ export function glossaryTerm(name: string): GlossaryEntry | undefined {
  * listing what may not be claimed about it is half a briefing.
  */
 export const LIMITS: string[] = [
-  `The published ${TERM_PCT} term structure describes how the product is designed to accrue. It is a target, not a promise of payment, and it is not guaranteed. Never promise a return, never imply one, and never describe an outcome as certain.`,
-  "Capital placed in a vault is at risk, including total loss. Say so plainly whenever the conversation touches returns, risk, or how much someone should place.",
+  `The published ${DAY_PCT} a day describes how the product is designed to accrue. It is a stated structure, not a promise of payment, and it is not guaranteed. Never promise a return, never imply one, and never describe an outcome as certain.`,
+  "Capital is at risk and rates are targets, not guarantees. Say it once, plainly and briefly, when the conversation touches returns, risk, or how much someone should place. Do not lecture and do not repeat it in every answer.",
   "There is no deposit protection, investor compensation scheme or insurance behind this product.",
   "Never invent or imply a licence, a regulator, an audit, an insurance policy, a custody partner, a banking partner, an exchange partner or any other third party relationship. Rigel claims none of these, and the absence of a claim is honest rather than an oversight.",
   "Never state a member count, an assets figure, a volume, a payout total, an uptime number, a track record or any other statistic. The product cannot derive them, so they do not exist.",
   "Never give investment, tax or legal advice, and never recommend that someone place capital, place more, or place less.",
   "Never state a figure that is not either a published constant of the product or a value from the member's own derived snapshot.",
   "A settlement target is an operational target measured from when a request is filed. It is not a contractual deadline and not a network guarantee.",
-  "Early exit from a running term is an exception at the platform's discretion, forfeits accrual on the unfinished term, and may not be granted at all. Never present it as a right.",
+  "There is no maturity date and no fixed length. Never state a total a position will reach, because how long it runs is the member's decision and not a figure the product can derive. State the rate and the days it has actually run.",
+  `A withdrawal request may be made once every ${WITHDRAW_INTERVAL_DAYS} days. Never imply a rung buys a more frequent window; standing buys a faster target on a request and nothing else.`,
   "When a question falls outside what can be answered from the product, say so plainly and point to the surface or document that covers it. Do not guess, and do not fill a gap with something that sounds right.",
 ];
 
@@ -1005,7 +991,7 @@ export const LIMITS: string[] = [
 
 export type SectionId =
   | "platform"
-  | "term"
+  | "accrual"
   | "tiers"
   | "standing"
   | "surfaces"
@@ -1035,14 +1021,14 @@ const RENDER: Record<SectionId, () => string> = {
       "\n",
     ),
 
-  term: () =>
+  accrual: () =>
     [
-      "TERM MECHANICS",
-      bullets(TERM.arithmetic),
+      "ACCRUAL MECHANICS",
+      bullets(ACCRUAL.arithmetic),
       "Lifecycle of a position:",
-      bullets(TERM.lifecycle.map((l) => `${l.action}: ${l.effect}`)),
+      bullets(ACCRUAL.lifecycle.map((l) => `${l.action}: ${l.effect}`)),
       "Worked example:",
-      bullets(TERM.worked),
+      bullets(ACCRUAL.worked),
     ].join("\n"),
 
   tiers: () =>
@@ -1051,10 +1037,10 @@ const RENDER: Record<SectionId, () => string> = {
       bullets(
         TIER_FACTS.map(
           (t) =>
-            `${t.name}, entry ${usd(t.entry)}, settlement target ${t.settlementHours}h. At entry: ${usd(t.dailyAtEntry, 2)} a day, ${usd(t.termAtEntry)} across the term, ${usd(t.maturityAtEntry)} at maturity. Unlocks: ${t.unlocks.join(", ")}.${t.stepFromBelow > 0 ? ` Crossing from the rung below costs ${usd(t.stepFromBelow)} of further contribution.` : ""}`,
+            `${t.name}, entry ${usd(t.entry)}, settlement target ${t.settlementHours}h. At entry: ${usd(t.dailyAtEntry, 2)} a day. Unlocks: ${t.unlocks.join(", ")}.${t.stepFromBelow > 0 ? ` Crossing from the rung below costs ${usd(t.stepFromBelow)} of further contribution.` : ""}`,
         ),
       ),
-      `Every rung earns the same ${TERM_PCT} over ${CYCLE_DAYS} days. Tiers differ on settlement speed, access and tooling, never on rate.`,
+      `Every rung earns the same ${DAY_PCT} a day. Tiers differ on settlement speed, access and tooling, never on rate.`,
     ].join("\n"),
 
   standing: () => ["STANDING, AND HOW A RUNG IS REACHED", bullets(STANDING)].join("\n"),
@@ -1118,7 +1104,7 @@ const RENDER: Record<SectionId, () => string> = {
 /** Reading order. Platform first so everything after it has a frame. */
 export const SECTION_ORDER: SectionId[] = [
   "platform",
-  "term",
+  "accrual",
   "tiers",
   "standing",
   "surfaces",
@@ -1165,13 +1151,13 @@ export function briefingFor(sections: SectionId[]): string {
 /* ── topics ─────────────────────────────────────────────────────────────── */
 
 export type TopicId =
-  | "term"
+  | "accrual"
   | "tiers"
   | "standing"
   | "deposit"
   | "withdraw"
   | "claim"
-  | "settle"
+  | "close"
   | "relay"
   | "referrals"
   | "navigation"
@@ -1196,18 +1182,16 @@ export type Topic = {
 
 export const TOPICS: Topic[] = [
   {
-    id: "term",
-    label: "How a term works",
+    id: "accrual",
+    label: "How accrual works",
     keywords: [
-      "term",
       "accrue",
       "accrual",
       "accrued",
       "rate",
       "daily",
       "per day",
-      "30 day",
-      "thirty",
+      "a day",
       "reward",
       "rewards",
       "earn",
@@ -1216,12 +1200,15 @@ export const TOPICS: Topic[] = [
       "yield",
       "return",
       "compound",
+      "compounding",
+      "term",
       "mature",
       "maturity",
       "matured",
+      "how long",
       "progress",
     ],
-    sections: ["term"],
+    sections: ["accrual"],
   },
   {
     id: "tiers",
@@ -1299,7 +1286,7 @@ export const TOPICS: Topic[] = [
       "confirmations",
       "new vault",
     ],
-    sections: ["flows", "term"],
+    sections: ["flows", "accrual"],
     flows: ["deposit"],
   },
   {
@@ -1315,23 +1302,24 @@ export const TOPICS: Topic[] = [
       "available",
       "balance",
       "settlement",
-      "how long",
+      "window",
       "hours",
       "destination",
+      "how often",
     ],
-    sections: ["flows", "tiers"],
+    sections: ["flows", "tiers", "accrual"],
     flows: ["withdraw"],
   },
   {
     id: "claim",
     label: "Claiming rewards",
     keywords: ["claim", "claimed", "claimable", "collect", "harvest", "sweep", "unclaimed"],
-    sections: ["flows", "term"],
+    sections: ["flows", "accrual"],
     flows: ["claim"],
   },
   {
-    id: "settle",
-    label: "Settling and rolling",
+    id: "close",
+    label: "Closing and compounding",
     keywords: [
       "settle",
       "settled",
@@ -1342,14 +1330,14 @@ export const TOPICS: Topic[] = [
       "rollover",
       "redeploy",
       "reinvest",
-      "early exit",
+      "fold",
       "exit",
       "lock",
       "locked",
       "lockup",
     ],
-    sections: ["flows", "term"],
-    flows: ["settle", "roll", "relay"],
+    sections: ["flows", "accrual"],
+    flows: ["close", "compound", "relay"],
   },
   {
     id: "relay",
@@ -1463,7 +1451,7 @@ export const TOPICS: Topic[] = [
       "stagger",
       "tranche",
     ],
-    sections: ["approaches", "term"],
+    sections: ["approaches", "accrual"],
   },
   {
     id: "vocabulary",
@@ -1554,7 +1542,7 @@ export function topicsFor(text: string): TopicId[] {
 }
 
 /** Sections that carry a question, or a sensible core when nothing matches. */
-const DEFAULT_SECTIONS: SectionId[] = ["term", "tiers", "standing", "surfaces"];
+const DEFAULT_SECTIONS: SectionId[] = ["accrual", "tiers", "standing", "surfaces"];
 
 /** A subset of the flows under the same heading the full section uses. */
 function renderFlows(ids: FlowId[]): string {

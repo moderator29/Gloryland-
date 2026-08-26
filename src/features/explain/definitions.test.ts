@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { allDefinitions, getDefinition } from "./definitions";
 import { derive, DAY_MS, type LedgerEvent } from "@/domain/ledger";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 
 /**
  * Guards against the exact failure this suite was built for.
@@ -83,12 +83,12 @@ describe("standing agrees with the ledger", () => {
     // Compounding: one external deposit, then the same capital re-placed
     // larger. Contribution stays at the deposit; the peak follows the roll.
     const events: LedgerEvent[] = [
-      open("p1", 1000, "signal", 0),
-      { id: "c1", kind: "claim", at: at(30), positionId: "p1", amount: 300 } as LedgerEvent,
-      { id: "x1", kind: "close", at: at(30), positionId: "p1" } as LedgerEvent,
-      open("p2", 1300, "signal", 30, true),
+      open("p1", 1000, "vector", 0),
+      { id: "c1", kind: "claim", at: at(1), positionId: "p1", amount: 300 } as LedgerEvent,
+      { id: "x1", kind: "close", at: at(1), positionId: "p1" } as LedgerEvent,
+      open("p2", 1300, "vector", 1, true),
     ];
-    const snap = derive(events, at(30));
+    const snap = derive(events, at(1));
 
     expect(snap.contributed).toBe(1000);
     expect(snap.peakDeployed).toBe(1300);
@@ -96,39 +96,81 @@ describe("standing agrees with the ledger", () => {
     expect(snap.standing).toBe(1300);
 
     // And the figure the definition explains is the one the tier reads.
-    expect(snap.tier?.id).toBe("signal");
+    expect(snap.tier?.id).toBe("vector");
   });
 
   it("moving the same money in a circle does not climb the ladder", () => {
     const events: LedgerEvent[] = [];
     for (let i = 0; i < 5; i++) {
-      events.push(open(`p${i}`, 1000, "signal", i * CYCLE_DAYS, i > 0));
+      events.push(open(`p${i}`, 1000, "vector", i * 2, i > 0));
       events.push({
         id: `x${i}`,
         kind: "close",
-        at: at((i + 1) * CYCLE_DAYS),
+        at: at((i + 1) * 2),
         positionId: `p${i}`,
       } as LedgerEvent);
     }
-    const snap = derive(events, at(5 * CYCLE_DAYS));
+    const snap = derive(events, at(10));
     expect(snap.standing).toBe(1000);
   });
 });
 
-describe("the term figures agree with the constants", () => {
+describe("the accrual figures agree with the constants", () => {
   it("accrued describes the rate the ledger actually applies", () => {
     const def = getDefinition("accrued");
     const text = [def.short, def.formula ?? "", ...def.how].join(" ");
-    expect(text).toContain(String(CYCLE_DAYS));
     expect(text).toMatch(new RegExp(`${(DAILY_RATE * 100).toFixed(0)}\\s*%`));
+    expect(text.toLowerCase()).toContain("per day");
   });
 
-  it("a term returns exactly the published fraction, and stops", () => {
-    const snap = derive([open("p1", TIERS[0].entry, "core", 0)], at(CYCLE_DAYS));
-    expect(snap.rewardsAccrued).toBeCloseTo(TIERS[0].entry * CYCLE_RETURN, 6);
+  /**
+   * The regression this rewrite exists to prevent, in the definitions layer.
+   * Accrual used to stop dead at a thirty day maturity and the copy said so.
+   * Nothing stops now, and the words have to agree with that or Provenance is
+   * explaining a model the ledger no longer runs.
+   */
+  it("says accrual has no end date, and derive agrees", () => {
+    const def = getDefinition("accrued");
+    const text = [def.short, def.formula ?? "", ...def.how, ...(def.caveats ?? [])]
+      .join(" ")
+      .toLowerCase();
+    expect(text).toContain("no term");
+    expect(text).toContain("no maturity");
+    expect(withoutNegations(text)).not.toMatch(/\bmatur/);
 
-    const later = derive([open("p1", TIERS[0].entry, "core", 0)], at(CYCLE_DAYS * 3));
-    expect(later.rewardsAccrued).toBeCloseTo(snap.rewardsAccrued, 6);
+    const entry = TIERS[0].entry;
+    const thirty = derive([open("p1", entry, "core", 0)], at(30));
+    const ninety = derive([open("p1", entry, "core", 0)], at(90));
+    expect(thirty.rewardsAccrued).toBeCloseTo(entry * DAILY_RATE * 30, 6);
+    expect(ninety.rewardsAccrued).toBeCloseTo(thirty.rewardsAccrued * 3, 6);
+  });
+
+  it("only a close stops the clock, exactly as the definition says", () => {
+    const entry = TIERS[0].entry;
+    const closed = derive(
+      [
+        open("p1", entry, "core", 0),
+        { id: "x1", kind: "close", at: at(6), positionId: "p1" } as LedgerEvent,
+      ],
+      at(40),
+    );
+    expect(closed.rewardsAccrued).toBeCloseTo(entry * DAILY_RATE * 6, 6);
+  });
+
+  it("names the withdrawal interval the ledger enforces", () => {
+    const def = getDefinition("withdrawWindow");
+    const text = [def.short, def.formula ?? "", ...def.how].join(" ");
+    expect(text).toContain(String(WITHDRAW_INTERVAL_DAYS));
+
+    const snap = derive(
+      [
+        open("p1", TIERS[0].entry, "core", 0),
+        { id: "w1", kind: "withdraw", at: at(2), amount: 1, address: "x" } as LedgerEvent,
+      ],
+      at(2),
+    );
+    expect(snap.withdrawAllowed).toBe(false);
+    expect(snap.daysUntilWithdraw).toBeCloseTo(WITHDRAW_INTERVAL_DAYS, 6);
   });
 
   it("settlement targets in the definition match the ladder", () => {
@@ -137,6 +179,35 @@ describe("the term figures agree with the constants", () => {
     for (const tier of TIERS) {
       expect(text, `${tier.name} target missing`).toContain(String(tier.settlementHours));
     }
+  });
+});
+
+/**
+ * Saying "there is no maturity" is the correction, not the drift, so a naked
+ * ban on the word would fail the sentences doing the work. Negated forms are
+ * removed before the check rather than special cased inside it, the same way
+ * the disclaimer test below handles "not a guarantee".
+ */
+const withoutNegations = (text: string) =>
+  text.replace(/\b(no|not|never|nothing|without)\b[^.]{0,80}?\b(matur\w*|terms?)\b/gi, "");
+
+describe("no definition describes a maturity that cannot happen", () => {
+  it("keeps affirmative term and maturity language out of every entry", () => {
+    for (const def of allDefinitions()) {
+      const text = withoutNegations(
+        [def.label, def.short, def.formula ?? "", ...def.how, ...(def.caveats ?? [])]
+          .join(" ")
+          .toLowerCase(),
+      );
+      expect(text, def.id).not.toMatch(/\bmatur/);
+      expect(text, def.id).not.toMatch(/\bterm reward\b/);
+      expect(text, def.id).not.toMatch(/\b30[- ]day\b/);
+    }
+  });
+
+  it("still fails when a maturity is actually described", () => {
+    expect(withoutNegations("the position matures on day thirty")).toMatch(/\bmatur/);
+    expect(withoutNegations("a position has no term and no maturity")).not.toMatch(/\bmatur/);
   });
 });
 

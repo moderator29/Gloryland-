@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Compass, LifeBuoy, Search, X } from "lucide-react";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -19,7 +19,6 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  * by hand, so the help text cannot quietly disagree with the product.
  */
 
-const TERM_PCT = (CYCLE_RETURN * 100).toFixed(0);
 const DAILY_PCT = (DAILY_RATE * 100).toFixed(0);
 
 type Entry = { id: string; q: string; a: string[] };
@@ -29,7 +28,7 @@ const ENTRIES: Entry[] = [
     id: "vault",
     q: "How does a vault work?",
     a: [
-      `A vault holds capital for a fixed term of ${CYCLE_DAYS} days. Across that term it returns ${TERM_PCT}% of the principal, accruing at ${DAILY_PCT}% of principal per day.`,
+      `A vault holds capital and accrues ${DAILY_PCT}% of the original principal every day it stays there. There is no term and no maturity: it accrues for as long as you leave it.`,
       "Accrual is continuous rather than a single payment at the end, and it stops the moment the term matures.",
     ],
   },
@@ -37,7 +36,7 @@ const ENTRIES: Entry[] = [
     id: "maturity",
     q: "What happens when a term matures?",
     a: [
-      `After ${CYCLE_DAYS} days the position stops accruing and holds at exactly ${TERM_PCT}%.`,
+      `Nothing stops it. A position accrues at the same rate on its hundredth day as on its first, and a withdrawal can be requested every ${WITHDRAW_INTERVAL_DAYS} days.`,
       "Settling the position returns the principal to your available cash, alongside any rewards you have already claimed.",
     ],
   },
@@ -70,7 +69,7 @@ const ENTRIES: Entry[] = [
     id: "rate",
     q: "Does a higher tier earn a better rate?",
     a: [
-      `No. Every tier earns the same ${TERM_PCT}% over the same ${CYCLE_DAYS} days, from ${TIERS[0].name} to ${TIERS[TIERS.length - 1].name}.`,
+      `No. Every tier earns the same ${DAILY_PCT}% a day, from ${TIERS[0].name} to ${TIERS[TIERS.length - 1].name}.`,
       "What changes as you climb is access, limits and how fast the desk targets settling a withdrawal.",
     ],
   },
@@ -83,7 +82,7 @@ const ENTRIES: Entry[] = [
   },
   {
     id: "preview",
-    q: "What does this preview build do and not do?",
+    q: "What can the platform do today?",
     a: [
       "It does run the full model. Every figure on screen is derived from your own recorded events plus the clock, so the arithmetic you see is the arithmetic the product uses.",
       "It does not move money, hold custody of anything, or talk to a server. Your ledger is stored in this browser, which means clearing site data clears it, and it will not follow you to another device.",

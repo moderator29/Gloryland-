@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { fireRelay } from "@/domain/ledger";
 import { useLedger } from "@/hooks/useLedger";
-import { money, fullDate } from "@/components/system/format";
-import { CYCLE_DAYS } from "@/domain/tiers";
+import { money } from "@/components/system/format";
+import { dailyReward } from "@/domain/tiers";
 import { playTierChord } from "@/lib/sound";
 
 /**
@@ -16,8 +16,10 @@ import { playTierChord } from "@/lib/sound";
  * The guard matters more than it looks. `useLedger` re-derives on a timer, and
  * firing writes to the ledger, which emits, which re-derives: without holding
  * the ids already handled, a single due relay would fire on every tick and
- * open a term per second. The set is deliberately kept in a ref rather than
- * state, so recording a fire never itself triggers a render.
+ * open a position per second. A fold does restart the day count, so the
+ * derivation would settle on its own eventually, but not before writing a
+ * batch per frame. The set is deliberately kept in a ref rather than state, so
+ * recording a fire never itself triggers a render.
  */
 
 const OFF_KEY = "rgl_relay_auto_off";
@@ -53,14 +55,19 @@ export function useRelays() {
       if (!position) continue;
 
       handled.current.add(relay.positionId);
-      fireRelay(relay, position);
+      if (fireRelay(relay, position).length === 0) continue;
 
       playTierChord(position.tier.id);
-      const nextMatures = Date.now() + CYCLE_DAYS * 86_400_000;
-      toast.success(`${position.tier.name} vault rolled`, {
-        description: `${money(relay.carries)} carried into a term maturing ${fullDate(nextMatures)}.`,
-        duration: 7000,
-      });
+      const compounded = relay.mode === "full";
+      toast.success(
+        compounded ? `${position.tier.name} vault compounded` : "Reward claimed to your balance",
+        {
+          description: compounded
+            ? `${money(relay.carries, 2)} of principal now accruing ${money(dailyReward(relay.carries), 2)} a day.`
+            : `${money(relay.carries, 2)} moved. The principal keeps accruing.`,
+          duration: 7000,
+        },
+      );
     }
   }, [snap]);
 

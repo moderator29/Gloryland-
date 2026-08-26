@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { money, pct } from "@/components/system/format";
 import { LegalPage, ReviewNote, type LegalSection } from "@/components/landing/LegalLayout";
 
@@ -15,14 +15,25 @@ const UPDATED = "26 August 2026";
  * front of them.
  */
 const BASE = TIERS[1].entry;
-const GROWTH = 1 + CYCLE_RETURN;
-const compounded = (terms: number) => BASE * GROWTH ** terms;
 
-/** Terms in a calendar year, and the annual rate that repeating them implies. */
-const TERMS_PER_YEAR = 365 / CYCLE_DAYS;
-const ANNUALISED = GROWTH ** TERMS_PER_YEAR - 1;
-const ANNUALISED_TEXT = `${Math.round(ANNUALISED * 100).toLocaleString("en-US")}%`;
-const YEAR_TERMS = Math.floor(TERMS_PER_YEAR);
+/** Simple accrual: principal times the daily rate times days. No compounding. */
+const simple = (days: number) => BASE * (1 + DAILY_RATE * days);
+
+/**
+ * The simple annual figure, which is the one worth printing.
+ *
+ * Compounding at this rate produces a number with no meaning: folding every
+ * withdrawal window for a year multiplies the principal by more than 2.2 to
+ * the power of ninety, which is a figure larger than the money that exists.
+ * Printing it would read as a boast rather than as the warning it is, so this
+ * page prints the simple figure and then says plainly why the compounded one
+ * is not shown.
+ */
+const ANNUAL_SIMPLE = DAILY_RATE * 365;
+const ANNUALISED_TEXT = `${Math.round(ANNUAL_SIMPLE * 100).toLocaleString("en-US")}%`;
+
+/** Growth over one withdrawal window, which is the shortest real holding period. */
+const WINDOW_GROWTH = DAILY_RATE * WITHDRAW_INTERVAL_DAYS;
 
 const SECTIONS: LegalSection[] = [
   {
@@ -41,7 +52,8 @@ const SECTIONS: LegalSection[] = [
         <p>
           Only commit money you can lose entirely without it changing how you live. Do not use
           borrowed money. Do not use money you need for housing, healthcare, dependants, debt
-          repayment or retirement. Do not use money you may need inside the next {CYCLE_DAYS} days.
+          repayment or retirement. Capital can be requested back every {WITHDRAW_INTERVAL_DAYS}{" "}
+          days, but a request is not a guarantee that it arrives.
         </p>
       </>
     ),
@@ -52,10 +64,10 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          The platform publishes a term structure of {pct(DAILY_RATE, 2)} per day reaching{" "}
-          {pct(CYCLE_RETURN, 0)} over {CYCLE_DAYS} days. That figure describes how the product is
-          designed to accrue. It is not a guarantee that the amount will be paid, and it is not
-          secured by any asset, guarantor or protection scheme.
+          The platform publishes a rate of {pct(DAILY_RATE, 0)} of original principal per day, with
+          no term and no maturity. That figure describes how the product is designed to accrue. It
+          is not a guarantee that the amount will be paid, and it is not secured by any asset,
+          guarantor or protection scheme.
         </p>
         <p>
           Accrual displayed in the portal is an accounting entry against your position. It becomes
@@ -71,33 +83,35 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          A {pct(CYCLE_RETURN, 0)} return every {CYCLE_DAYS} days is very far above what established
-          markets produce. Sustained and reinvested it compounds, and the compounding is worth
-          seeing written out rather than described. Starting from {money(BASE)} and rolling the
-          whole balance into the next term each time:
+          {pct(DAILY_RATE, 0)} a day is not a high rate of return. It is orders of magnitude beyond
+          anything established markets produce, and the arithmetic is worth seeing written out
+          rather than described. Starting from {money(BASE)}, with nothing compounded:
         </p>
         <ul>
           <li>
-            After one term, {money(compounded(1))}. After three, {money(compounded(3))}.
+            After {WITHDRAW_INTERVAL_DAYS} days, the first withdrawal window,{" "}
+            {money(simple(WITHDRAW_INTERVAL_DAYS))}. After thirty days, {money(simple(30))}.
           </li>
           <li>
-            After six terms, {money(compounded(6), 2)}. After {YEAR_TERMS}, which is roughly a
-            calendar year, {money(compounded(YEAR_TERMS), 2)}.
+            After a calendar year, {money(simple(365))}, which is a simple annual rate of about{" "}
+            {ANNUALISED_TEXT}. A broad equity index returns a high single digit percentage over the
+            same period.
           </li>
           <li>
-            Repeated for a full year that is an annualised rate of about {ANNUALISED_TEXT}, against
-            a long run figure in the high single digits for a broad equity index.
+            Compounded rather than simple, the figures stop meaning anything at all. Folding the
+            accrued reward back in at every window multiplies capital by {pct(WINDOW_GROWTH, 0)}{" "}
+            each time, and repeated for a year that exceeds the total money in existence. This page
+            does not print that number, because a number that cannot happen is not a disclosure.
           </li>
         </ul>
         <p>
           <strong>
-            That series is arithmetic, not a forecast, and it is not a projection of what you will
-            receive.
+            That arithmetic is not a forecast, and it is not a projection of what you will receive.
           </strong>{" "}
-          It is what the published rate produces if every term completes and pays in full, which is
-          exactly the assumption this document exists to challenge. No conventional asset class,
-          lending market or treasury strategy delivers a rate of that order reliably, and the longer
-          a chain of terms runs the more times the same risk has to not happen.
+          It is what the published rate produces if it is paid in full every day, which is exactly
+          the assumption this document exists to challenge. No conventional asset class, lending
+          market or treasury strategy delivers a rate of this order at all, let alone reliably, and
+          every additional day is another day the same risk has to not happen.
         </p>
         <p>
           <strong>
@@ -148,14 +162,14 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          A term is a commitment. Once a vault is open, the capital inside it is not available on
-          demand for {CYCLE_DAYS} days. An early-exit request is an exception handled at the
-          platform&rsquo;s discretion, forfeits accrual on the unfinished term, and may not be
-          granted at all.
+          Capital in a vault is not available on demand. A withdrawal may be requested once every{" "}
+          {WITHDRAW_INTERVAL_DAYS} days, and a request is a request: it is reviewed, it is subject
+          to the settlement target published against your tier, and it may be delayed or declined.
         </p>
         <p>
           Circumstances can change quickly. If there is a realistic chance you will need this money
-          before maturity, an emergency, a bill, a margin call elsewhere, do not place it.
+          on a day that is not a window, an emergency, a bill, a margin call elsewhere, do not place
+          it.
         </p>
       </>
     ),
@@ -310,9 +324,10 @@ export default function RiskDisclosure() {
       summary={
         <>
           Capital placed in a vault can be lost in part or in full. The published{" "}
-          {pct(CYCLE_RETURN, 0)} term structure is a target, not a guarantee, and returns of that
-          size carry risk of matching size. There is no deposit protection. Funds are locked for the
-          length of the term. Place only what you can afford to lose entirely.
+          {pct(DAILY_RATE, 0)} daily rate is a target, not a guarantee, and a return of that size
+          carries risk of matching size. There is no deposit protection. A withdrawal can be
+          requested every {WITHDRAW_INTERVAL_DAYS} days, not on demand. Place only what you can
+          afford to lose entirely.
         </>
       }
       sections={SECTIONS}

@@ -18,7 +18,7 @@
  * Content rules, enforced by hand at review time because no linter can:
  * - No invented users, deposits, returns, partnerships, audits or statistics.
  * - No breaking news, no market calls, no forecast of any figure.
- * - Nothing that promises an outcome. A term rate is a structure, not a promise.
+ * - Nothing that promises an outcome. A published rate is a structure, not a promise.
  * - No em dash characters anywhere in member facing copy.
  */
 
@@ -42,78 +42,40 @@ export type Post = {
   tierId?: string;
 };
 
-/* ── product constants, mirrored from src/domain/tiers.ts ───────────────── */
+/* ── product constants ──────────────────────────────────────────────────── */
 
-const CYCLE_DAYS = 30;
-const CYCLE_RETURN = 0.3;
-const DAILY_RATE = CYCLE_RETURN / CYCLE_DAYS;
-
-type TierFact = {
-  id: string;
-  name: string;
-  entry: number;
-  rank: number;
-  settlementHours: number;
-  adds: string;
-};
-
-const TIERS: TierFact[] = [
-  { id: "core", name: "Core", entry: 400, rank: 1, settlementHours: 72, adds: "the full term" },
-  {
-    id: "signal",
-    name: "Signal",
-    entry: 1000,
-    rank: 2,
-    settlementHours: 48,
-    adds: "performance analytics and reward projections",
-  },
-  {
-    id: "vector",
-    name: "Vector",
-    entry: 3000,
-    rank: 3,
-    settlementHours: 36,
-    adds: "portfolio intelligence",
-  },
-  {
-    id: "apex",
-    name: "Apex",
-    entry: 5000,
-    rank: 4,
-    settlementHours: 24,
-    adds: "priority queue placement and multi vault management",
-  },
-  {
-    id: "meridian",
-    name: "Meridian",
-    entry: 8000,
-    rank: 5,
-    settlementHours: 12,
-    adds: "dedicated coverage and early access to new vault terms",
-  },
-  {
-    id: "sovereign",
-    name: "Sovereign",
-    entry: 10000,
-    rank: 6,
-    settlementHours: 6,
-    adds: "same day settlement and private terms",
-  },
-];
+/**
+ * Imported, not mirrored.
+ *
+ * This block used to be a hand written copy of the ladder and the economics,
+ * and it drifted twice: once when the tiers changed and once when the whole
+ * term structure was replaced with daily accrual. A copy of a source of truth
+ * is not a source of truth, so it now reads the real module. `tiers.ts` is
+ * pure data and pure functions with no browser dependency, which is what makes
+ * that safe from a serverless handler.
+ */
+import {
+  DAILY_RATE,
+  TIERS,
+  WITHDRAW_INTERVAL_DAYS,
+  rewardOver,
+  type Tier,
+} from "../../src/domain/tiers";
 
 const ENTRY_TIER = TIERS[0];
 const TOP_TIER = TIERS[TIERS.length - 1];
 
-const TERM_PCT = `${Math.round(CYCLE_RETURN * 100)}%`;
 const DAY_PCT = `${(DAILY_RATE * 100).toFixed(0)}%`;
+/** What accrues between one withdrawal window and the next, as a share. */
+const WINDOW_PCT = `${Math.round(DAILY_RATE * WITHDRAW_INTERVAL_DAYS * 100)}%`;
 
 function usd(n: number): string {
   return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
-/** What one full term returns on a given principal. */
-function termReward(principal: number): number {
-  return principal * CYCLE_RETURN;
+/** What a rung adds over the one below it, in one phrase. */
+function adds(tier: Tier): string {
+  return tier.benefits[0].charAt(0).toLowerCase() + tier.benefits[0].slice(1);
 }
 
 /* ── context ────────────────────────────────────────────────────────────── */
@@ -168,28 +130,28 @@ export type Template = {
 export const TEMPLATES: Template[] = [
   /* 1. education: the core mechanic, restated from different angles. */
   {
-    key: "term-mechanics",
+    key: "accrual-mechanics",
     kind: "education",
     weight: 10,
     cooldownHours: 36,
     render: (ctx) => {
       const principal = ctx.pick([ENTRY_TIER.entry, 1000, 2500, 5000]);
       const angle = ctx.pick([
-        `A vault runs a fixed ${CYCLE_DAYS} day term from the moment capital is placed, accruing ${DAY_PCT} of principal per day. Across the full term that is ${TERM_PCT}. On ${usd(principal)} it comes to ${usd(termReward(principal))} at maturity.`,
-        `The whole mechanic is one line: ${DAY_PCT} a day for ${CYCLE_DAYS} days, which totals ${TERM_PCT}. ${usd(principal)} placed today holds ${usd(principal + termReward(principal))} at the end of its term, and the daily figure never changes mid term.`,
-        `Placing ${usd(principal)} starts a ${CYCLE_DAYS} day clock. Each day adds ${DAY_PCT} of the principal, so the position is worth ${usd(principal + termReward(principal))} when the term closes. Nothing about the rate depends on which tier you sit in.`,
+        `A vault accrues ${DAY_PCT} of principal per day from the moment capital is placed, and it does not stop. There is no term and no maturity. On ${usd(principal)} that is ${usd(rewardOver(principal, 1))} a day and ${usd(rewardOver(principal, WITHDRAW_INTERVAL_DAYS))} by the first withdrawal window.`,
+        `The whole mechanic is one line: ${DAY_PCT} of principal a day, for as long as it stays in place. ${usd(principal)} placed today holds ${usd(principal + rewardOver(principal, 30))} thirty days from now, and the daily figure never changes.`,
+        `Placing ${usd(principal)} starts accruing immediately. Each day adds ${DAY_PCT} of the original principal, so nothing compounds unless you fold it back in yourself. Nothing about the rate depends on which tier you sit in.`,
       ]);
       return {
-        id: ctx.id("term-mechanics"),
+        id: ctx.id("accrual-mechanics"),
         kind: "education",
         title: ctx.pick([
-          `How the ${CYCLE_DAYS} day term works`,
-          `The term, in one paragraph`,
-          `${DAY_PCT} a day, for ${CYCLE_DAYS} days`,
+          `How daily accrual works`,
+          `The mechanic, in one paragraph`,
+          `${DAY_PCT} a day, with no end date`,
         ]),
-        body: `${angle} Accrual stops at maturity, so a finished term holds at exactly ${TERM_PCT} until the principal is settled or redeployed.`,
+        body: `${angle} Nothing stops it: accrual on day one hundred is the same as on day one, and the only date that arrives is the withdrawal window every ${WITHDRAW_INTERVAL_DAYS} days.`,
         publishedAt: ctx.now,
-        tags: ["term", "accrual", "mechanics"],
+        tags: ["accrual", "mechanics"],
       };
     },
   },
@@ -210,7 +172,7 @@ export const TEMPLATES: Template[] = [
       ]),
       body: ctx.pick([
         `Rewards are not credited once a day. The figure on a position is derived from the time elapsed since the vault opened, so it advances continuously. Two things follow: a vault opened at midday is worth more by the evening, and claiming early costs you nothing, because a claim only moves what has already accrued.`,
-        `Every reward figure in the product is computed, not stored. Elapsed time against a ${CYCLE_DAYS} day term at ${DAY_PCT} a day is the entire calculation, which is why the number ticks while you watch it and why two devices reading the same ledger agree exactly.`,
+        `Every reward figure in the product is computed, not stored. Elapsed time at ${DAY_PCT} a day is the entire calculation, which is why the number ticks while you watch it and why two devices reading the same ledger agree exactly.`,
         `A position does not wait for a cut off to update. Accrual is a function of elapsed time, so the value you see mid afternoon is the value you have earned by mid afternoon, and a claim placed at any hour takes the amount accrued at that hour.`,
       ]),
       publishedAt: ctx.now,
@@ -235,7 +197,7 @@ export const TEMPLATES: Template[] = [
           `Inside the ${tier.name} rung`,
           `${tier.name} at ${usd(tier.entry)}`,
         ]),
-        body: `${tier.name} opens at ${usd(tier.entry)} of lifetime contribution and works to a ${tier.settlementHours} hour settlement target. It adds ${tier.adds}${below ? ` on top of everything in ${below.name}` : ""}. What it does not change is the rate: every rung earns the same ${TERM_PCT} over ${CYCLE_DAYS} days. Standing is measured on lifetime contribution rather than current balance, so settling a position does not cost you the rung.`,
+        body: `${tier.name} opens at ${usd(tier.entry)} of lifetime contribution and works to a ${tier.settlementHours} hour settlement target. It adds ${adds(tier)}${below ? ` on top of everything in ${below.name}` : ""}. What it does not change is the rate: every rung earns the same ${DAY_PCT} a day. Standing is measured on lifetime contribution rather than current balance, so settling a position does not cost you the rung.`,
         publishedAt: ctx.now,
         tags: ["tiers", "settlement"],
         tierId: tier.id,
@@ -259,7 +221,7 @@ export const TEMPLATES: Template[] = [
       ]),
       body: ctx.pick([
         `${ENTRY_TIER.name} at ${usd(ENTRY_TIER.entry)} and ${TOP_TIER.name} at ${usd(TOP_TIER.entry)} accrue at the same ${DAY_PCT} a day. Tiers move settlement speed, access and tooling, never the rate. A rate that scales with account size turns the headline number into a negotiation, and that number should mean the same thing to everyone reading it.`,
-        `Progression here unlocks what you can do, not what you earn. Every rung runs the same ${CYCLE_DAYS} day term at ${TERM_PCT}, from ${ENTRY_TIER.name} to ${TOP_TIER.name}. The difference is settlement, from ${ENTRY_TIER.settlementHours} hours down to ${TOP_TIER.settlementHours}, and the tooling that comes with each step.`,
+        `Progression here unlocks what you can do, not what you earn. Every rung earns the same ${DAY_PCT} a day, from ${ENTRY_TIER.name} to ${TOP_TIER.name}. The difference is settlement, from ${ENTRY_TIER.settlementHours} hours down to ${TOP_TIER.settlementHours}, and the tooling that comes with each step.`,
       ]),
       publishedAt: ctx.now,
       tags: ["tiers", "principle"],
@@ -280,7 +242,7 @@ export const TEMPLATES: Template[] = [
         "Reading the settlement clock",
         "When the settlement window starts",
       ]),
-      body: `A settlement target is the window the desk works to once a withdrawal is requested. It runs from ${TOP_TIER.settlementHours} hours at ${TOP_TIER.name} to ${ENTRY_TIER.settlementHours} hours at ${ENTRY_TIER.name}. Three things worth being precise about: it is a service target rather than a guarantee, it starts when the request is placed rather than when a term matures, and network conditions on the asset you withdraw sit outside it.`,
+      body: `A settlement target is the window the desk works to once a withdrawal is requested. It runs from ${TOP_TIER.settlementHours} hours at ${TOP_TIER.name} to ${ENTRY_TIER.settlementHours} hours at ${ENTRY_TIER.name}. Three things worth being precise about: it is a service target rather than a guarantee, it starts when the request is placed, and network conditions on the asset you withdraw sit outside it.`,
       publishedAt: ctx.now,
       tags: ["settlement", "withdrawals"],
     }),
@@ -297,12 +259,12 @@ export const TEMPLATES: Template[] = [
       kind: "insight",
       title: ctx.pick([
         "Cash in the account does not accrue",
-        "The quiet cost of a finished term",
+        "The quiet cost of reward left outside principal",
         "Where capital stops earning",
       ]),
       body: ctx.pick([
-        `Only capital inside a live vault earns, and only for the ${CYCLE_DAYS} days of its term. Available cash sits still, and so does a matured position that has not been settled. The end of a term is where principal is most often left waiting, which is the moment worth checking.`,
-        `Two balances in the product earn nothing: available cash, and a position whose term has closed. Both are simply parked. Nothing here is a recommendation about what to do with them, only a note on which figures are still moving and which are not.`,
+        `Only capital inside a live vault earns. Available cash sits still, and so does reward that has accrued but has not been folded back into principal. That reward is where value is most often left waiting, which is the thing worth checking.`,
+        `Two balances in the product earn nothing: available cash, and reward that has accrued but sits outside the principal. Both are simply parked. Nothing here is a recommendation about what to do with them, only a note on which figures are still moving and which are not.`,
       ]),
       publishedAt: ctx.now,
       tags: ["capital", "accrual"],
@@ -319,7 +281,7 @@ export const TEMPLATES: Template[] = [
       const surface = ctx.pick([
         {
           name: "Insights",
-          body: `Insights reads the events in your own ledger, applies a fixed list of thresholds, and surfaces what they catch: a term close to maturity, principal that has stopped accruing, rewards worth claiming, a rung within reach. It does not forecast prices and it does not sample. Same ledger, same list, every time. A quiet Insights page means nothing needs you.`,
+          body: `Insights reads the events in your own ledger, applies a fixed list of thresholds, and surfaces what they catch: principal that has stopped accruing, rewards worth claiming, a withdrawal window opening, a rung within reach. It does not forecast prices and it does not sample. Same ledger, same list, every time. A quiet Insights page means nothing needs you.`,
         },
         {
           name: "Analytics",
@@ -355,15 +317,15 @@ export const TEMPLATES: Template[] = [
       const item = ctx.pick([
         {
           title: "Claiming, and what it moves",
-          body: `A claim takes the rewards a position has accrued so far and moves them into available cash. It does not close the vault, it does not reset the term, and it does not change the daily figure. The position keeps running to its ${CYCLE_DAYS} day maturity either way.`,
+          body: `A claim takes the rewards a position has accrued so far and moves them into available cash. It does not close the vault and it does not change the daily figure. The position keeps running either way.`,
         },
         {
-          title: "Settling a matured position",
-          body: `Settling a matured vault returns its principal to available cash, where it can be withdrawn or placed into a new term. Until it is settled the principal stays in a finished vault, which no longer accrues.`,
+          title: "Closing a position",
+          body: `Closing a vault returns its principal to available cash, where it can be withdrawn at the next window or placed again. A position that is not closed keeps accruing, so closing is a decision rather than something that happens on its own.`,
         },
         {
           title: "Running more than one vault",
-          body: `Positions are independent. Each has its own ${CYCLE_DAYS} day term, its own maturity date and its own accrued balance, so opening a second vault does not disturb the first. Standing is computed across all of them, on lifetime contribution.`,
+          body: `Positions are independent. Each has its own principal, its own opening date and its own accrued balance, so opening a second vault does not disturb the first. Standing is computed across all of them, on lifetime contribution.`,
         },
         {
           title: "Reduced motion is a real setting",
@@ -392,10 +354,10 @@ export const TEMPLATES: Template[] = [
       kind: "principle",
       title: ctx.pick([
         "Capital placed in a vault is at risk",
-        "A stated term is not a promise",
+        "A published rate is not a promise",
         "The sentence we will keep repeating",
       ]),
-      body: `A fixed term rate describes a structure. It is not a forecast and not a guarantee about the future. Capital placed into a vault is at risk, including the risk of total loss, and nothing published on Signal is investment advice or a recommendation to place capital. Read the risk disclosure, and size a position on the assumption that it may not return.`,
+      body: `Capital is at risk. A published rate is a target, not a promise, and nothing on Signal is investment advice. Size a position on the assumption that it may not return.`,
       publishedAt: ctx.now,
       tags: ["risk", "principle"],
     }),
@@ -415,7 +377,7 @@ export const TEMPLATES: Template[] = [
         },
         {
           title: "Which figure do you check first?",
-          body: `Everyone has one number they look for before any other: accrued rewards, days to maturity, portfolio value, or distance to the next rung. Tell us which one is yours through Support. Where a surface buries the number people actually open it for, we will move it.`,
+          body: `Everyone has one number they look for before any other: accrued rewards, the daily figure, portfolio value, or distance to the next rung. Tell us which one is yours through Support. Where a surface buries the number people actually open it for, we will move it.`,
         },
         {
           title: "What would you want Signal to cover?",

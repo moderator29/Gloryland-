@@ -5,7 +5,7 @@ import { CalendarClock, Check, Info, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useLedger } from "@/hooks/useLedger";
 import { setCourse, stopCourse } from "@/domain/ledger";
-import { CYCLE_DAYS, CYCLE_RETURN, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, dailyReward } from "@/domain/tiers";
 import { ASSETS, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market";
 import { money, fullDate, relative } from "@/components/system/format";
@@ -87,8 +87,8 @@ function Running({ snap, rise }: { snap: ReturnType<typeof useLedger>; rise: Ris
           <p className="tag-micro">Placement rate</p>
           <p className="figure-lead mt-2 sm:mt-3">{money(course.per30)}</p>
           <p className="mt-2 text-sm text-[var(--text-low)]">
-            entering terms every {CYCLE_DAYS} days, at {money(course.amount)} every{" "}
-            {course.everyDays} days
+            entering vaults every thirty days, at {money(course.amount)} every {course.everyDays}{" "}
+            days
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -463,11 +463,13 @@ function Setup({ snap, rise }: { snap: ReturnType<typeof useLedger>; rise: Rise 
 
 function OneLeg({ amount, className = "" }: { amount: number; className?: string }) {
   const plan = planCourse(amount, 7, 1, 0, Date.now());
+  // Days are named as a stretch someone might choose, never as a length the
+  // product imposes. There is no term, so a leg has no total to quote.
   const rows: [string, string][] = [
     ["Principal", money(amount)],
     ["Accrues per day", money(plan.perLegDaily, 2)],
-    [`Reward across ${CYCLE_DAYS} days`, money(plan.perLegReward)],
-    ["Releases at maturity", money(plan.perLegReleases)],
+    ["After four days", money(dailyReward(amount) * 4, 2)],
+    ["After thirty days", money(dailyReward(amount) * 30)],
   ];
 
   return (
@@ -481,8 +483,10 @@ function OneLeg({ amount, className = "" }: { amount: number; className?: string
         ))}
       </dl>
       <p className="mt-3 text-xs leading-relaxed text-[var(--text-low)]">
-        Every leg is its own {CYCLE_DAYS} day term at the same {(CYCLE_RETURN * 100).toFixed(0)}%
-        every rung earns. A course changes the rhythm capital enters at, never the rate it earns.
+        Every leg is its own vault, accruing the same {(DAILY_RATE * 100).toFixed(0)}% of its
+        principal a day that every rung earns, for as long as you leave it in place. The two figures
+        above are that rate over stretches you might pick, not an end date. A course changes the
+        rhythm capital enters at, never the rate it earns.
       </p>
     </div>
   );

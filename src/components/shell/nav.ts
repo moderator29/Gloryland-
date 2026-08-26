@@ -68,10 +68,18 @@ export const NAV: NavGroup[] = [
   },
 ];
 
-/** The four surfaces that get a slot in the mobile capsule bar. */
+/**
+ * The surfaces that get a slot in the mobile capsule bar.
+ *
+ * Five, not four. Signal is the social layer and it is where the platform has
+ * something to say every day, so reaching it through the sheet made the one
+ * surface with new content the hardest one to open. Only the active tab shows
+ * its label, which is what keeps five inside a 360px screen.
+ */
 export const MOBILE_TABS: NavItem[] = [
   { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
   { to: "/app/desk", label: "Desk", icon: Terminal },
   { to: "/app/vaults", label: "Vaults", icon: Landmark },
+  { to: "/app/signal", label: "Signal", icon: Radio },
   { to: "/app/rewards", label: "Yield", icon: Gift },
 ];

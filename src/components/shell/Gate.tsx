@@ -21,7 +21,14 @@ import { Ambience } from "./Ambience";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { playTap, playTierChord } from "@/lib/sound";
 import { money } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN, tierForAmount } from "@/domain/tiers";
+import { DAILY_RATE, WITHDRAW_INTERVAL_DAYS, tierForAmount } from "@/domain/tiers";
+import {
+  checkPasscode,
+  checkPassword,
+  createCredentials,
+  saveCredentials,
+} from "@/domain/credentials";
+import { SecureStep, type SecureValue } from "./SecureStep";
 import {
   APPROACHES,
   DISPLAY_MAX,
@@ -38,18 +45,21 @@ import {
 /**
  * Entry to the authenticated area.
  *
- * Four steps rather than one field, because the answers actually change what
+ * Five steps rather than one field, because the answers actually change what
  * the product does: the handle is the member's identity everywhere, the
- * display name is what surfaces address them by, the approach decides what
- * Home and Insight lead with, and the starting scale prefills the deposit form.
+ * display name is what surfaces address them by, the password and passcode
+ * lock the portal on this device, the approach decides what Home and Insight
+ * lead with, and the starting scale prefills the deposit form.
  *
- * Nothing here creates an account. There is no password, no server and no
- * recovery, and the closing line says exactly that rather than implying a
- * security guarantee the build cannot make.
+ * On the secret: it is derived and stored locally, never transmitted, and it
+ * is a device lock rather than an account. `src/domain/credentials.ts` holds
+ * the reasoning and the limits, and the copy on the step says the same thing
+ * to the member in their own words. Nothing here should imply a server side
+ * account or a recovery path, because neither exists.
  */
 
-const STEPS = ["Identity", "Approach", "Scale", "Ready"] as const;
-type Step = 0 | 1 | 2 | 3;
+const STEPS = ["Identity", "Secure", "Approach", "Scale", "Ready"] as const;
+type Step = 0 | 1 | 2 | 3 | 4;
 
 const APPROACH_ICON = {
   steady: Timer,
@@ -67,6 +77,7 @@ export function Gate({ children }: { children: ReactNode }) {
   const [handle, setHandle] = useState("");
   const [check, setCheck] = useState<UsernameCheck | null>(null);
   const [checking, setChecking] = useState(false);
+  const [secure, setSecure] = useState<SecureValue>({ password: "", confirm: "", passcode: "" });
   const [approach, setApproach] = useState<ApproachId>("steady");
   const [band, setBand] = useState<number | null>(null);
   const [touched, setTouched] = useState(false);
@@ -74,6 +85,10 @@ export function Gate({ children }: { children: ReactNode }) {
   const nameCheck = validateDisplayName(displayName);
   const liveHandle = validateUsername(handle);
   const handleOk = check?.ok === true && check.value === normaliseUsername(handle);
+  const secureOk =
+    checkPassword(secure.password, handle).ok &&
+    secure.confirm === secure.password &&
+    checkPasscode(secure.passcode).ok;
 
   // Debounced availability. The check is async on purpose: it is the one seam
   // that becomes a server call, so the interface is built against a real
@@ -108,7 +123,14 @@ export function Gate({ children }: { children: ReactNode }) {
   }, [displayName]);
 
   const finish = useCallback(() => {
-    if (!nameCheck.ok || !handleOk) return;
+    if (!nameCheck.ok || !handleOk || !secureOk) return;
+
+    // Deriving is deliberately slow, so it runs alongside entry rather than
+    // holding the door shut for a second. Nothing downstream reads the
+    // credentials until the member comes back and is asked to unlock, and the
+    // plaintext is never in the object that gets stored.
+    void createCredentials(secure.password, secure.passcode).then(saveCredentials);
+
     playTierChord(tierForAmount(band ?? 0)?.id ?? "core");
     setMember({
       username: check!.value,
@@ -123,17 +145,18 @@ export function Gate({ children }: { children: ReactNode }) {
         /* the prefill is a convenience, never a requirement */
       }
     }
-  }, [nameCheck, handleOk, check, approach, band, setMember]);
+  }, [nameCheck, handleOk, secureOk, secure, check, approach, band, setMember]);
 
   if (member) return <>{children}</>;
 
-  const canAdvance = step === 0 ? nameCheck.ok && handleOk && !checking : step === 1 ? true : true;
+  const canAdvance =
+    step === 0 ? nameCheck.ok && handleOk && !checking : step === 1 ? secureOk : true;
 
   const next = () => {
-    if (step === 0) setTouched(true);
+    if (step === 0 || step === 1) setTouched(true);
     if (!canAdvance) return;
-    if (step < 3) playTap();
-    if (step === 3) finish();
+    if (step < 4) playTap();
+    if (step === 4) finish();
     else setStep((s) => (s + 1) as Step);
   };
 
@@ -185,9 +208,12 @@ export function Gate({ children }: { children: ReactNode }) {
                   touched={touched}
                 />
               )}
-              {step === 1 && <ApproachStep value={approach} onChange={setApproach} />}
-              {step === 2 && <ScaleStep value={band} onChange={setBand} />}
-              {step === 3 && (
+              {step === 1 && (
+                <SecureStep value={secure} onChange={setSecure} handle={handle} touched={touched} />
+              )}
+              {step === 2 && <ApproachStep value={approach} onChange={setApproach} />}
+              {step === 3 && <ScaleStep value={band} onChange={setBand} />}
+              {step === 4 && (
                 <ReadyStep
                   displayName={nameCheck.value}
                   handle={check?.value ?? ""}
@@ -214,15 +240,16 @@ export function Gate({ children }: { children: ReactNode }) {
               disabled={!canAdvance}
               className="btn btn-primary min-h-[48px] flex-1"
             >
-              {step === 3 ? "Enter Rigel" : "Continue"}
+              {step === 4 ? "Enter Rigel" : "Continue"}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </form>
 
         <p className="mt-5 text-center text-[11px] leading-relaxed text-[var(--text-low)]">
-          No account is created and no password is set. This build keeps your identity and your
-          ledger in this browser only, so clearing site data clears both.
+          Your password locks this browser, not an account on a server. Rigel keeps your identity
+          and your ledger in this browser only, so clearing site data clears both and there is no
+          way to recover them.
         </p>
       </motion.div>
     </div>
@@ -449,8 +476,8 @@ function ApproachStep({
       <h1 className="display text-xl sm:text-2xl">How do you want to run it?</h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
         This changes what your surfaces lead with. It never changes the rate. Every rung earns the
-        same {(CYCLE_RETURN * 100).toFixed(0)}% across {CYCLE_DAYS} days whatever you pick, and you
-        can change your answer at any time.
+        same {(DAILY_RATE * 100).toFixed(0)}% a day whatever you pick, and you can change your
+        answer at any time.
       </p>
 
       <div
@@ -637,8 +664,7 @@ function ReadyStep({
           aria-hidden="true"
         />
         <p className="text-xs leading-relaxed text-[var(--text-low)]">
-          Capital placed into a vault is at risk, including the risk of total loss. A published rate
-          is a stated structure, not a promise, and nothing in this product is investment advice.
+          Capital is at risk. Rates are targets, not guarantees.
         </p>
       </div>
     </div>

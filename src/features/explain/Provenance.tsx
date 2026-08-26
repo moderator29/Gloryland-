@@ -2,7 +2,13 @@ import { useId } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TriangleAlert } from "lucide-react";
 import { DAY_MS, type Position, type Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, DAILY_RATE, TIERS, termReward, tierForAmount } from "@/domain/tiers";
+import {
+  DAILY_RATE,
+  TIERS,
+  WITHDRAW_INTERVAL_DAYS,
+  dailyReward,
+  tierForAmount,
+} from "@/domain/tiers";
 import { fullDate, money, relative } from "@/components/system/format";
 import {
   dayCount,
@@ -31,7 +37,7 @@ import {
 
 const DAILY_PCT = `${(DAILY_RATE * 100).toFixed(0)}%`;
 const ENTRY = TIERS[0];
-const LADDER = TIERS.map((t) => `${t.name} ${money(t.entry)}`).join(", ");
+const LADDER = `${TIERS.length} rungs, ${TIERS[0].name} from ${money(TIERS[0].entry)} up to ${TIERS[TIERS.length - 1].name} from ${money(TIERS[TIERS.length - 1].entry)}`;
 const TARGETS = TIERS.map((t) => `${t.name} ${t.settlementHours}h`).join(", ");
 
 type Tone = "default" | "gain" | "accent" | "warn";
@@ -93,25 +99,23 @@ function positionSteps(id: FigureId, p: Position): Step[] | null {
           value: `${money(p.dailyReward, 2)} / day`,
         },
         {
-          label: "Days elapsed",
+          label: "Days accruing",
           detail: p.closed
-            ? "Measured from the open event to the settlement instant."
-            : "Measured from the open event to now, whole and fractional.",
+            ? "Measured from the start to the instant the position closed."
+            : "Measured from the start to now, whole and fractional.",
           value: `${dayCount(p.daysElapsed)} days`,
         },
         {
           label: "Bound",
           detail: p.closed
-            ? "The clock was cut at settlement, so accrual is frozen where it stood."
-            : p.matured
-              ? `Days elapsed is capped at ${CYCLE_DAYS}, so accrual stopped at maturity.`
-              : `Days elapsed is capped at ${CYCLE_DAYS}. This term has not reached that cap yet.`,
-          value: p.closed ? "settled" : p.matured ? "matured" : "running",
-          tone: p.closed || p.matured ? "warn" : "default",
+            ? "The clock was cut when the position closed, so accrual is frozen where it stood."
+            : "Nothing caps the days. There is no maturity, so this keeps climbing until the position is closed.",
+          value: p.closed ? "closed" : "accruing",
+          tone: p.closed ? "warn" : "default",
         },
         {
           label: "Accrued",
-          detail: "Principal at the daily rate, for the days elapsed.",
+          detail: "Principal at the daily rate, for the days it has run.",
           value: money(p.accrued, 2),
           tone: "gain",
         },
@@ -131,99 +135,67 @@ function positionSteps(id: FigureId, p: Position): Step[] | null {
         },
         {
           label: "Daily accrual",
-          detail: p.matured
-            ? "The term has matured, so this position has stopped adding to the daily figure."
-            : "What this position adds each day for the rest of the term.",
-          value: p.matured ? "stopped" : `${money(p.dailyReward, 2)} / day`,
-          tone: p.matured ? "warn" : "gain",
+          detail: p.closed
+            ? "The position is closed, so it has stopped adding to the daily figure."
+            : "What this position adds every day it stays in place.",
+          value: p.closed ? "stopped" : `${money(p.dailyReward, 2)} / day`,
+          tone: p.closed ? "warn" : "gain",
         },
       ];
 
-    case "termTotal":
+    case "compounding": {
+      const folded = p.principal + p.claimable;
       return [
         {
           label: "Principal",
-          detail: "The amount the open event placed into this vault.",
+          detail: "The only figure that accrues. Reward sitting beside it earns nothing.",
           value: money(p.principal),
         },
         {
-          label: "Daily rate",
-          detail: `${DAILY_PCT} of principal per day.`,
-          value: `${money(p.dailyReward, 2)} / day`,
-        },
-        {
-          label: "Term length",
-          detail: "Fixed the moment the vault was opened.",
-          value: `${CYCLE_DAYS} days`,
-        },
-        {
-          label: "Term reward",
-          detail: "The ceiling on this position. Accrual rises toward it and stops there.",
-          value: money(p.termReward, 2),
+          label: "Unclaimed reward",
+          detail: "Accrued and not yet claimed out of this position.",
+          value: money(p.claimable, 2),
           tone: "gain",
         },
         {
-          label: "Released at settlement",
-          detail: "Principal back to available cash, alongside the rewards accrued.",
-          value: money(p.principal + p.termReward),
+          label: "Folded in",
+          detail:
+            "Claim it, close the position and re-open at the two added together, as a single write.",
+          value: money(folded, 2),
+        },
+        {
+          label: "Daily accrual after",
+          detail: `Against ${money(p.dailyReward, 2)} a day before the fold.`,
+          value: `${money(dailyReward(folded), 2)} / day`,
           tone: "accent",
         },
       ];
+    }
 
-    case "progress":
+    case "daysAccruing":
       return [
         {
-          label: "Days elapsed",
+          label: "Start",
+          detail: "The open event, unless the placement named a later start date.",
+          value: fullDate(p.startsAt),
+        },
+        {
+          label: "End",
           detail: p.closed
-            ? "Measured to the settlement instant, where the clock was cut."
-            : "Measured from the open event to now.",
+            ? "The close event, where the clock was cut."
+            : "Now. Nothing else ends it, because there is no maturity date.",
+          value: p.closed ? "closed" : `started ${relative(p.startsAt)}`,
+        },
+        {
+          label: "Daily rate",
+          detail: `${DAILY_PCT} of principal per day, unchanged for the whole run.`,
+          value: `${money(p.dailyReward, 2)} / day`,
+        },
+        {
+          label: "Days accruing",
+          detail: "Not rounded and not capped. It moves continuously.",
           value: `${dayCount(p.daysElapsed)} days`,
-        },
-        {
-          label: "Term length",
-          detail: "The divisor. Every term is the same length.",
-          value: `${CYCLE_DAYS} days`,
-        },
-        {
-          label: "Remaining",
-          detail: p.matured ? "The term is complete." : "What is left of the term.",
-          value: `${dayCount(p.daysRemaining)} days`,
-        },
-        {
-          label: "Term progress",
-          detail: "Days elapsed divided by the term length, moving continuously.",
-          value: `${(p.progress * 100).toFixed(1)}%`,
           tone: "accent",
-        },
-      ];
-
-    case "maturity":
-      return [
-        {
-          label: "Opened",
-          detail: "The instant the open event was recorded.",
-          value: fullDate(p.openedAt),
-        },
-        {
-          label: "Term length",
-          detail: "Added to the open time. Nothing moves it afterwards.",
-          value: `${CYCLE_DAYS} days`,
-        },
-        {
-          label: "Matures",
-          detail: relative(p.maturesAt),
-          value: fullDate(p.maturesAt),
-          tone: "accent",
-        },
-        {
-          label: "State",
-          detail: p.closed
-            ? "Settled. The principal has already returned to available cash."
-            : p.matured
-              ? "Matured and still open. Settling returns the principal to available cash."
-              : "Accruing. The term has not completed yet.",
-          value: p.closed ? "settled" : p.matured ? "matured" : "accruing",
-          tone: p.matured || p.closed ? "warn" : "default",
         },
       ];
 
@@ -249,8 +221,8 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
         {
           label: "Principal returned",
           detail: settled.length
-            ? `${settled.length} settled vault${settled.length === 1 ? "" : "s"} returned principal to cash.`
-            : "No vault has been settled yet.",
+            ? `${settled.length} closed vault${settled.length === 1 ? "" : "s"} returned principal to cash.`
+            : "No vault has been closed yet.",
           value: money(returned, 2),
         },
         {
@@ -318,7 +290,7 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
       const rest = s.positions.slice(5);
       const steps: Step[] = shown.map((p) => ({
         label: `${p.tier.name} vault`,
-        detail: `${money(p.principal)} opened ${fullDate(p.openedAt)}${p.closed ? ", settled" : ""}.`,
+        detail: `${money(p.principal)} opened ${fullDate(p.openedAt)}${p.closed ? ", closed" : ""}.`,
         value: money(p.accrued, 2),
       }));
       if (rest.length) {
@@ -333,7 +305,7 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
       }
       steps.push({
         label: "Lifetime rewards",
-        detail: "Every position, open and settled. Claiming does not remove anything from it.",
+        detail: "Every position, open and closed. Claiming does not remove anything from it.",
         value: money(s.rewardsAccrued, 2),
         tone: "gain",
       });
@@ -351,7 +323,7 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
         {
           label: "Most ever deployed at once",
           detail:
-            "Your opens and settlements replayed in order, taking the highest total running at any one instant.",
+            "Your opens and closes replayed in order, taking the highest total running at any one instant.",
           value: money(s.peakDeployed),
         },
         {
@@ -380,7 +352,8 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
         },
         {
           label: "Standing",
-          detail: "Neither input falls, so standing never drops when you settle or withdraw.",
+          detail:
+            "Neither input falls, so standing never drops when you close a position or withdraw.",
           value: s.tier ? s.tier.name : "Unranked",
           tone: "accent",
         },
@@ -403,8 +376,13 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
         },
         {
           label: "Measured from",
-          detail: "The moment a withdrawal request is filed, not from when a term matures.",
+          detail: "The moment a withdrawal request is filed.",
           value: "request filed",
+        },
+        {
+          label: "How often",
+          detail: `A request may be filed once every ${WITHDRAW_INTERVAL_DAYS} days. That interval is the same on every rung: standing buys a faster target, never a more frequent one.`,
+          value: `every ${WITHDRAW_INTERVAL_DAYS} days`,
         },
         {
           label: "Settlement target",
@@ -437,15 +415,15 @@ function snapshotSteps(id: FigureId, s: Snapshot): Step[] | null {
           value: tier ? tier.name : "none",
         },
         {
-          label: "Term reward",
-          detail: `${DAILY_PCT} per day across ${CYCLE_DAYS} days, the same as every other vault.`,
-          value: tier ? money(termReward(placeable), 2) : "nothing to place",
+          label: "Daily accrual",
+          detail: `${DAILY_PCT} per day, the same as every other vault, for as long as it is left in place.`,
+          value: tier ? `${money(dailyReward(placeable), 2)} / day` : "nothing to place",
           tone: tier ? "gain" : "default",
         },
         {
           label: "Redeploy",
           detail: tier
-            ? `Opens a ${tier.name} vault today and starts a fresh term.`
+            ? `Opens a ${tier.name} vault today and starts accruing at that instant.`
             : "The prompt stays hidden until there is enough idle cash to open a vault.",
           value: tier ? money(placeable) : money(s.available, 2),
           tone: "accent",
@@ -482,11 +460,13 @@ export function Provenance({ id, position, snap, ctx, className = "" }: Provenan
     // rather than showing invented values beside real labels.
     def.how.map((detail) => ({ detail }));
 
-  // The instant this position was derived at. `daysElapsed` already stops at
-  // settlement and at maturity, so adding it back to the open time lands on the
-  // settlement instant for a closed position and on the snapshot's own clock for
-  // an open one. Without it the summary below would re-derive on a live clock
-  // and show a settled position still accruing, contradicting the steps above.
+  // The instant this position was derived at. `daysElapsed` stops when the
+  // position closes and at nothing else, so adding it back to the open time
+  // lands on the close instant for a closed position and on the snapshot's own
+  // clock for an open one. Without it the summary below would re-derive on a
+  // live clock and show a closed position still accruing, contradicting the
+  // steps above. The preview it feeds carries no separate start date, so the
+  // open time is the right base to add the days back to.
   const derivedAt = pos ? pos.openedAt + pos.daysElapsed * DAY_MS : 0;
 
   const exampleCtx: ExplainContext = pos

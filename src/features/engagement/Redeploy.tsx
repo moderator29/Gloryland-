@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import type { Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, DAILY_RATE, TIERS, tierForAmount } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, dailyReward, tierForAmount } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -11,9 +11,11 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  *
  * Every figure comes straight from the snapshot. `snap.available` is settled
  * cash the ledger says is sitting still, the tier is whichever rung that exact
- * amount clears, and the term reward is that amount at the same 1% daily rate
- * every vault pays. Nothing is added to make the prompt more attractive, and
- * the panel disappears entirely when there is nothing idle to place.
+ * amount clears, and the daily figure is that amount at the one published rate
+ * every vault pays. No total is quoted, because there is no date a position
+ * ends on: how long it runs is the member's decision. Nothing is added to make
+ * the prompt more attractive, and the panel disappears entirely when there is
+ * nothing idle to place.
  */
 
 export type RedeployProps = {
@@ -32,7 +34,7 @@ export function Redeploy({ snap, className = "" }: RedeployProps) {
   // Whole dollars, so the amount named here is the amount the form receives.
   const placeable = Math.floor(idle);
   const tier = tierForAmount(placeable) ?? TIERS[0];
-  const termReward = placeable * DAILY_RATE * CYCLE_DAYS;
+  const perDay = dailyReward(placeable);
 
   return (
     <motion.section
@@ -57,16 +59,16 @@ export function Redeploy({ snap, className = "" }: RedeployProps) {
           </h3>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
             Placed today at <span className="tabular text-[var(--text)]">{money(placeable)}</span>,
-            it opens a {tier.name} vault and returns{" "}
-            <span className="tabular text-[var(--gain)]">{money(termReward, 2)}</span> over the{" "}
-            {CYCLE_DAYS} day term. Cash that is not deployed accrues nothing.
+            it opens a {tier.name} vault accruing{" "}
+            <span className="tabular text-[var(--gain)]">{money(perDay, 2)}</span> a day, for as
+            long as you leave it there. Cash that is not deployed accrues nothing.
           </p>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="chip chip-accent">
               {tier.name} entry {money(tier.entry)}
             </span>
-            <span className="chip">1% daily for {CYCLE_DAYS} days</span>
+            <span className="chip">{(DAILY_RATE * 100).toFixed(0)}% of principal a day</span>
           </div>
 
           <Link

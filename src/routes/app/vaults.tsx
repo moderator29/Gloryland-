@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { Plus, Vault as VaultIcon, Repeat } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Value } from "@/components/system/Value";
-import { BandHead, Progress, RailStat, Status, Empty } from "@/components/system/ui";
+import { BandHead, RailStat, Status, Empty } from "@/components/system/ui";
 import { money, days, fullDate } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
+import { DAILY_RATE } from "@/domain/tiers";
 
 export default function Vaults() {
   const snap = useLedger();
@@ -29,7 +29,7 @@ export default function Vaults() {
 
         <div className="lede-rail">
           <RailStat label="Accruing" tone="accent">
-            {open.filter((p) => !p.matured).length}
+            {open.filter((p) => p.started).length}
           </RailStat>
           <RailStat label="Earned" tone="gain">
             <Value value={snap.rewardsAccrued} decimals={2} />
@@ -47,7 +47,7 @@ export default function Vaults() {
               icon={VaultIcon}
               art="horizon"
               title="No vaults yet"
-              body={`A vault holds capital for a 30-day term and returns ${(CYCLE_RETURN * 100).toFixed(0)}%, accruing every day.`}
+              body={`A vault accrues ${(DAILY_RATE * 100).toFixed(0)}% of its principal every day it is left in place. There is no end date.`}
               action={{ label: "Open your first vault", to: "/app/vaults/new" }}
             />
           </div>
@@ -81,15 +81,15 @@ export default function Vaults() {
                             Opened {fullDate(p.openedAt)}
                           </p>
                         </div>
-                        <Status kind={p.matured ? "matured" : "accruing"} />
+                        <Status kind={p.started ? "accruing" : "pending"} />
                       </div>
 
                       {/* The relay glyph used to carry its whole explanation in
                           a title attribute, so the assistive reading of this
                           card was more honest than the visible one. Anything
                           that qualifies a figure has to be on the screen: this
-                          card says a vault holds capital for a fixed term, and
-                          an armed relay means it will not stop there. */}
+                          card shows a principal and what it has earned, and an
+                          armed relay means both figures are about to move. */}
                       {snap.relaysArmed.some((r) => r.positionId === p.id) && (
                         <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--accent-hi)]">
                           <Repeat
@@ -98,8 +98,8 @@ export default function Vaults() {
                             aria-hidden="true"
                           />
                           <span>
-                            <span className="font-semibold">Relay armed.</span> At maturity this
-                            vault opens a new {CYCLE_DAYS} day term and arms itself again.
+                            <span className="font-semibold">Relay armed.</span> Once a whole day of
+                            reward has accrued, this vault acts on it without asking again.
                           </span>
                         </p>
                       )}
@@ -130,17 +130,15 @@ export default function Vaults() {
                           </div>
                         </div>
 
-                        <div className="mt-4">
-                          <div className="mb-1.5 flex justify-between gap-2 text-[11px] text-[var(--text-low)]">
-                            <span>{Math.round(p.progress * 100)}% of term</span>
-                            <span>{p.matured ? "Matured" : `${days(p.daysRemaining)}d left`}</span>
-                          </div>
-                          <Progress
-                            value={p.progress}
-                            tone={p.matured ? "gain" : "accent"}
-                            height={5}
-                            label={`${p.tier.name} term progress`}
-                          />
+                        {/* No bar. A bar needs an end to fill toward, and a
+                            position has none: it accrues until it is closed.
+                            The two figures that are true are how long it has
+                            run and what it adds a day. */}
+                        <div className="mt-4 flex justify-between gap-2 text-[11px] text-[var(--text-low)]">
+                          <span>{days(p.daysElapsed)} days accruing</span>
+                          <span className="tabular text-[var(--gain)]">
+                            {money(p.dailyReward, 2)}/day
+                          </span>
                         </div>
                       </div>
                     </Link>
@@ -161,7 +159,8 @@ export default function Vaults() {
                         {p.tier.name}
                       </p>
                       <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                        {money(p.principal)} · closed {fullDate(p.maturesAt)}
+                        {money(p.principal)} · closed{" "}
+                        {p.closedAt === null ? "" : fullDate(p.closedAt)}
                       </p>
                     </div>
                     <p className="metric shrink-0 text-sm text-[var(--gain)]">

@@ -11,7 +11,7 @@
 
 import { fullDate, money, pct, days as fmtDays } from "@/components/system/format";
 import { DAY_MS, type Position, type Relay, type Snapshot } from "./ledger";
-import { CYCLE_DAYS, DAILY_RATE, TIERS, termReward } from "./tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward } from "./tiers";
 
 export type Insight = {
   id: string;
@@ -28,16 +28,9 @@ export type Insight = {
    read, and tuned, in one place. */
 
 /**
- * A term is 30 days, so three days is the last tenth of it: long enough that
- * a member can still arrange where the principal goes next, short enough that
- * the notice does not sit in the feed for weeks.
- */
-const MATURING_WINDOW_DAYS = 3;
-
-/**
- * Claims are only worth surfacing once the amount clears both a flat floor
- * and a full day of accrual. The flat floor keeps trivial balances quiet on
- * small positions; the daily-accrual test keeps large portfolios, where a
+ * Unclaimed reward is only worth surfacing once the amount clears both a flat
+ * floor and a full day of accrual. The flat floor keeps trivial balances quiet
+ * on small positions; the daily-accrual test keeps large portfolios, where a
  * single day is worth far more than the floor, from nagging hourly.
  */
 const CLAIM_FLOOR = 25;
@@ -51,9 +44,9 @@ const CLAIM_FLOOR = 25;
 const TIER_PROXIMITY = 0.75;
 
 /**
- * Accrual is 1% a day, so a 10% net return means roughly a third of a term
- * has been completed and compounding is visibly working. Below that the
- * number is too young to be worth congratulating anyone over.
+ * A net return worth remarking on. Accrual is fast enough that a fraction of a
+ * day clears this, so it is set where the figure has stopped being an artefact
+ * of the first hours and starts describing the position.
  */
 const STRONG_RETURN = 0.1;
 
@@ -65,17 +58,17 @@ const IDLE_CASH_FLOOR = TIERS[0].entry;
 
 /** Highest priority first; every rule's weight is visible in one block. */
 const P = {
-  matured: 100,
   /**
-   * Just under `matured`, because a due relay is a matured term with the
-   * decision already made: the member said carry it, and it is sitting still
-   * anyway. It is one action away from being fixed, which is why it outranks
-   * everything below it.
+   * The top weight, because a due relay is reward sitting outside a principal
+   * with the decision already made: the member said fold it in, and it is
+   * sitting still anyway. It is one action away from being fixed.
    */
   relayDue: 96,
   onboarding: 92,
-  maturing: 88,
-  claim: 74,
+  /** The same idle reward with no instruction on it, which is a decision. */
+  reward: 88,
+  /** Cash that cannot leave yet is a constraint, not a chore. */
+  withdrawWindow: 74,
   tier: 62,
   idleCash: 54,
   performance: 30,
@@ -106,17 +99,6 @@ function list<T>(v: unknown): T[] {
   return Array.isArray(v) ? (v as T[]) : [];
 }
 
-/**
- * Days left on a term, measured against the caller's clock rather than the
- * snapshot's, so an insight list built for a specific instant stays honest
- * even if the snapshot was derived a moment earlier.
- */
-function daysLeft(p: Position, now: number): number {
-  const matures = num(p.maturesAt);
-  if (matures > 0) return Math.max(0, (matures - now) / DAY_MS);
-  return Math.max(0, num(p.daysRemaining));
-}
-
 export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight[] {
   const out: Insight[] = [];
   if (!snap) return out;
@@ -135,21 +117,22 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
         id: "onboarding",
         kind: "opportunity",
         title: "Open your first vault",
-        body: `Every vault runs a ${CYCLE_DAYS}-day term at ${(DAILY_RATE * 100).toFixed(
-          0,
-        )}% a day. A ${money(entry.entry)} placement in ${entry.name} returns ${money(
-          termReward(entry.entry),
-        )} across the term.`,
+        body: `A vault accrues ${(DAILY_RATE * 100).toFixed(0)}% of its principal every day it is left in place, with no end date. A ${money(
+          entry.entry,
+        )} placement in ${entry.name} accrues ${money(
+          dailyReward(entry.entry),
+          2,
+        )} a day. Withdrawals can be requested once every ${WITHDRAW_INTERVAL_DAYS} days.`,
         action: { label: "Browse vaults", to: "/app/vaults" },
         priority: P.onboarding,
       },
     ];
   }
 
-  /* A relay that has come due is a matured term the member already decided
-     about. It is reported before the general matured rule and its positions
-     are taken out of that rule, so the same idle capital is never counted in
-     two insights at once. */
+  /* A relay that has come due is idle reward the member already decided about.
+     It is reported before the general reward rule and its positions are taken
+     out of that rule, so the same reward is never counted in two insights at
+     once. */
   const relaysDue = list<Relay>(snap.relaysDue);
   const relayed = new Set(relaysDue.map((r) => r.positionId));
   if (relaysDue.length > 0) {
@@ -163,86 +146,61 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
         relaysDue.length === 1
           ? "A relay is waiting to run"
           : `${relaysDue.length} relays are waiting to run`,
-      // The carry and the daily cost, and nothing beyond them. Multiplying the
-      // idle rate out across a term would quote a figure for a month of
+      // The amount and the daily cost, and nothing beyond them. Multiplying the
+      // idle rate out across a month would quote a figure for a stretch of
       // inaction nobody has taken, which is a projection rather than a fact.
-      body: `${money(carry)} has been sitting matured for ${fmtDays(
+      body: `${money(carry)} has been waiting ${fmtDays(
         num(worst.overdueDays),
-      )} days and is not accruing, which is ${money(
-        forgone,
-        2,
-      )} a day. Firing it carries the whole amount straight into a new ${CYCLE_DAYS}-day term.`,
+      )} days to move${forgone > 0 ? `, which is ${money(forgone, 2)} a day of accrual it is not earning` : ""}. Running it writes the instruction you already gave.`,
       action: { label: "Fire it now", to: "/app" },
       priority: P.relayDue,
     });
   }
 
-  /* Principal that finished its term and is still sitting in the vault earns
-     nothing, accrual stops at maturity, so this outranks everything else. */
-  const matured = active.filter((p) => daysLeft(p, now) <= 0 && !relayed.has(p.id));
-  if (matured.length > 0) {
-    const principal = matured.reduce((s, p) => s + num(p.principal), 0);
-    const claimable = matured.reduce((s, p) => s + num(p.claimable), 0);
-    const one = matured[0];
-    out.push({
-      id: "matured-idle",
-      kind: "attention",
-      title:
-        matured.length === 1
-          ? `${one.tier?.name ?? "Vault"} position has matured`
-          : `${matured.length} positions have matured`,
-      // The advice is the relay, not a review. Settling and re-placing by hand
-      // is the chore that leaves capital idle in the first place, and a relay
-      // is the standing instruction that removes it.
-      body: `${money(principal)} finished its ${CYCLE_DAYS}-day term and stopped accruing${
-        claimable > 0 ? `, with ${money(claimable)} in rewards still unclaimed` : ""
-      }. Roll it into a new term, settle it to cash, or arm a relay so the next one carries itself.`,
-      action:
-        matured.length === 1
-          ? { label: "Arm a relay", to: `/app/vaults/${one.id}` }
-          : { label: "Review positions", to: "/app/vaults" },
-      priority: P.matured,
-    });
-  }
-
-  /* The soonest maturity inside the window. Only one is surfaced: a list of
-     five near-identical countdowns would crowd out every other insight. */
-  const maturingSoon = active
-    .filter((p) => {
-      const left = daysLeft(p, now);
-      return left > 0 && left <= MATURING_WINDOW_DAYS;
-    })
-    .sort((a, b) => daysLeft(a, now) - daysLeft(b, now));
-  const soonest = maturingSoon[0];
-  if (soonest) {
-    const remaining = daysLeft(soonest, now);
-    out.push({
-      id: `maturing-${soonest.id}`,
-      kind: "attention",
-      title: `${soonest.tier?.name ?? "Vault"} matures in ${fmtDays(remaining)} days`,
-      body: `${money(num(soonest.principal))} plus ${money(
-        num(soonest.termReward),
-      )} in rewards unlocks on ${fullDate(num(soonest.maturesAt))}${
-        maturingSoon.length > 1 ? `, with ${maturingSoon.length - 1} more close behind` : ""
-      }. Decide now whether it redeploys or settles.`,
-      action: { label: "Plan the term", to: "/app/vaults" },
-      priority: P.maturing,
-    });
-  }
-
-  /* Rewards earned but not yet moved into cash. */
-  const pending = num(snap.rewardsPending);
+  /* Reward accrues on principal alone, so reward sitting outside a principal
+     earns nothing at all. Folding it in is what puts it to work, and claiming
+     it at least makes it spendable. Either way, leaving it is the one thing
+     that costs something. */
+  const idleReward = active
+    .filter((p) => !relayed.has(p.id))
+    .reduce((s, p) => s + num(p.claimable), 0);
   const dailyRate = num(snap.dailyRate);
-  if (pending >= Math.max(CLAIM_FLOOR, dailyRate)) {
+  if (idleReward >= Math.max(CLAIM_FLOOR, dailyRate)) {
+    const compounded = dailyReward(idleReward);
     out.push({
-      id: "claimable",
-      kind: "opportunity",
-      title: `${money(pending)} ready to claim`,
-      body: `Your positions have generated ${money(pending)} in unclaimed rewards${
-        dailyRate > 0 ? `, growing by ${money(dailyRate)} a day` : ""
-      }. Claiming moves it into available cash.`,
-      action: { label: "Claim rewards", to: "/app/rewards" },
-      priority: P.claim,
+      id: "reward-idle",
+      kind: "attention",
+      title: `${money(idleReward)} in reward is not accruing`,
+      body: `Reward accrues on principal, so this is sitting still. Folded back into principal it would add ${money(
+        compounded,
+        2,
+      )} a day of its own. Claiming moves it to your balance instead, where it also sits still but can be withdrawn.`,
+      action: { label: "Claim or compound", to: "/app/rewards" },
+      priority: P.reward,
+    });
+  }
+
+  /* Cash that cannot leave yet. Only worth saying when there is cash and a
+     previous request to measure the window from: a closed window over an empty
+     balance is a rule, not a fact about this member.
+
+     The days are measured against the caller's clock rather than the
+     snapshot's, so a list built for a specific instant stays honest even if the
+     snapshot was derived a moment earlier. */
+  const availableCash = num(snap.available);
+  const unlocksAt = num(snap.withdrawUnlocksAt);
+  const lastWithdrawAt = snap.lastWithdrawAt ?? null;
+  if (availableCash > 0 && lastWithdrawAt !== null && now < unlocksAt) {
+    const until = (unlocksAt - now) / DAY_MS;
+    out.push({
+      id: "withdraw-window",
+      kind: "attention",
+      title: `Withdrawals reopen in ${fmtDays(until)} days`,
+      body: `${money(availableCash)} is in your balance. A withdrawal can be requested once every ${WITHDRAW_INTERVAL_DAYS} days, and the last request was ${fullDate(
+        lastWithdrawAt,
+      )}, so the next one can be made on ${fullDate(unlocksAt)}.`,
+      action: { label: "See the window", to: "/app/horizon" },
+      priority: P.withdrawWindow,
     });
   }
 
@@ -277,15 +235,15 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
   }
 
   /* Cash that clears the lowest entry is capital choosing not to accrue. */
-  const availableCash = num(snap.available);
   if (availableCash >= IDLE_CASH_FLOOR) {
     out.push({
       id: "idle-cash",
       kind: "opportunity",
       title: `${money(availableCash)} sitting idle`,
-      body: `Available cash does not accrue. Redeployed across a ${CYCLE_DAYS}-day term it would return ${money(
-        termReward(availableCash),
-      )}.`,
+      body: `Available cash does not accrue. Placed into a vault it would add ${money(
+        dailyReward(availableCash),
+        2,
+      )} a day, for as long as you left it there.`,
       action: { label: "Redeploy capital", to: "/app/vaults" },
       priority: P.idleCash,
     });

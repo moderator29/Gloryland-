@@ -1,26 +1,25 @@
 /**
  * Planning the next position.
  *
- * A term that is already running cannot be changed. Its principal was fixed
- * the moment it opened and every figure it produces follows from that one
- * number, so nothing here edits a live position. What this file plans is the
- * next one: where a candidate amount lands on the ladder, what it would add
- * to the accrual already running, and what a total looks like when it is
- * staged into several terms instead of placed as one.
+ * A position that is already running cannot be changed. Its principal was
+ * fixed the moment it opened and every figure it produces follows from that
+ * one number, so nothing here edits a live position. What this file plans is
+ * the next one: where a candidate amount lands on the ladder, and what it
+ * would add to the accrual already running.
  *
- * No figure is invented. Rates, entries and term length come from the tier
- * ladder, and the member's side of every calculation comes from the derived
- * snapshot. Pure functions only: no React, no storage, and the clock is a
- * parameter so the same inputs always produce the same output.
+ * No figure is invented, and no figure here assumes a length. There is no term
+ * and no maturity, so how long capital stays in place is the member's decision
+ * and never this module's: every total is either per day or takes a day count
+ * as an argument. Rates and entries come from the tier ladder, the member's
+ * side comes from the derived snapshot, and the functions are pure, so the
+ * same inputs always produce the same output.
  */
 
-import { DAY_MS, type Snapshot } from "@/domain/ledger";
+import { type Snapshot } from "@/domain/ledger";
 import {
-  CYCLE_DAYS,
   TIERS,
   dailyReward,
   nextTier as tierAbove,
-  termReward,
   tierForAmount,
   type Tier,
 } from "@/domain/tiers";
@@ -50,14 +49,8 @@ export type Plan = {
   gapToNext: number;
   /** Reward this amount accrues per day. */
   daily: number;
-  /** Reward this amount returns across one full term. */
-  term: number;
-  /** Principal plus term reward: what the position releases at maturity. */
-  atMaturity: number;
-  /** When the term would start, which is the clock passed in. */
+  /** When accrual would start, which is the clock passed in. */
   opensAt: number;
-  /** Thirty days on from that start. */
-  maturesAt: number;
   /** Daily accrual across the positions already open. */
   currentDaily: number;
   /** What that daily accrual becomes with this position running beside them. */
@@ -66,7 +59,7 @@ export type Plan = {
 
 /**
  * What a candidate amount does, read against what the member already has
- * running. `currentDaily` is the snapshot's own figure, so a matured position
+ * running. `currentDaily` is the snapshot's own figure, so a closed position
  * that has stopped accruing is already excluded from it.
  */
 export function planFor(snap: Snapshot, amount: number, from: number = Date.now()): Plan {
@@ -74,7 +67,6 @@ export function planFor(snap: Snapshot, amount: number, from: number = Date.now(
   const tier = tierForAmount(value);
   const above = tierAbove(tier?.id ?? null);
   const daily = dailyReward(value);
-  const term = termReward(value);
 
   return {
     amount: value,
@@ -83,10 +75,7 @@ export function planFor(snap: Snapshot, amount: number, from: number = Date.now(
     nextTier: above,
     gapToNext: above ? Math.max(0, above.entry - value) : 0,
     daily,
-    term,
-    atMaturity: value + term,
     opensAt: from,
-    maturesAt: from + CYCLE_DAYS * DAY_MS,
     currentDaily: snap.dailyRate,
     combinedDaily: snap.dailyRate + daily,
   };
@@ -108,10 +97,6 @@ export type LadderStep = {
   roundedUp: boolean;
   /** Reward that placement accrues per day. */
   daily: number;
-  /** Reward that placement returns across one full term. */
-  term: number;
-  /** Principal plus term reward for that placement. */
-  atMaturity: number;
   /** Daily accrual across every open position once that placement is running. */
   combinedDaily: number;
 };
@@ -133,7 +118,6 @@ export function ladderSteps(snap: Snapshot): LadderStep[] {
     // landing a fraction of a dollar short of it.
     const placement = Math.max(Math.ceil(gap), MINIMUM_PLACEMENT);
     const daily = dailyReward(placement);
-    const term = termReward(placement);
 
     return {
       tier,
@@ -141,97 +125,9 @@ export function ladderSteps(snap: Snapshot): LadderStep[] {
       placement,
       roundedUp: Math.ceil(gap) < MINIMUM_PLACEMENT,
       daily,
-      term,
-      atMaturity: placement + term,
       combinedDaily: snap.dailyRate + daily,
     };
   });
-}
-
-/* ── Staging a total across the term ────────────────────────────────────── */
-
-export type StaggerLeg = {
-  /** Position in the sequence, 1-indexed. */
-  step: number;
-  amount: number;
-  opensAt: number;
-  maturesAt: number;
-  daily: number;
-  /** Reward across the full term. */
-  reward: number;
-  /** Principal plus reward: what this leg releases at maturity. */
-  releases: number;
-  /** Whether this leg clears the first entry, so it could be opened at all. */
-  openable: boolean;
-  tier: Tier | null;
-};
-
-export type StaggerPlan = {
-  total: number;
-  /** How many terms the total was split across. */
-  parts: number;
-  legs: StaggerLeg[];
-  /** Days between one maturity and the next once the ladder is running. */
-  spacingDays: number;
-  /** Reward summed across every leg. */
-  reward: number;
-  /** Principal plus reward summed across every leg. */
-  releases: number;
-  /** True when every leg clears the first entry. */
-  viable: boolean;
-  /** The same total placed at once, which is what staging is measured against. */
-  single: StaggerLeg;
-};
-
-function buildLeg(step: number, amount: number, opensAt: number): StaggerLeg {
-  const reward = termReward(amount);
-  return {
-    step,
-    amount,
-    opensAt,
-    maturesAt: opensAt + CYCLE_DAYS * DAY_MS,
-    daily: dailyReward(amount),
-    reward,
-    releases: amount + reward,
-    openable: amount >= MINIMUM_PLACEMENT,
-    tier: tierForAmount(amount),
-  };
-}
-
-/**
- * A total split into `parts` positions opened at even intervals across one
- * term, so maturities arrive on a rolling schedule instead of on a single day.
- *
- * The rate is the same on every leg, so the reward is identical either way.
- * What staging changes is when capital comes back, and `single` is carried on
- * the plan so a view can show both readings side by side rather than implying
- * the ladder earns more.
- */
-export function stagger(total: number, parts: number, from: number = Date.now()): StaggerPlan {
-  const sum = safe(total);
-  // A term is thirty days, so it cannot be divided into more legs than days.
-  const n = Math.min(Math.max(Math.floor(safe(parts)) || 1, 1), CYCLE_DAYS);
-  const spacingDays = CYCLE_DAYS / n;
-
-  // Whole dollars per leg, with the remainder carried by the first placement
-  // so the legs add up to exactly the total the member named.
-  const base = Math.floor(sum / n);
-  const remainder = sum - base * n;
-
-  const legs = Array.from({ length: n }, (_, i) =>
-    buildLeg(i + 1, i === 0 ? base + remainder : base, from + Math.round(i * spacingDays * DAY_MS)),
-  );
-
-  return {
-    total: sum,
-    parts: n,
-    legs,
-    spacingDays,
-    reward: legs.reduce((s, l) => s + l.reward, 0),
-    releases: legs.reduce((s, l) => s + l.releases, 0),
-    viable: legs.every((l) => l.openable),
-    single: buildLeg(1, sum, from),
-  };
 }
 
 /**

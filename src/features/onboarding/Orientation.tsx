@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Compass, X } from "lucide-react";
-import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
+import { DAILY_RATE, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -82,9 +82,10 @@ export function Orientation({ className = "" }: OrientationProps) {
             Start with orientation
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-mid)]">
-            Four short panels on how a vault runs its {CYCLE_DAYS} day term at{" "}
-            {(CYCLE_RETURN * 100).toFixed(0)}%, what a tier actually changes, and where everything
-            lives. You can skip it at any point.
+            Four short panels on how a vault accrues {(DAILY_RATE * 100).toFixed(0)}% of its
+            principal a day with no end date, how the {WITHDRAW_INTERVAL_DAYS} day withdrawal window
+            works, what a tier actually changes, and where everything lives. You can skip it at any
+            point.
           </p>
           <Link to="/app/orientation" className="btn btn-secondary mt-3.5">
             Take orientation

@@ -3,7 +3,7 @@
  *
  * A fixed list of four questions is the same on a member's first day as it is
  * on their thirtieth, which means it is wrong on both. These are built from
- * the snapshot instead: a matured position, idle cash, a rung within reach and
+ * the snapshot instead: unfolded reward, idle cash, a rung within reach and
  * an empty ledger each produce the question that is actually worth asking, in
  * that order of urgency.
  *
@@ -14,7 +14,7 @@
  */
 
 import type { Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, TIERS } from "@/domain/tiers";
+import { TIERS } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { CLAIM_FLOOR, IDLE_FLOOR, memberState } from "./grounding";
 import type { Surface } from "./store";
@@ -36,12 +36,10 @@ function candidates(surface: Surface, snap: Snapshot): string[] {
   if (state.empty) {
     out.push(
       copilot
-        ? `What would ${money(ENTRY.entry)} return across a ${CYCLE_DAYS} day term?`
+        ? `What would ${money(ENTRY.entry)} earn in a month?`
         : "How do I open my first vault?",
       copilot ? "How is my tier standing worked out?" : `What is the minimum placement?`,
-      copilot
-        ? "What happens to a position when its term ends?"
-        : "Which assets can I fund a vault with?",
+      copilot ? `How often can I withdraw?` : "Which assets can I fund a vault with?",
       copilot
         ? "What are the risks of placing capital here?"
         : "Where is my ledger stored right now?",
@@ -52,20 +50,19 @@ function candidates(surface: Surface, snap: Snapshot): string[] {
   if (state.relaysDue.length > 0) {
     out.push(
       copilot
-        ? `A relay is due to run. What will it carry into the next term?`
+        ? `A relay is due to run. What will it fold back into principal?`
         : "When does a relay actually fire?",
     );
   }
 
-  if (state.matured.length > 0) {
-    const held = state.matured.reduce((s, p) => s + p.principal, 0);
+  if (state.unfolded > 0) {
     out.push(
       copilot
-        ? `${money(held)} has matured and stopped accruing. What are my options?`
-        : "How do I settle a matured vault?",
+        ? `${money(state.unfolded, 2)} of reward is sitting outside principal. What is that costing me?`
+        : "What is the difference between claiming and compounding?",
       copilot
-        ? "What is the difference between settling and rolling into a new term?"
-        : "How do I roll a matured term into a new one?",
+        ? `What accrues between one withdrawal window and the next?`
+        : `How often can I request a withdrawal?`,
     );
   }
 
@@ -78,8 +75,8 @@ function candidates(surface: Surface, snap: Snapshot): string[] {
   } else if (state.hasOpen) {
     out.push(
       copilot
-        ? "What would a relay change about how my terms run?"
-        : "How do I set a term to roll into the next one automatically?",
+        ? "What would a relay change about how my positions compound?"
+        : "How do I fold my reward back into principal automatically?",
     );
   }
 
@@ -115,12 +112,12 @@ function candidates(surface: Surface, snap: Snapshot): string[] {
     );
   }
 
-  if (state.nextMaturity) {
-    const p = state.nextMaturity;
+  if (state.largest) {
+    const p = state.largest;
     out.push(
       copilot
         ? `How much has my ${p.tier.name} position accrued so far?`
-        : "Where do I see when my positions mature?",
+        : `Where do I see what each position is adding per day?`,
     );
   }
 

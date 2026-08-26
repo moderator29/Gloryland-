@@ -1,5 +1,5 @@
 import { DAY_MS, type Position, type Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 
 /**
  * What happened while the member was gone.
@@ -29,7 +29,7 @@ const SEEN_KEY = "rgl_last_seen_v1";
 /** Below this, a return is the same visit and there is nothing to catch up on. */
 const MIN_GAP_MS = 6 * 3_600_000;
 
-export type AwayItemKind = "relayDue" | "matured" | "claimable" | "idle";
+export type AwayItemKind = "relayDue" | "window" | "claimable" | "idle";
 
 export type AwayItem = {
   kind: AwayItemKind;
@@ -89,10 +89,6 @@ export function markSeen(at: number = Date.now()) {
 
 /* ── the derivation ─────────────────────────────────────────────────────── */
 
-function maturedBetween(positions: Position[], since: number, now: number): Position[] {
-  return positions.filter((p) => !p.closed && p.maturesAt > since && p.maturesAt <= now);
-}
-
 /**
  * Build the digest. Pure: a function of the snapshot and two instants, so it
  * never reads a clock in the middle of a render and can be tested exactly.
@@ -105,16 +101,15 @@ export function deriveAway(
   const gapMs = lastSeen === null ? 0 : Math.max(0, now - lastSeen);
   const items: AwayItem[] = [];
 
-  // Accrual across the absence, counted only for the stretch a term was
+  // Accrual across the absence, counted only for the stretch a position was
   // actually running. A position opened after the member left accrues from its
-  // own start, and one that matured mid absence stops at maturity.
+  // own start. Nothing matures any more, so the only upper bound is now.
   let accruedWhileAway = 0;
   if (lastSeen !== null) {
     for (const p of snap.positions) {
       if (p.closed) continue;
-      const from = Math.max(lastSeen, p.openedAt);
-      const to = Math.min(now, p.maturesAt);
-      if (to > from) accruedWhileAway += p.principal * DAILY_RATE * ((to - from) / DAY_MS);
+      const from = Math.max(lastSeen, p.startsAt);
+      if (now > from) accruedWhileAway += p.principal * DAILY_RATE * ((now - from) / DAY_MS);
     }
   }
 
@@ -134,21 +129,20 @@ export function deriveAway(
     });
   }
 
-  if (lastSeen !== null) {
-    for (const p of maturedBetween(snap.positions, lastSeen, now)) {
-      const overdueDays = Math.max(0, (now - p.maturesAt) / DAY_MS);
-      items.push({
-        kind: "matured",
-        weight: 90,
-        title: `Your ${p.tier.name} term completed`,
-        body: `Its ${CYCLE_DAYS} days are up. A matured term holds its value and accrues nothing further until it is settled or rolled.`,
-        to: `/app/vaults/${p.id}`,
-        action: "Open the vault",
-        amount: p.principal + p.accrued,
-        waitingDays: overdueDays,
-        costPerDay: p.principal * DAILY_RATE,
-      });
-    }
+  // The withdrawal window opening is the one date the member was waiting on,
+  // and it can pass while they are away. Nothing matures any more, so this
+  // replaced the matured item entirely.
+  if (lastSeen !== null && snap.withdrawAllowed && snap.lastWithdrawAt !== null) {
+    items.push({
+      kind: "window",
+      weight: 90,
+      title: "Your withdrawal window is open",
+      body: `A request can be made now, and the next one opens ${WITHDRAW_INTERVAL_DAYS} days after it. Nothing closes while you decide.`,
+      to: "/app/desk",
+      action: "Open the desk",
+      amount: snap.available + snap.rewardsPending,
+      waitingDays: Math.max(0, (now - snap.withdrawUnlocksAt) / DAY_MS),
+    });
   }
 
   if (snap.rewardsPending >= 1) {
@@ -156,7 +150,7 @@ export function deriveAway(
       kind: "claimable",
       weight: 60,
       title: "Rewards are ready to claim",
-      body: "Claiming moves what has already accrued into available cash and leaves the term running.",
+      body: "Claiming moves what has already accrued into available cash and leaves the position running.",
       to: "/app/rewards",
       action: "Claim",
       amount: snap.rewardsPending,
@@ -169,7 +163,7 @@ export function deriveAway(
       kind: "idle",
       weight: 40,
       title: "Cash is sitting still",
-      body: "Only capital inside a term accrues. An available balance earns nothing at all.",
+      body: "Only capital inside a vault accrues. An available balance earns nothing at all.",
       to: "/app/vaults/new?source=balance",
       action: "Place it",
       amount: snap.available,

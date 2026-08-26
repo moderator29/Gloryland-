@@ -7,7 +7,6 @@ import { MobileTabs, MobileMenuButton } from "./MobileNav";
 import { Ambience } from "./Ambience";
 import { AccountMenu } from "./AccountMenu";
 import { MarketTicker } from "@/features/market";
-import { LocalLedgerNotice } from "./LocalLedgerNotice";
 import { OfflineNotice } from "./OfflineNotice";
 import { Aperture } from "@/features/onboarding";
 import { InstallPrompt, ScrollRail, Wayfinder } from "@/features/utility";
@@ -88,7 +87,6 @@ export function AppShell() {
 
         <ScrollRail />
         <OfflineNotice />
-        <LocalLedgerNotice />
         <MarketTicker />
 
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--line)] bg-[rgba(5,7,15,0.82)] px-4 backdrop-blur-xl sm:px-6">

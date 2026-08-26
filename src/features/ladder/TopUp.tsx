@@ -2,28 +2,37 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Lock, Plus } from "lucide-react";
 import type { Position, Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, TIERS } from "@/domain/tiers";
-import { Countdown } from "@/features/engagement";
-import { money, fullDate } from "@/components/system/format";
+import { TIERS, dailyReward } from "@/domain/tiers";
+import { money, fullDate, days } from "@/components/system/format";
 import { MINIMUM_PLACEMENT, planFor } from "./plan";
 
 /**
  * TopUp: what actually happens when a member wants to add capital.
  *
- * A running term has a fixed principal. It was set when the position opened
- * and every figure that position produces follows from it, so there is no
- * such thing as topping one up. Capital added today opens a second position
- * with its own thirty day term and its own maturity date, and this component
- * says that first and then shows both positions side by side.
+ * A running position has a fixed principal. It was set by the event that
+ * opened the position and every figure that position produces follows from it,
+ * so there is no such thing as topping one up. Capital added today opens a
+ * second position that accrues beside the first, and this component says that
+ * first and then shows both side by side.
  *
  * Nothing here writes to the ledger. The deposit flow owns that, and this
  * hands the amount to it on the query string so the figures a member read
  * here are the figures the form opens with.
  */
 
+/**
+ * Entry amounts offered as one tap.
+ *
+ * Every third rung, plus the two ends, because twenty buttons would be a price
+ * list rather than a shortcut. `Tiers` carries the whole ladder.
+ */
+const ENTRY_SHORTCUTS = TIERS.filter(
+  (t, i) => i === 0 || i === TIERS.length - 1 || i % 4 === 0,
+).slice(0, 6);
+
 export type TopUpProps = {
   snap: Snapshot;
-  /** The running position in view. Defaults to whichever matures first. */
+  /** The running position in view. Defaults to the one that has run longest. */
   position?: Position;
   /** Amount the field opens with. */
   initialAmount?: number;
@@ -35,11 +44,11 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
   const value = Number(amount) || 0;
   const plan = useMemo(() => planFor(snap, value), [snap, value]);
 
-  // Without an explicit position, the one that matures first is the one a
-  // member is most likely asking about.
+  // Without an explicit position, the oldest running one is the one a member
+  // is most likely asking about: it is the one they have been watching longest.
   const existing = useMemo(() => {
     if (position) return position;
-    return [...snap.activePositions].sort((a, b) => a.maturesAt - b.maturesAt)[0] ?? null;
+    return [...snap.activePositions].sort((a, b) => a.startsAt - b.startsAt)[0] ?? null;
   }, [position, snap.activePositions]);
 
   return (
@@ -57,16 +66,17 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
             {existing ? (
               <>
                 Your {existing.tier.name} vault opened {fullDate(existing.openedAt)} with{" "}
-                <span className="tabular text-[var(--text)]">{money(existing.principal)}</span>{" "}
-                committed for its {CYCLE_DAYS} day term. That principal was fixed the moment it
-                opened and cannot be added to. Capital placed today opens a second position with its
-                own term and its own maturity, and the first one carries on exactly as it stands.
+                <span className="tabular text-[var(--text)]">{money(existing.principal)}</span> and
+                has been accruing {days(existing.daysElapsed)} days since. That principal was fixed
+                the moment it opened and cannot be added to. Capital placed today opens a second
+                position that accrues alongside it, and the first one carries on exactly as it
+                stands.
               </>
             ) : (
               <>
-                You have no term running, so this would be your first position. Every position holds
-                a fixed principal for {CYCLE_DAYS} days, which is why capital added later always
-                opens a new one rather than changing an old one.
+                You have nothing running, so this would be your first position. A position holds a
+                fixed principal from the day it opens, which is why capital added later always opens
+                a new one rather than changing an old one.
               </>
             )}
           </p>
@@ -92,8 +102,11 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
           />
         </div>
 
+        {/* Twenty rungs is more than a row of buttons can carry, so the shortcuts
+            step through the ladder rather than listing every rung. The full
+            ladder is one tap away on Tiers. */}
         <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {TIERS.map((t) => (
+          {ENTRY_SHORTCUTS.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -126,18 +139,26 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
               <p className="tag-micro">This position alone</p>
               <span className="chip chip-accent">{plan.tier.name}</span>
             </div>
+            {/* Per day is the only figure the model can state on its own. The
+                two beside it name the stretch they cover, because how long the
+                position runs is the member's decision and not an assumption
+                this panel may make for them. */}
             <dl className="mt-3 grid grid-cols-3 gap-3">
               <div className="min-w-0">
                 <dt className="text-[11px] text-[var(--text-low)]">Per day</dt>
                 <dd className="metric mt-1 text-base text-[var(--gain)]">{money(plan.daily, 2)}</dd>
               </div>
               <div className="min-w-0">
-                <dt className="text-[11px] text-[var(--text-low)]">Term reward</dt>
-                <dd className="metric mt-1 text-base text-[var(--gain)]">{money(plan.term)}</dd>
+                <dt className="text-[11px] text-[var(--text-low)]">Over four days</dt>
+                <dd className="metric mt-1 text-base text-[var(--gain)]">
+                  {money(plan.daily * 4, 2)}
+                </dd>
               </div>
               <div className="min-w-0">
-                <dt className="text-[11px] text-[var(--text-low)]">At maturity</dt>
-                <dd className="metric mt-1 text-base">{money(plan.atMaturity)}</dd>
+                <dt className="text-[11px] text-[var(--text-low)]">Over thirty days</dt>
+                <dd className="metric mt-1 text-base text-[var(--gain)]">
+                  {money(plan.daily * 30)}
+                </dd>
               </div>
             </dl>
             {plan.nextTier && (
@@ -163,32 +184,13 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
                     {existing.tier.name} vault, untouched
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                    {money(existing.principal)} ·{" "}
-                    {existing.matured ? (
-                      <>matured {fullDate(existing.maturesAt)}</>
-                    ) : (
-                      <>
-                        matures {fullDate(existing.maturesAt)} ·{" "}
-                        <Countdown to={existing.maturesAt} compact />
-                      </>
-                    )}
+                    {money(existing.principal)} · opened {fullDate(existing.openedAt)} ·{" "}
+                    {days(existing.daysElapsed)} days accruing
                   </p>
                 </div>
-                {/* Accrual stops at maturity, so a daily figure would be wrong there. */}
                 <p className="metric shrink-0 text-right text-sm text-[var(--gain)]">
-                  {existing.matured ? (
-                    <>
-                      {money(existing.termReward)}
-                      <span className="block text-[11px] font-normal text-[var(--text-low)]">
-                        term complete
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      {money(existing.dailyReward, 2)}
-                      <span className="text-[11px] font-normal text-[var(--text-low)]">/day</span>
-                    </>
-                  )}
+                  {money(existing.dailyReward, 2)}
+                  <span className="text-[11px] font-normal text-[var(--text-low)]">/day</span>
                 </p>
               </div>
             )}
@@ -197,10 +199,10 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-hi)]">
                   <Plus className="h-3.5 w-3.5 text-[var(--accent-hi)]" aria-hidden="true" />
-                  {plan.tier.name} vault, new term
+                  {plan.tier.name} vault, new position
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                  {money(plan.amount)} · opens on confirmation · matures {fullDate(plan.maturesAt)}
+                  {money(plan.amount)} · opens on confirmation · accrues from that instant
                 </p>
               </div>
               <p className="metric shrink-0 text-sm text-[var(--gain)]">
@@ -239,7 +241,7 @@ export function TopUp({ snap, position, initialAmount, className = "" }: TopUpPr
           </button>
         )}
         <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
-          This plans only. The term starts when the deposit is confirmed in the vault flow, and the
+          This plans only. Accrual starts when the deposit is confirmed in the vault flow, and the
           amount above is carried through to it.
         </p>
       </div>

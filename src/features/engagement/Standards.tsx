@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, useAnimationFrame, useMotionValue } from "framer-motion";
 import { Pause, Play, ShieldCheck } from "lucide-react";
-import { CYCLE_DAYS, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
@@ -36,7 +36,8 @@ const FASTEST_SETTLEMENT = Math.min(...TIERS.map((t) => t.settlementHours));
 const STANDARDS: string[] = [
   "Append only ledger",
   "Every figure derived from your own record",
-  `One rate across every tier, 1% daily for ${CYCLE_DAYS} days`,
+  `One rate across every tier, ${(DAILY_RATE * 100).toFixed(0)}% of principal a day`,
+  `Withdrawals open every ${WITHDRAW_INTERVAL_DAYS} days, on every rung`,
   `Settlement targets published, from ${FASTEST_SETTLEMENT} hours`,
   "Risk stated plainly, not buried",
   "Every figure of yours derived, anything illustrative labelled",

@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Wordmark } from "@/components/brand/Mark";
-import { CYCLE_DAYS } from "@/domain/tiers";
-import { DAY_RATE, TERM_RATE } from "./figures";
+import { DAY_RATE, WINDOW_DAYS } from "./figures";
 import { DrawRule } from "./DrawRule";
 
 /**
@@ -59,9 +58,9 @@ export function LandingFooter() {
           <div>
             <Wordmark size={28} tagline />
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-[var(--text-low)]">
-              Fixed term vaults with a single published rate: {DAY_RATE} of principal a day for{" "}
-              {CYCLE_DAYS} days, {TERM_RATE} at maturity, identical at every rung. Named for the
-              blue supergiant in Orion.
+              Open ended vaults with a single published rate: {DAY_RATE} of principal a day, for as
+              long as it stays in place, identical at every rung. Named for the blue supergiant in
+              Orion.
             </p>
           </div>
 
@@ -91,22 +90,20 @@ export function LandingFooter() {
 
         <div className="pt-8">
           <p className="max-w-3xl text-xs leading-relaxed text-[var(--text-low)]">
-            Capital placed in a vault is at risk, including the risk of total loss. Published term
-            rates are targets, not guarantees, and past performance does not predict future results.
-            Rigel is not a bank, and nothing placed here carries deposit protection. Nothing on this
-            site is investment, tax or legal advice. Read the{" "}
+            Capital is at risk. Rates are targets, not guarantees. Rigel is not a bank and nothing
+            here is investment advice. See the{" "}
             <Link
               to="/legal/risk"
               className="text-[var(--accent-hi)] underline underline-offset-2 hover:text-[var(--accent-soft)]"
             >
-              risk disclosure
-            </Link>{" "}
-            before committing funds.
+              risk note
+            </Link>
+            .
           </p>
           <div className="mt-6 flex flex-col gap-3 text-xs text-[var(--text-low)] sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} Rigel. All rights reserved.</p>
             <p className="machine break-normal text-[11px]">
-              TERM {CYCLE_DAYS}D &middot; ACCRUAL {DAY_RATE}/DAY &middot; MATURITY {TERM_RATE}
+              ACCRUAL {DAY_RATE}/DAY &middot; NO TERM &middot; WINDOW {WINDOW_DAYS}D
             </p>
           </div>
         </div>

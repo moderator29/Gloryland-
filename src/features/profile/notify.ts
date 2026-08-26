@@ -13,7 +13,7 @@
 export const NOTIFY_KEY = "rgl_notify_prefs";
 
 export type NotifyCategoryId =
-  | "maturity"
+  | "withdrawWindow"
   | "claims"
   | "tierProgress"
   | "settlement"
@@ -38,9 +38,9 @@ export const NOTIFY_CATEGORIES: {
   description: string;
 }[] = [
   {
-    id: "maturity",
-    title: "Vault maturity",
-    description: "When a 30 day term completes and principal is ready to settle",
+    id: "withdrawWindow",
+    title: "Withdrawal window",
+    description: "When the window reopens and a withdrawal can be requested again",
   },
   {
     id: "claims",
@@ -65,12 +65,12 @@ export const NOTIFY_CATEGORIES: {
   {
     id: "productUpdates",
     title: "Product updates",
-    description: "New vault terms, desk features and programme changes",
+    description: "New instruments, desk features and programme changes",
   },
 ];
 
 export const NOTIFY_DEFAULTS: NotifyPrefs = {
-  maturity: true,
+  withdrawWindow: true,
   claims: true,
   tierProgress: true,
   settlement: true,

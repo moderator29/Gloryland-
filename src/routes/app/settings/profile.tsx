@@ -19,7 +19,6 @@ import {
 import { useLedger } from "@/hooks/useLedger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { APPROACHES, DISPLAY_MAX, validateDisplayName } from "@/domain/identity";
-import { CYCLE_DAYS } from "@/domain/tiers";
 import { Progress } from "@/components/system/ui";
 import { Value } from "@/components/system/Value";
 import { fullDate, money } from "@/components/system/format";
@@ -78,7 +77,9 @@ export default function SettingsProfile() {
   );
 
   const opened = snap.positions.length;
-  const completed = snap.positions.filter((p) => p.matured).length;
+  // Closed rather than matured. Nothing matures, so the only way a position
+  // stops is that the member closed it, and that is what this counts.
+  const closed = snap.positions.filter((p) => p.closed).length;
 
   const stats: Stat[] = [
     {
@@ -88,11 +89,11 @@ export default function SettingsProfile() {
       sub: opened === 0 ? "Nothing placed yet" : `${snap.activePositions.length} still open`,
     },
     {
-      key: "completed",
-      label: "Terms completed",
-      value: completed.toString(),
-      sub: `Reached the ${CYCLE_DAYS} day mark`,
-      tone: completed > 0 ? "gain" : "default",
+      key: "closed",
+      label: "Positions closed",
+      value: closed.toString(),
+      sub: closed === 0 ? "None closed yet" : "Principal returned to your balance",
+      tone: closed > 0 ? "gain" : "default",
     },
     {
       key: "accrued",

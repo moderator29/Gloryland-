@@ -2,34 +2,44 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowUpRight, CalendarClock } from "lucide-react";
-import { DAY_MS, type Position, type Snapshot } from "@/domain/ledger";
+import { DAY_MS, type Snapshot } from "@/domain/ledger";
+import { WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { Value } from "@/components/system/Value";
 import { Empty } from "@/components/system/ui";
 import { money, relative, shortDate } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
- * Trajectory: what is already scheduled to come back.
+ * Trajectory: what the open principal accrues from here.
  *
- * Nothing here is a projection of new business. Every node is an open position
- * the member has actually placed, plotted at the maturity date the ledger
- * recorded for it and sized by its principal. The curve is the cumulative sum
- * of those releases across the next ninety days, so it can only move when the
- * member opens or settles a vault.
+ * This used to plot maturity dates. Positions have no maturity now, so it
+ * plots the thing that does still arrive on a schedule: the withdrawal
+ * windows. Each node is one window, at the cumulative reward the member's own
+ * open principal will have accrued by the time it opens.
+ *
+ * It assumes exactly two things, both of them the member's own: the principal
+ * currently open, and the published rate. No new business, no compounding, no
+ * reinvestment. It moves only when the member opens or closes a vault, and the
+ * caption underneath says so.
  */
 
 const WINDOW_DAYS = 90;
 const WINDOW_MS = WINDOW_DAYS * DAY_MS;
 
+/** Windows plotted, so the curve does not become twenty two dots on a phone. */
+const NODES = 6;
+
 type Leg = {
-  position: Position;
-  /** Principal plus the full term reward, the figure the term releases. */
-  releases: number;
-  /** Running total of everything released up to and including this leg. */
+  id: string;
+  /** Which withdrawal window this is, counting from the next one. */
+  index: number;
+  /** When it opens. */
+  at: number;
+  /** Reward accrued on the currently open principal by then. */
   cumulative: number;
   /** 0..1 across the window. */
   t: number;
-  /** The term is already complete and only settlement is outstanding. */
+  /** The window is open right now. */
   ready: boolean;
 };
 
@@ -38,29 +48,35 @@ function clamp(n: number, lo: number, hi: number) {
 }
 
 function build(snap: Snapshot, now: number) {
-  const horizon = now + WINDOW_MS;
-  const open = snap.activePositions
-    .filter((p) => p.maturesAt <= horizon)
-    .sort((a, b) => a.maturesAt - b.maturesAt);
+  if (snap.dailyRate <= 0) {
+    return { legs: [] as Leg[], total: 0, beyond: 0, spanDays: 0 };
+  }
 
-  let running = 0;
-  const legs: Leg[] = open.map((position) => {
-    const releases = position.principal + position.termReward;
-    running += releases;
-    return {
-      position,
-      releases,
-      cumulative: running,
-      t: clamp((position.maturesAt - now) / WINDOW_MS, 0, 1),
-      ready: position.maturesAt <= now,
-    };
-  });
+  // The first node is the next window the member can actually use, and every
+  // one after it is another interval on from that.
+  const first = Math.max(now, snap.withdrawUnlocksAt);
+  const step = WITHDRAW_INTERVAL_DAYS * DAY_MS;
+  const legs: Leg[] = [];
 
+  for (let i = 0; i < NODES; i++) {
+    const at = first + i * step;
+    if (at > now + WINDOW_MS) break;
+    legs.push({
+      id: `w${i}`,
+      index: i + 1,
+      at,
+      cumulative: snap.rewardsPending + snap.dailyRate * ((at - now) / DAY_MS),
+      t: clamp((at - now) / WINDOW_MS, 0, 1),
+      ready: at <= now,
+    });
+  }
+
+  const last = legs[legs.length - 1];
   return {
     legs,
-    total: running,
-    beyond: snap.activePositions.length - open.length,
-    maxPrincipal: open.reduce((m, p) => Math.max(m, p.principal), 0),
+    total: last?.cumulative ?? 0,
+    beyond: 0,
+    spanDays: last ? Math.round((last.at - now) / DAY_MS) : 0,
   };
 }
 
@@ -78,7 +94,7 @@ export type TrajectoryProps = {
 export function Trajectory({ snap, className = "" }: TrajectoryProps) {
   const reduce = useReducedMotion();
   const model = useMemo(() => build(snap, Date.now()), [snap]);
-  const { legs, total, beyond, maxPrincipal } = model;
+  const { legs, total, beyond } = model;
 
   if (legs.length === 0) {
     return (
@@ -86,35 +102,37 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
         <Empty
           icon={CalendarClock}
           art="horizon"
-          title="Nothing scheduled yet"
-          body="Open a vault and its maturity date lands here, with the capital it releases plotted across the next 90 days."
+          title="Nothing accruing yet"
+          body="Open a vault and the next withdrawal windows land here, each one showing what your principal will have accrued by the time it opens."
           action={{ label: "Open a vault", to: "/app/vaults/new" }}
         />
       </section>
     );
   }
 
-  // A stepped area: flat until a term matures, then up by what it releases.
-  let path = `M 0 ${yFor(0, total)}`;
+  // A straight ramp, because that is what the arithmetic is. It used to be a
+  // stepped area, flat between maturities and vertical at each one, and a step
+  // would be wrong here: accrual is continuous, and drawing it as a staircase
+  // would suggest the reward arrives in lumps on the window dates.
+  const first = legs[0];
+  let path = `M 0 ${yFor(first.cumulative - snap.dailyRate * ((first.at - Date.now()) / DAY_MS), total).toFixed(2)}`;
   for (const leg of legs) {
-    const x = leg.t * 100;
-    path += ` L ${x.toFixed(2)} ${yFor(leg.cumulative - leg.releases, total).toFixed(2)}`;
-    path += ` L ${x.toFixed(2)} ${yFor(leg.cumulative, total).toFixed(2)}`;
+    path += ` L ${(leg.t * 100).toFixed(2)} ${yFor(leg.cumulative, total).toFixed(2)}`;
   }
-  path += ` L 100 ${yFor(total, total).toFixed(2)}`;
   const area = `${path} L 100 100 L 0 100 Z`;
 
   return (
     <section className={`panel p-5 ${className}`} aria-label="Trajectory">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="eyebrow">Next {WINDOW_DAYS} days</p>
+          <p className="eyebrow">Accruing over {WINDOW_DAYS} days</p>
           <p className="metric mt-1.5 text-2xl">
             <Value value={total} decimals={2} />
           </p>
           <p className="mt-1 text-xs text-[var(--text-low)]">
-            Scheduled to release from {legs.length} open {legs.length === 1 ? "vault" : "vaults"}
-            {beyond > 0 ? `, with ${beyond} maturing later` : ""}
+            By the {legs.length === 1 ? "next window" : `${legs.length}th window from here`}, on the{" "}
+            {snap.activePositions.length} {snap.activePositions.length === 1 ? "vault" : "vaults"}{" "}
+            you have open now
           </p>
         </div>
         <Link to="/app/vaults" className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-xs">
@@ -152,10 +170,13 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
           </svg>
 
           {legs.map((leg, i) => {
-            const size = 9 + 11 * Math.sqrt(leg.position.principal / (maxPrincipal || 1));
+            // Every window is the same event, so every node is the same size.
+            // Sizing them used to encode a position's principal, and there is
+            // no per position node any more.
+            const size = 11;
             return (
               <motion.span
-                key={leg.position.id}
+                key={leg.id}
                 className="absolute"
                 style={{
                   left: `${clamp(leg.t * 100, 2, 98)}%`,
@@ -168,8 +189,8 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
                 transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 0.35 + i * 0.08 }}
               >
                 <Link
-                  to={`/app/vaults/${leg.position.id}`}
-                  aria-label={`${leg.position.tier.name} vault ${leg.ready ? "matured" : "matures"} ${shortDate(leg.position.maturesAt)}, releasing ${money(leg.releases)}`}
+                  to="/app/desk"
+                  aria-label={`Withdrawal window ${leg.index}, ${leg.ready ? "open now" : shortDate(leg.at)}, with ${money(leg.cumulative)} accrued by then`}
                   className="grid h-8 w-8 place-items-center rounded-full"
                 >
                   <span
@@ -197,25 +218,22 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
 
       <ul className="mt-4 space-y-1.5">
         {legs.slice(0, 4).map((leg) => (
-          <li key={leg.position.id} className="inset flex items-center gap-3 px-3 py-2">
+          <li key={leg.id} className="inset flex items-center gap-3 px-3 py-2">
             <span className="min-w-0 flex-1 truncate text-xs text-[var(--text-mid)]">
-              <span className="font-medium text-[var(--text-hi)]">{leg.position.tier.name}</span>{" "}
-              {leg.ready ? "matured" : "matures"} {shortDate(leg.position.maturesAt)} ·{" "}
-              {leg.ready ? "ready to settle" : relative(leg.position.maturesAt)}
+              <span className="font-medium text-[var(--text-hi)]">Window {leg.index}</span>{" "}
+              {leg.ready ? "open now" : shortDate(leg.at)}
+              {leg.ready ? "" : ` · ${relative(leg.at)}`}
             </span>
-            <span className="tabular shrink-0 text-xs text-[var(--text-hi)]">
-              {money(leg.releases, 2)}
-            </span>
-            <span className="tabular hidden shrink-0 text-[11px] text-[var(--text-low)] sm:block">
-              {money(leg.cumulative)} total
+            <span className="tabular shrink-0 text-xs text-[var(--gain)]">
+              {money(leg.cumulative, 2)}
             </span>
           </li>
         ))}
       </ul>
 
       <p className="mt-3 text-[11px] text-[var(--text-low)]">
-        Figures are principal plus the full term reward for each open vault. Settlement moves the
-        capital into your available balance.
+        Your open principal at the published rate, with nothing compounded and no new capital
+        assumed. It moves only when you open or close a vault.
       </p>
     </section>
   );

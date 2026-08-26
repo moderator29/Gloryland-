@@ -7,7 +7,7 @@ import { useUser } from "@/context/UserContext";
 import { Value } from "@/components/system/Value";
 import { Progress, Empty, NavRow, Status } from "@/components/system/ui";
 import { money, moneyCompact, pct, relative, days } from "@/components/system/format";
-import { CYCLE_RETURN } from "@/domain/tiers";
+import { DAILY_RATE, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { LiveTicker, Trajectory } from "@/features/pulse";
 import { Orientation } from "@/features/onboarding";
@@ -79,9 +79,9 @@ export default function Home() {
   const reduce = useReducedMotion();
 
   const hasPositions = snap.activePositions.length > 0;
-  const soonest = [...snap.activePositions]
-    .filter((p) => !p.matured)
-    .sort((a, b) => a.maturesAt - b.maturesAt)[0];
+  // The biggest open position, which is the one worth putting a card on.
+  // This used to be the soonest maturity, and nothing matures now.
+  const largest = [...snap.activePositions].sort((a, b) => b.principal - a.principal)[0];
 
   const rise = (i: number) =>
     reduce
@@ -122,7 +122,7 @@ export default function Home() {
                 title="Vaults"
                 hint={
                   hasPositions
-                    ? `${snap.activePositions.length} active · ${(CYCLE_RETURN * 100).toFixed(0)}% per 30-day term`
+                    ? `${snap.activePositions.length} active · ${(DAILY_RATE * 100).toFixed(0)}% of principal a day`
                     : undefined
                 }
                 action={
@@ -146,19 +146,15 @@ export default function Home() {
                           <span className="truncate text-sm font-semibold text-[var(--text-hi)]">
                             {p.tier.name}
                           </span>
-                          <Status kind={p.matured ? "matured" : "accruing"} />
+                          <Status kind={p.started ? "accruing" : "pending"} />
                         </div>
                         <p className="mt-1 text-xs text-[var(--text-low)]">
-                          {money(p.principal)} ·{" "}
-                          {p.matured ? "Term complete" : `${days(p.daysRemaining)}d remaining`}
+                          {money(p.principal)} · running {days(p.daysElapsed)}d ·{" "}
+                          {money(p.dailyReward, 2)} a day
                         </p>
-                        <div className="mt-2.5 max-w-xs">
-                          <Progress
-                            value={p.progress}
-                            height={4}
-                            label={`${p.tier.name} term progress`}
-                          />
-                        </div>
+                        {/* No progress bar. A bar is a fraction of something,
+                            and there is nothing left for a position to be a
+                            fraction of. Days running is the honest reading. */}
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="metric text-lg text-[var(--gain)]">
@@ -173,7 +169,7 @@ export default function Home() {
                 <Empty
                   icon={Vault}
                   title="No vaults open"
-                  body={`Place capital into a vault and it accrues ${(CYCLE_RETURN * 100).toFixed(0)}% across a 30-day term, paid daily.`}
+                  body={`Place capital into a vault and it accrues ${(DAILY_RATE * 100).toFixed(0)}% of principal every day, with no term and no maturity.`}
                   action={{ label: "Open your first vault", to: "/app/vaults/new" }}
                 />
               )}
@@ -221,7 +217,7 @@ export default function Home() {
             {/* Small tile: next up */}
             <motion.div {...rise(3)} className="bento-cell panel p-5 lg:col-span-4">
               <BandHead title="Next up" />
-              {soonest ? (
+              {largest ? (
                 <div className="ledger">
                   <div className="rail-row">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.08)]">
@@ -229,19 +225,24 @@ export default function Home() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--text-hi)]">
-                        {soonest.tier.name} vault matures
+                        {snap.withdrawAllowed
+                          ? "Withdrawal window is open"
+                          : "Next withdrawal window"}
                       </p>
                       <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                        {relative(soonest.maturesAt)} · releases{" "}
-                        {money(soonest.principal + soonest.termReward)}
+                        {snap.withdrawAllowed
+                          ? `A request can be made now. The next opens ${WITHDRAW_INTERVAL_DAYS} days after it.`
+                          : `${relative(snap.withdrawUnlocksAt)} · ${money(largest.dailyReward, 2)} a day accruing meanwhile`}
                       </p>
-                      <Countdown to={soonest.maturesAt} className="mt-2" doneLabel="Matured" />
+                      {!snap.withdrawAllowed && (
+                        <Countdown to={snap.withdrawUnlocksAt} className="mt-2" doneLabel="Open" />
+                      )}
                     </div>
                   </div>
                 </div>
               ) : (
                 <p className="text-sm text-[var(--text-low)]">
-                  Nothing scheduled. Open a vault to start a term.
+                  Nothing accruing. Open a vault to start.
                 </p>
               )}
             </motion.div>

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useLedger } from "@/hooks/useLedger";
 import { recordWithdrawal } from "@/domain/ledger";
 import { MarketPanel, ASSETS, CoinLogo } from "@/features/market";
+import { AddressQr } from "@/features/deposit/AddressQr";
 import { useMarket } from "@/hooks/useMarket";
 import { Value } from "@/components/system/Value";
 import { Metric, SectionHeader, NavRow } from "@/components/system/ui";
@@ -34,21 +35,8 @@ export default function Desk() {
   const reduce = useReducedMotion();
   const [funding, setFunding] = useState(ASSETS[0]);
   const { coins } = useMarket();
-  const [copied, setCopied] = useState(false);
   const [amt, setAmt] = useState("");
   const [addr, setAddr] = useState("");
-
-  const copyAddress = async () => {
-    if (!funding.address) return;
-    try {
-      await navigator.clipboard.writeText(funding.address);
-      setCopied(true);
-      toast.success(`${funding.symbol} address copied`);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Could not copy. Select the address and copy it manually.");
-    }
-  };
 
   const value = Number(amt) || 0;
   const canWithdraw = value > 0 && value <= snap.available && addr.trim().length >= 12;
@@ -89,7 +77,10 @@ export default function Desk() {
         </Metric>
         <Metric label="Deployed">{money(snap.deployed)}</Metric>
         <Metric label="Accruing" tone="gain">
-          <Value value={snap.rewardsPending} decimals={2} />
+          {/* The only figure on this screen that changes while it is read. */}
+          <span className="accruing">
+            <Value value={snap.rewardsPending} decimals={2} />
+          </span>
         </Metric>
         <Metric label="Per day" tone="gain">
           {money(snap.dailyRate, 2)}
@@ -103,25 +94,15 @@ export default function Desk() {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Fund */}
         <motion.section {...rise(2)} className="panel p-5">
-          <SectionHeader
-            title="Fund account"
-            hint={
-              funding.address
-                ? "Send to the address below, then open a vault"
-                : "Funding is not open in this build"
-            }
-          />
+          <SectionHeader title="Fund account" hint="Scan or copy the address, then open a vault" />
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="rise-in grid grid-cols-2 gap-2 sm:grid-cols-3">
             {ASSETS.map((f) => (
               <button
                 key={f.id}
-                onClick={() => {
-                  setFunding(f);
-                  setCopied(false);
-                }}
+                onClick={() => setFunding(f)}
                 aria-pressed={funding.id === f.id}
-                className={`flex min-h-[54px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                className={`lift flex min-h-[54px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left ${
                   funding.id === f.id
                     ? "border-[rgba(46,139,255,0.45)] bg-[rgba(46,139,255,0.12)]"
                     : "border-[var(--line)] hover:border-[var(--line-hi)]"
@@ -157,39 +138,9 @@ export default function Desk() {
             ) : null;
           })()}
 
-          {/* No address is shown unless one is actually configured. There is no
-              custody behind this build, so a copyable string here would be a
-              destination that nobody owns. */}
-          {funding.address ? (
-            <div className="inset mt-3 p-3.5">
-              <p className="eyebrow flex items-center gap-1.5">
-                <QrCode className="h-3 w-3" /> {funding.network} address
-              </p>
-              <p className="machine mt-2 text-[11px] leading-relaxed text-[var(--text)]">
-                {funding.address}
-              </p>
-              <button
-                onClick={copyAddress}
-                className="btn btn-secondary mt-3 w-full !py-2 !text-xs"
-              >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy address"}
-              </button>
-            </div>
-          ) : (
-            <div className="inset mt-3 flex items-start gap-2.5 p-3.5">
-              <AlertTriangle
-                className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warn)]"
-                strokeWidth={1.9}
-                aria-hidden="true"
-              />
-              <p className="text-xs leading-relaxed text-[var(--text-low)]">
-                Funding is not open in this build. There is no wallet behind the product yet and no
-                address that could receive a transfer, so none is shown. You can still open a vault
-                and watch a term run against your own ledger.
-              </p>
-            </div>
-          )}
+          <div className="inset mt-3 p-4">
+            <AddressQr asset={funding} />
+          </div>
 
           <Link to="/app/vaults/new" className="btn btn-primary mt-3 w-full">
             <Plus className="h-4 w-4" /> Open a vault

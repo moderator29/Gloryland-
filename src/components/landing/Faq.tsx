@@ -2,10 +2,10 @@ import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { LifeBuoy, Mail, Plus } from "lucide-react";
-import { CYCLE_DAYS, TIERS, dailyReward, termReward } from "@/domain/tiers";
+import { TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward, rewardOver } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "./figures";
+import { DAY_RATE, FIRST_TIER, TOP_TIER, WINDOW_RATE } from "./figures";
 
 /**
  * Questions, answered at the length the answer actually needs.
@@ -19,6 +19,11 @@ import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "./figures";
  *
  * The answers are deliberately specific. A question worth asking about money
  * is not answered by a sentence of reassurance.
+ *
+ * The first group was called "The term" and described a thirty day commitment
+ * that closed at a maturity. There is no term any more, so it describes what
+ * actually happens instead: daily accrual with no end date, and a withdrawal
+ * window that comes round on its own clock.
  */
 
 /** A worked figure the accrual answer leans on, so the arithmetic is visible. */
@@ -32,17 +37,16 @@ const legalLink =
 
 const GROUPS: Group[] = [
   {
-    title: "The term",
+    title: "How a position runs",
     items: [
       {
-        q: "What is a vault term?",
+        q: "What is a vault?",
         a: (
           <>
-            A fixed {CYCLE_DAYS} day commitment of capital. Opening a vault writes a position
-            carrying your principal, the day it opened and the day it matures. It accrues from the
-            first day and closes at the end of the term. At maturity you choose to settle or to open
-            a new one, unless you armed a relay on the position, which is the one instruction that
-            rolls a term without asking again.
+            Capital you place, held in a position that accrues every day it stays there. There is no
+            term and no maturity date: a position opened today and left alone for four months
+            accrues for four months. Opening one writes your principal and the day it opened, and
+            neither can move afterwards.
           </>
         ),
       },
@@ -50,11 +54,24 @@ const GROUPS: Group[] = [
         q: "How does accrual actually work?",
         a: (
           <>
-            Linearly, against your original principal. Each day credits {DAY_RATE} of principal, so
-            a full {CYCLE_DAYS} day term reaches {TERM_RATE}. There is no compounding inside a term
-            and no performance fee taken out of the figure. On a {money(SAMPLE)} position that is{" "}
-            {money(dailyReward(SAMPLE), 2)} a day and {money(termReward(SAMPLE))} over the term. The
-            number quoted on day one is the number at maturity.
+            Linearly, against your original principal. Each day credits {DAY_RATE} of principal, and
+            nothing folds back in on its own, so ten days is ten times one day rather than a
+            compounded figure. On a {money(SAMPLE)} position that is {money(dailyReward(SAMPLE), 2)}{" "}
+            a day, {money(rewardOver(SAMPLE, WITHDRAW_INTERVAL_DAYS))} by the first withdrawal
+            window and {money(rewardOver(SAMPLE, 30))} after thirty days. Multiply, and you have the
+            same number the portal will show you.
+          </>
+        ),
+      },
+      {
+        q: "When can I withdraw?",
+        a: (
+          <>
+            Every {WITHDRAW_INTERVAL_DAYS} days. The window measures the gap after a withdrawal
+            request, so your first one is available immediately and each one after it opens{" "}
+            {WITHDRAW_INTERVAL_DAYS} days later. By each window a position has accrued {WINDOW_RATE}{" "}
+            of principal. Requesting a withdrawal does not close the position: what stays in place
+            carries on accruing at the same rate.
           </>
         ),
       },
@@ -62,38 +79,19 @@ const GROUPS: Group[] = [
         q: "Does the rate ever change?",
         a: (
           <>
-            Not inside an open term. The rate is fixed when the position is written, and it is the
-            same rate at every rung of the ladder. If the published term structure for new positions
-            ever changes, it applies to positions opened after that point. It cannot reach back into
-            a term already running.
+            It is one published constant, the same at every rung of the ladder, and it is the same
+            number on the first day of a position as on the hundredth. If the published rate for new
+            positions ever changes, that change appears on the change log the day it ships.
           </>
         ),
       },
       {
-        q: "What happens at maturity?",
+        q: "Is a rate like this sustainable?",
         a: (
           <>
-            The position stops accruing at {TERM_RATE} of principal. Principal and reward sit in the
-            position until something acts on them. You can claim the reward into your balance,
-            settle to an address you own, or open a new {CYCLE_DAYS} day term with the whole
-            balance. Each of those starts with an instruction from you, and so does the fourth path:
-            a relay you armed earlier will do the roll for you the next time you open Rigel after
-            maturity.
-          </>
-        ),
-      },
-      {
-        q: "Can I withdraw before maturity?",
-        a: (
-          <>
-            A term is a commitment, so capital inside an open vault is not available on demand, and
-            accrual is calculated for completed terms.{" "}
-            <strong>This build offers no early exit at all</strong>: settling is available once a
-            position has matured and not before, so there is no button to press and no request to
-            file. If an early exit is ever built, it will forfeit accrual on the unfinished term, it
-            will be an exception rather than a right, and it will appear on the change log the day
-            it ships. Until then, if there is a realistic chance you will need the money inside{" "}
-            {CYCLE_DAYS} days, do not place it.
+            It is a target, not a guarantee, and it is a high one. A published return says something
+            about the risk carried to produce it, and this one says a great deal. Capital is at
+            risk. Place what you can afford to lose.
           </>
         ),
       },
@@ -108,7 +106,7 @@ const GROUPS: Group[] = [
           <>
             The settlement target, and nothing about the rate. The ladder runs from{" "}
             {FIRST_TIER.name} at {money(FIRST_TIER.entry)} to {TOP_TIER.name} at{" "}
-            {money(TOP_TIER.entry)}, every rung earns the same {TERM_RATE} term, and climbing
+            {money(TOP_TIER.entry)}, every rung earns the same {DAY_RATE} a day, and climbing
             shortens the published target from {FIRST_TIER.settlementHours} hours at{" "}
             {FIRST_TIER.name} to {TOP_TIER.settlementHours} hours at {TOP_TIER.name}.{" "}
             <strong>Nothing in the portal is gated by tier today.</strong> Every surface, chart and
@@ -144,23 +142,21 @@ const GROUPS: Group[] = [
         ),
       },
       {
-        q: "What happens if I do nothing at maturity?",
+        q: "What happens if I do nothing?",
         a: (
           <>
-            Nothing happens, which is the design. A matured position stops accruing and waits. It
-            does not reallocate and it does not settle itself, and it holds principal plus reward
-            until you claim, settle or open a new term. Capital that is not inside a term is not
-            accruing, so leaving it there is a decision with a cost.
+            The position carries on accruing, which is the design. It does not reallocate and it
+            does not close itself. Reward that has accrued sits outside the principal until you act
+            on it, and reward outside the principal earns nothing, so leaving it there is a decision
+            with a cost you can measure.
             <br />
-            <br />
-            The one exception is a <strong>relay</strong>, and it only exists on a position where
-            you armed one. A relay claims the reward, closes the matured term and opens a new{" "}
-            {CYCLE_DAYS} day term with what it carried, then arms itself again, all as a single
+            <br />A <strong>relay</strong> is the instruction that removes that cost, and it only
+            exists on a position where you armed one. It folds the accrued reward back into the
+            principal so the larger principal starts earning, then arms itself again, as a single
             write to your ledger and without asking a second time. It says so on the panel before
-            you arm it. It runs the next time you open Rigel after the term matures, not while you
-            are away, and it is never backdated, so the days a matured position sat still earn
-            nothing and the ledger says so. Disarm it at any point before it fires and the term
-            settles and stays settled.
+            you arm it. It runs the next time you open Rigel, not while you are away, and it is
+            never backdated, so a day it did not run is a day that earns nothing and the ledger says
+            so. Disarm it at any point and nothing further folds.
           </>
         ),
       },

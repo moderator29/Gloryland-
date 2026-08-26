@@ -1,184 +1,149 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { CalendarClock } from "lucide-react";
-import { DAY_MS, type Position, type Snapshot } from "@/domain/ledger";
+import { DAY_MS, type Snapshot } from "@/domain/ledger";
+import { WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { Value } from "@/components/system/Value";
-import { Empty } from "@/components/system/ui";
-import { money, shortDate } from "@/components/system/format";
+import { money, days as fmtDays, fullDate } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Countdown } from "./Countdown";
 
 /**
- * Horizon: the next ninety days of maturing capital, on one rail.
+ * Horizon: where the account sits in its withdrawal window.
  *
- * Each node is an open position the member actually placed. Its position on
- * the rail is the days between now and the `maturesAt` the ledger recorded,
- * and its size is that position's principal against the largest in the window.
- * The cumulative figure is principal plus the full term reward for each of
- * those positions, which is exactly what the term releases at maturity and
- * nothing more.
+ * This rail used to plot the next ninety days of maturing capital. Nothing
+ * matures now, so there is nothing to plot on that axis: a position accrues
+ * until it is closed and no date arrives on its own. The one date the ledger
+ * can still name is when cash may next leave the account, and that is what the
+ * rail measures.
+ *
+ * It spans one interval: from the last withdrawal request to the moment the
+ * next one is allowed, with now marked between them. A member who has never
+ * requested a withdrawal is already at the far end of it, because the interval
+ * measures the gap after a request and there is no gap before the first one.
+ *
+ * The figure beside it is available cash, which is what a request could
+ * actually move. Nothing here quotes what an open position might be worth
+ * later: that depends on how long it is left in place, which is the member's
+ * decision and not a figure this rail may assume.
  */
-
-const WINDOW_DAYS = 90;
 
 export type HorizonProps = {
   snap: Snapshot;
   className?: string;
 };
 
-type Node = {
-  position: Position;
-  /** Days from now until maturity, clamped into the window. */
-  days: number;
-  /** 0..1 across the ninety day window. */
-  t: number;
-  /** Principal plus the term reward: what the maturity releases. */
-  releases: number;
-  /** Node diameter in pixels, scaled by principal. */
-  size: number;
-};
-
 function clamp(n: number, lo: number, hi: number) {
   return n < lo ? lo : n > hi ? hi : n;
 }
 
-function build(snap: Snapshot, now: number) {
-  const inWindow = snap.activePositions
-    .filter((p) => (p.maturesAt - now) / DAY_MS <= WINDOW_DAYS)
-    .sort((a, b) => a.maturesAt - b.maturesAt);
-
-  const maxPrincipal = inWindow.reduce((m, p) => Math.max(m, p.principal), 0);
-
-  const nodes: Node[] = inWindow.map((position) => {
-    const days = clamp((position.maturesAt - now) / DAY_MS, 0, WINDOW_DAYS);
-    const share = maxPrincipal > 0 ? position.principal / maxPrincipal : 1;
-    return {
-      position,
-      days,
-      t: days / WINDOW_DAYS,
-      releases: position.principal + position.termReward,
-      // Square root keeps a large position from swallowing the rail.
-      size: 12 + Math.round(Math.sqrt(share) * 14),
-    };
-  });
-
-  return {
-    nodes,
-    total: nodes.reduce((s, n) => s + n.releases, 0),
-    beyond: snap.activePositions.length - inWindow.length,
-  };
-}
-
 export function Horizon({ snap, className = "" }: HorizonProps) {
   const reduce = useReducedMotion();
-  const { nodes, total, beyond } = useMemo(() => build(snap, Date.now()), [snap]);
+  const now = Date.now();
 
-  if (nodes.length === 0) {
-    return (
-      <section className={`panel ${className}`} aria-labelledby="horizon-title">
-        <h3 id="horizon-title" className="sr-only">
-          Horizon
-        </h3>
-        <Empty
-          icon={CalendarClock}
-          art="horizon"
-          title="Nothing scheduled yet"
-          body={
-            beyond > 0
-              ? "Your open vaults all mature beyond the next ninety days. They will appear here as they come into range."
-              : "Open a vault and its maturity date will appear on this rail."
-          }
-          action={beyond > 0 ? undefined : { label: "Open a vault", to: "/app/vaults/new" }}
-        />
-      </section>
-    );
-  }
-
-  const next = nodes[0];
+  const open = snap.withdrawAllowed;
+  const unlocksAt = snap.withdrawUnlocksAt;
+  const from = snap.lastWithdrawAt ?? unlocksAt;
+  const span = Math.max(1, unlocksAt - from);
+  // Where now sits between the last request and the next window. An account
+  // that has never requested one reads a full rail, because it is already at
+  // the end of the interval rather than at the start of one.
+  const progress = open ? 1 : clamp((now - from) / span, 0, 1);
 
   return (
-    <section className={`panel p-4 sm:p-5 ${className}`} aria-labelledby="horizon-title">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          <p className="eyebrow">Horizon, next {WINDOW_DAYS} days</p>
-          <h3 id="horizon-title" className="metric mt-1 text-2xl">
-            <Value value={total} decimals={2} />
+    <section className={`panel p-4 sm:p-5 ${className}`} aria-labelledby="withdraw-window-title">
+      <div className="flex items-start gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)]">
+          <CalendarClock
+            className="h-4 w-4 text-[var(--accent-hi)]"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow">Withdrawal window</p>
+          <h3
+            id="withdraw-window-title"
+            className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]"
+          >
+            {open ? "A request can be filed now" : <Countdown to={unlocksAt} />}
           </h3>
-          <p className="mt-0.5 text-xs text-[var(--text-low)]">
-            Capital and rewards returning across {nodes.length}{" "}
-            {nodes.length === 1 ? "vault" : "vaults"}
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
+            {open ? (
+              <>
+                A withdrawal can be requested once every {WITHDRAW_INTERVAL_DAYS} days, and the
+                window is open.{" "}
+                {snap.available > 0 ? (
+                  <>
+                    <span className="tabular text-[var(--text)]">{money(snap.available, 2)}</span>{" "}
+                    is available to move.
+                  </>
+                ) : (
+                  "There is nothing in your balance to move yet."
+                )}
+              </>
+            ) : (
+              <>
+                The last request was {fullDate(snap.lastWithdrawAt ?? now)}. The next one can be
+                filed {fullDate(unlocksAt)}, which is {fmtDays((unlocksAt - now) / DAY_MS)} days
+                away.
+              </>
+            )}
           </p>
         </div>
-        <span className="chip chip-accent">
-          Next in <Countdown to={next.position.maturesAt} compact className="ml-1" />
-        </span>
       </div>
 
-      {/* ── The rail ── */}
-      <div className="relative mt-6 h-16 w-full">
-        <div className="absolute inset-x-0 top-6 h-px bg-[var(--line-hi)]" aria-hidden="true" />
-        {[0, 30, 60, 90].map((d) => (
-          <span
-            key={d}
-            className="absolute top-6 flex -translate-x-1/2 flex-col items-center"
-            style={{ left: `${(d / WINDOW_DAYS) * 100}%` }}
-            aria-hidden="true"
-          >
-            <span className="h-2 w-px bg-[var(--line-hi)]" />
-            <span className="mt-1 text-[10px] text-[var(--text-low)]">
-              {d === 0 ? "Today" : `${d}d`}
-            </span>
-          </span>
-        ))}
-
-        {nodes.map((n, i) => (
+      <div className="mt-4">
+        <div
+          className="relative h-1.5 overflow-hidden rounded-full bg-[var(--line)]"
+          role="img"
+          aria-label={
+            open
+              ? "The withdrawal window is open"
+              : `Withdrawal window opens ${fullDate(unlocksAt)}`
+          }
+        >
           <motion.span
-            key={n.position.id}
-            className="absolute top-6 -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${clamp(n.t * 100, 3, 97)}%` }}
-            initial={reduce ? false : { opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={
-              reduce ? { duration: 0 } : { duration: 0.35, delay: i * 0.05, ease: "easeOut" }
-            }
-          >
-            <Link
-              to={`/app/vaults/${n.position.id}`}
-              className="block rounded-full border border-[var(--accent-hi)] bg-[rgba(46,139,255,0.22)] transition-colors hover:bg-[rgba(46,139,255,0.45)]"
-              style={{ width: n.size, height: n.size }}
-              aria-label={`${n.position.tier.name} vault of ${money(n.position.principal)}, matures ${shortDate(n.position.maturesAt)}, releasing ${money(n.releases)}`}
-              title={`${money(n.position.principal)} matures ${shortDate(n.position.maturesAt)}`}
-            />
-          </motion.span>
-        ))}
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{
+              background: open
+                ? "linear-gradient(90deg, var(--accent-soft), var(--gain))"
+                : "linear-gradient(90deg, var(--accent-soft), var(--accent))",
+            }}
+            initial={reduce ? false : { width: 0 }}
+            animate={{ width: `${progress * 100}%` }}
+            transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between gap-2 text-[11px] text-[var(--text-low)]">
+          <span>{snap.lastWithdrawAt === null ? "No request filed" : "Last request"}</span>
+          <span>{open ? "Open" : fullDate(unlocksAt)}</span>
+        </div>
       </div>
 
-      {/* ── The same schedule, readable and keyboard reachable ── */}
-      <div className="ledger mt-4">
-        {nodes.slice(0, 4).map((n) => (
-          <Link key={n.position.id} to={`/app/vaults/${n.position.id}`} className="rail-row">
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-[var(--text-hi)]">
-                {n.position.tier.name} vault
-              </span>
-              <span className="mt-0.5 block text-xs text-[var(--text-low)]">
-                {shortDate(n.position.maturesAt)}, {Math.round(n.days)} days out
-              </span>
-            </span>
-            <span className="metric shrink-0 text-sm text-[var(--gain)]">
-              {money(n.releases, 2)}
-            </span>
-          </Link>
-        ))}
-      </div>
+      <dl className="ledger mt-4">
+        <div className="rail-row">
+          <dt className="min-w-0 flex-1 text-xs text-[var(--text-low)]">Available to withdraw</dt>
+          <dd className="metric tabular shrink-0 text-sm">
+            <Value value={snap.available} decimals={2} />
+          </dd>
+        </div>
+        <div className="rail-row">
+          <dt className="min-w-0 flex-1 text-xs text-[var(--text-low)]">Accruing right now</dt>
+          <dd className="metric tabular shrink-0 text-sm text-[var(--gain)]">
+            {money(snap.dailyRate, 2)} / day
+          </dd>
+        </div>
+      </dl>
 
-      {(nodes.length > 4 || beyond > 0) && (
-        <p className="mt-3 text-[11px] text-[var(--text-low)]">
-          {nodes.length > 4 && `${nodes.length - 4} more in the window. `}
-          {beyond > 0 && `${beyond} maturing beyond ${WINDOW_DAYS} days.`}
-        </p>
-      )}
+      <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
+        The interval is the same at every rung. Standing buys a faster settlement target on a
+        request, never a more frequent one.
+      </p>
+
+      <Link to="/app/horizon" className="btn btn-ghost mt-3 !px-2.5 !py-1.5 !text-xs">
+        See every window
+      </Link>
     </section>
   );
 }

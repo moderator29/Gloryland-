@@ -274,9 +274,9 @@ export function inspectLedgerFile(text: string): InspectResult {
           return;
         }
         // Carried through rather than defaulted. A start date this reader
-        // dropped would turn a term that has not begun into one that started
-        // the moment it was committed, and thirty days of accrual would be
-        // credited to capital that was not working.
+        // dropped would turn a position that has not begun accruing into one
+        // that started the moment it was committed, and every day since would
+        // be credited to capital that was not working.
         const startsAt = Number(candidate.startsAt);
         accepted.push({
           id: id || `imported-${line}`,

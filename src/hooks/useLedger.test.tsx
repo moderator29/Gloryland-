@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useLedger } from "./useLedger";
 import { DAY_MS, type LedgerEvent } from "@/domain/ledger";
-import { CYCLE_DAYS, DAILY_RATE } from "@/domain/tiers";
+import { DAILY_RATE } from "@/domain/tiers";
 
 /**
  * The hook every figure in the product reads.
@@ -119,15 +119,22 @@ describe("what it derives", () => {
     expect(result.current.standing).toBe(0);
   });
 
-  it("holds a matured term at the full term reward and stops", () => {
-    seed(1000, CYCLE_DAYS + 5);
+  /**
+   * The inverse of the test that used to be here. Accrual used to stop at a
+   * thirty day maturity, and this pinned that it held. Nothing matures now, so
+   * what has to be pinned is that a long running position keeps counting: a
+   * position left for a hundred days reads a hundred days of reward, with no
+   * clamp anywhere in the path.
+   */
+  it("keeps accruing past any length of time, because nothing matures", () => {
+    seed(1000, 100);
     const { result } = renderHook(() => useLedger(1000));
-    const atMount = result.current.rewardsAccrued;
-    expect(atMount).toBeCloseTo(1000 * DAILY_RATE * CYCLE_DAYS, 6);
+    expect(result.current.rewardsAccrued).toBeCloseTo(1000 * DAILY_RATE * 100, 0);
 
+    const before = result.current.rewardsAccrued;
     act(() => {
       vi.advanceTimersByTime(10_000);
     });
-    expect(result.current.rewardsAccrued).toBeCloseTo(atMount, 6);
+    expect(result.current.rewardsAccrued).toBeGreaterThan(before);
   });
 });

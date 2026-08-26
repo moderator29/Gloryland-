@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, Layers } from "lucide-react";
 import type { Snapshot } from "@/domain/ledger";
-import { CYCLE_DAYS, CYCLE_RETURN, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { MINIMUM_PLACEMENT, TOP_TIER, ladderSteps, planFor } from "./plan";
@@ -78,8 +78,8 @@ export function Ladder({ snap, className = "" }: LadderProps) {
             {atTop ? "You hold the top rung" : "What the next rungs cost"}
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
-            Every rung earns the same {(CYCLE_RETURN * 100).toFixed(0)}% across a {CYCLE_DAYS} day
-            term. Climbing buys faster settlement and deeper access, never a better rate.
+            Every rung earns the same {(DAILY_RATE * 100).toFixed(0)}% of principal a day. Climbing
+            buys faster settlement and deeper access, never a better rate.
           </p>
         </div>
       </div>
@@ -94,9 +94,8 @@ export function Ladder({ snap, className = "" }: LadderProps) {
             {TOP_TIER.name} is the last rung, and standing is measured on lifetime contribution, so
             it stays yours. Further capital does not buy a higher rate because there is not one. It
             buys accrual: a position at {money(TOP_TIER.entry)} adds{" "}
-            <span className="tabular text-[var(--gain)]">{money(top.daily, 2)}</span> a day and
-            returns <span className="tabular text-[var(--gain)]">{money(top.term)}</span> across the
-            term, taking your combined daily accrual to{" "}
+            <span className="tabular text-[var(--gain)]">{money(top.daily, 2)}</span> a day, for as
+            long as you leave it in place, taking your combined daily accrual to{" "}
             <span className="tabular text-[var(--gain)]">{money(top.combinedDaily, 2)}</span>.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">

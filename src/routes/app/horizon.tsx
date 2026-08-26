@@ -8,27 +8,34 @@ import {
   ChevronRight,
   Split,
 } from "lucide-react";
-import { DAY_MS, type Position } from "@/domain/ledger";
-import { CYCLE_DAYS } from "@/domain/tiers";
+import { DAY_MS, type LedgerEvent } from "@/domain/ledger";
+import { WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Countdown, Horizon as HorizonRail } from "@/features/engagement";
 import { Ladder } from "@/features/ladder";
-import { BandHead, Empty, Metric, Status } from "@/components/system/ui";
-import { fullDate, money, moneyCompact } from "@/components/system/format";
+import { BandHead, Empty, Metric } from "@/components/system/ui";
+import { fullDate, money, moneyCompact, days as fmtDays } from "@/components/system/format";
 
 /**
- * Horizon: the maturity calendar.
+ * Horizon: the withdrawal calendar.
  *
- * Every mark on this grid is a maturity date the ledger already recorded. A
- * position's term is fixed at thirty days from the moment it opened, so the
- * calendar is not a forecast: it is the schedule those open positions have
- * committed to, read one month at a time.
+ * This grid used to plot maturities. Positions no longer mature, so the dates
+ * a member actually needs are the ones cash can move on: a withdrawal may be
+ * requested once every four days, and the window runs from the last request
+ * rather than from any position.
  *
- * The ninety day rail and the countdown above the grid are the existing
- * Horizon and Countdown components rather than new ones. The rail is aliased
- * here only to keep it apart from this page, which carries the same name for
- * the same reason: this whole surface is Horizon.
+ * Two kinds of mark, and deliberately no third. Every request already filed is
+ * a real event in the ledger, and the day the next one is allowed is derived
+ * from the latest of them. Nothing beyond that date is drawn, because the
+ * window stays open once it opens: a further date would depend on a request
+ * nobody has made, and the calendar would be quoting a schedule that does not
+ * exist.
+ *
+ * The rail and the countdown above the grid are the existing Horizon and
+ * Countdown components rather than new ones. The rail is aliased here only to
+ * keep it apart from this page, which carries the same name for the same
+ * reason: this whole surface is Horizon.
  */
 
 /* ── dates ──────────────────────────────────────────────────────────────── */
@@ -86,6 +93,9 @@ function longDate(d: Date): string {
 
 /* ── the grid ───────────────────────────────────────────────────────────── */
 
+/** A withdrawal request the ledger recorded. */
+type Request = { at: number; amount: number; address: string };
+
 type Cell = {
   key: string;
   date: Date;
@@ -93,29 +103,24 @@ type Cell = {
   /** False for the padding days either side of the month. */
   inMonth: boolean;
   isToday: boolean;
-  positions: Position[];
-  /** Principal maturing on this day. */
-  principal: number;
-  /** Principal plus term reward: what the day releases. */
-  releases: number;
-  /** Every position on this day has already reached its maturity. */
-  matured: boolean;
+  /** Requests filed on this day. */
+  requests: Request[];
+  /** Total requested on this day. */
+  requested: number;
+  /** This is the day the next request is allowed. */
+  opens: boolean;
 };
-
-function summarise(positions: Position[]) {
-  return {
-    count: positions.length,
-    principal: positions.reduce((s, p) => s + p.principal, 0),
-    releases: positions.reduce((s, p) => s + p.principal + p.termReward, 0),
-  };
-}
 
 /** What a screen reader is told about a day, figures included. */
 function labelFor(cell: Cell): string {
   const date = `${cell.isToday ? "Today, " : ""}${longDate(cell.date)}`;
-  if (cell.positions.length === 0) return `${date}. Nothing matures.`;
-  const verb = cell.positions.length === 1 ? "vault matures" : "vaults mature";
-  return `${date}. ${cell.positions.length} ${verb}, ${money(cell.principal)} principal, ${money(cell.releases)} releasing.`;
+  const parts: string[] = [];
+  if (cell.requests.length > 0) {
+    const verb = cell.requests.length === 1 ? "withdrawal" : "withdrawals";
+    parts.push(`${cell.requests.length} ${verb} filed, ${money(cell.requested)}`);
+  }
+  if (cell.opens) parts.push("the withdrawal window opens");
+  return parts.length === 0 ? `${date}. Nothing filed.` : `${date}. ${parts.join(". ")}.`;
 }
 
 export default function Horizon() {
@@ -125,7 +130,21 @@ export default function Horizon() {
   const now = Date.now();
   const today = new Date(now);
   const todayKey = keyOf(today);
-  const open = snap.activePositions;
+
+  // Every request the ledger holds, newest last, and the day the next one is
+  // allowed. Both come out of the snapshot rather than being counted here, so
+  // this page cannot disagree with the figure the rail shows beside it.
+  const requests = useMemo<Request[]>(
+    () =>
+      snap.events
+        .filter((e): e is Extract<LedgerEvent, { kind: "withdraw" }> => e.kind === "withdraw")
+        .map((e) => ({ at: e.at, amount: e.amount, address: e.address }))
+        .sort((a, b) => a.at - b.at),
+    [snap.events],
+  );
+  const unlocksAt = snap.withdrawUnlocksAt;
+  const windowOpen = snap.withdrawAllowed;
+  const opensKey = keyOf(new Date(unlocksAt));
 
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [focusDate, setFocusDate] = useState(() => new Date());
@@ -137,18 +156,17 @@ export default function Horizon() {
   // first paint should never steal it from wherever the member was.
   const wantFocus = useRef(false);
 
-  /* ── maturities, grouped by the day they land on ── */
+  /* ── requests, grouped by the day they were filed ── */
   const byDay = useMemo(() => {
-    const map = new Map<string, Position[]>();
-    for (const p of open) {
-      const k = keyOf(new Date(p.maturesAt));
+    const map = new Map<string, Request[]>();
+    for (const r of requests) {
+      const k = keyOf(new Date(r.at));
       const list = map.get(k);
-      if (list) list.push(p);
-      else map.set(k, [p]);
+      if (list) list.push(r);
+      else map.set(k, [r]);
     }
-    for (const list of map.values()) list.sort((a, b) => a.maturesAt - b.maturesAt);
     return map;
-  }, [open]);
+  }, [requests]);
 
   const weeks = useMemo(() => {
     const first = startOfMonth(cursor);
@@ -159,25 +177,34 @@ export default function Horizon() {
     for (let i = 0; i < Math.ceil((lead + length) / 7) * 7; i++) {
       const date = addDays(first, i - lead);
       const inMonth = sameMonth(date, first);
-      const positions = inMonth ? (byDay.get(keyOf(date)) ?? []) : [];
-      const totals = summarise(positions);
+      const key = keyOf(date);
+      const dayRequests = inMonth ? (byDay.get(key) ?? []) : [];
       cells.push({
-        key: keyOf(date),
+        key,
         date,
         day: date.getDate(),
         inMonth,
-        isToday: keyOf(date) === todayKey,
-        positions,
-        principal: totals.principal,
-        releases: totals.releases,
-        matured: positions.length > 0 && positions.every((p) => p.matured),
+        isToday: key === todayKey,
+        requests: dayRequests,
+        requested: dayRequests.reduce((sum, r) => sum + r.amount, 0),
+        // The window opens once. Marking it on a day already in the past would
+        // be marking a date that has come and gone rather than one to act on.
+        opens: inMonth && key === opensKey && !windowOpen,
       });
     }
 
     return Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
-  }, [cursor, byDay, todayKey]);
+  }, [cursor, byDay, todayKey, opensKey, windowOpen]);
 
-  const monthTotals = useMemo(() => summarise(weeks.flat().flatMap((c) => c.positions)), [weeks]);
+  const monthTotals = useMemo(() => {
+    const cells = weeks.flat();
+    const filed = cells.flatMap((c) => c.requests);
+    return {
+      count: filed.length,
+      requested: filed.reduce((sum, r) => sum + r.amount, 0),
+      opens: cells.some((c) => c.opens),
+    };
+  }, [weeks]);
 
   const focusKey = keyOf(focusDate);
 
@@ -251,17 +278,14 @@ export default function Horizon() {
     setFocusDate(cell.date);
   };
 
-  /* ── what is coming, and when ── */
+  /* ── what has been filed, and what can be ── */
 
-  const upcoming = open.filter((p) => p.maturesAt > now).sort((a, b) => a.maturesAt - b.maturesAt);
-  const within = (d: number) => summarise(upcoming.filter((p) => p.maturesAt <= now + d * DAY_MS));
-  const sevenDays = within(7);
-  const thirtyDays = within(30);
-  const next = upcoming[0] ?? null;
-  const ready = open.filter((p) => p.matured);
+  const filedCount = requests.length;
+  const filedTotal = requests.reduce((sum, r) => sum + r.amount, 0);
 
-  const selectedPositions = selected ? (byDay.get(keyOf(selected)) ?? []) : [];
-  const selectedTotals = summarise(selectedPositions);
+  const selectedRequests = selected ? (byDay.get(keyOf(selected)) ?? []) : [];
+  const selectedTotal = selectedRequests.reduce((sum, r) => sum + r.amount, 0);
+  const selectedOpens = selected !== null && keyOf(selected) === opensKey && !windowOpen;
 
   const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
 
@@ -271,59 +295,60 @@ export default function Horizon() {
         <p className="eyebrow">Schedule</p>
         <h1 className="display mt-1.5 text-2xl sm:text-3xl">Horizon</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--text-low)]">
-          Every open position holds its principal for {CYCLE_DAYS} days from the day it opened.
-          These are the dates those terms reach, taken from your own ledger.
+          A withdrawal can be requested once every {WITHDRAW_INTERVAL_DAYS} days. These are the
+          requests you have already filed and the day the next one is allowed, taken from your own
+          ledger.
         </p>
       </header>
 
-      {open.length === 0 ? (
+      {filedCount === 0 && snap.positions.length === 0 ? (
         <section className="panel">
           <Empty
             icon={CalendarClock}
             art="horizon"
-            title="No maturities to plot"
-            body={`A position matures ${CYCLE_DAYS} days after it opens. Open one and its date lands on this calendar the same day.`}
+            title="Nothing to plot yet"
+            body={`A first withdrawal is allowed immediately, and every one after it opens the window again ${WITHDRAW_INTERVAL_DAYS} days later. Place capital and the dates start landing here.`}
             action={{ label: "Open a vault", to: "/app/vaults/new" }}
           />
         </section>
       ) : (
         <>
-          {/* ── What is coming, at three ranges ── */}
-          <section aria-label="Maturing soon" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {/* ── Where the account stands ── */}
+          <section
+            aria-label="Withdrawal window"
+            className="grid grid-cols-1 gap-2.5 sm:grid-cols-3"
+          >
             <Metric
-              label="Next 7 days"
-              tone={sevenDays.count ? "gain" : "default"}
+              label="Available to withdraw"
+              tone={snap.available > 0 ? "gain" : "default"}
               sub={
-                sevenDays.count
-                  ? `${sevenDays.count} ${sevenDays.count === 1 ? "vault" : "vaults"}, ${money(sevenDays.principal)} principal`
-                  : "Nothing matures this week"
+                snap.available > 0
+                  ? "Settled cash, not accruing"
+                  : "Claim rewards or close a position to build it"
               }
             >
-              {money(sevenDays.releases)}
+              {money(snap.available, 2)}
             </Metric>
             <Metric
-              label="Next 30 days"
-              tone={thirtyDays.count ? "gain" : "default"}
-              sub={
-                thirtyDays.count
-                  ? `${thirtyDays.count} ${thirtyDays.count === 1 ? "vault" : "vaults"}, ${money(thirtyDays.principal)} principal`
-                  : "Nothing matures inside a term"
-              }
-            >
-              {money(thirtyDays.releases)}
-            </Metric>
-            <Metric
-              label="Next maturity"
+              label="Next request allowed"
               tone="accent"
               sub={
-                next
-                  ? `${next.tier.name}, ${fullDate(next.maturesAt)}`
-                  : ready.length
-                    ? `${ready.length} matured and ready to settle`
-                    : "No term is running"
+                windowOpen
+                  ? "The window is open"
+                  : `${fmtDays((unlocksAt - now) / DAY_MS)} days from now`
               }
             >
-              {next ? <Countdown to={next.maturesAt} /> : ready.length ? "Matured" : "None"}
+              {windowOpen ? "Now" : <Countdown to={unlocksAt} />}
+            </Metric>
+            <Metric
+              label="Requests filed"
+              sub={
+                filedCount
+                  ? `${money(filedTotal)} withdrawn in total`
+                  : "A first request is allowed immediately"
+              }
+            >
+              {filedCount}
             </Metric>
           </section>
 
@@ -331,7 +356,7 @@ export default function Horizon() {
               page went h1 straight to h3, which is a level skip a screen
               reader reports as a missing section. */}
           <section className="band" aria-labelledby="horizon-rail">
-            <BandHead id="horizon-rail" title="The next 90 days" />
+            <BandHead id="horizon-rail" title="This window" />
             <HorizonRail snap={snap} />
           </section>
 
@@ -344,8 +369,10 @@ export default function Horizon() {
                 </h2>
                 <p className="mt-0.5 text-xs text-[var(--text-low)]">
                   {monthTotals.count
-                    ? `${monthTotals.count} maturing, ${money(monthTotals.releases)} releasing`
-                    : "Nothing matures this month"}
+                    ? `${monthTotals.count} filed, ${money(monthTotals.requested)} withdrawn`
+                    : monthTotals.opens
+                      ? "The window opens this month"
+                      : "Nothing filed this month"}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
@@ -378,9 +405,11 @@ export default function Horizon() {
             {/* The selected day, announced rather than only drawn. */}
             <p className="sr-only" role="status" aria-live="polite">
               {selected
-                ? selectedPositions.length
-                  ? `${longDate(selected)} selected. ${selectedTotals.count} maturing, ${money(selectedTotals.releases)} releasing.`
-                  : `${longDate(selected)} selected. Nothing matures.`
+                ? selectedRequests.length
+                  ? `${longDate(selected)} selected. ${selectedRequests.length} filed, ${money(selectedTotal)} withdrawn.`
+                  : selectedOpens
+                    ? `${longDate(selected)} selected. The withdrawal window opens.`
+                    : `${longDate(selected)} selected. Nothing filed.`
                 : ""}
             </p>
 
@@ -419,10 +448,10 @@ export default function Horizon() {
                     >
                       {row.map((cell) => {
                         const isSelected = selected !== null && keyOf(selected) === cell.key;
-                        const marked = cell.positions.length > 0;
+                        const marked = cell.requests.length > 0 || cell.opens;
                         const tone = !marked
                           ? "border-[var(--line)] text-[var(--text-mid)] hover:border-[var(--line-hi)]"
-                          : cell.matured
+                          : cell.requests.length > 0
                             ? "border-[rgba(52,211,153,0.38)] bg-[rgba(52,211,153,0.10)] text-[var(--gain)] hover:bg-[rgba(52,211,153,0.18)]"
                             : "border-[rgba(46,139,255,0.38)] bg-[rgba(46,139,255,0.12)] text-[var(--accent-hi)] hover:bg-[rgba(46,139,255,0.2)]";
 
@@ -459,7 +488,9 @@ export default function Horizon() {
                                       className="tabular mt-0.5 hidden text-[10px] leading-tight sm:block"
                                       aria-hidden="true"
                                     >
-                                      {cell.positions.length} · {moneyCompact(cell.principal)}
+                                      {cell.requests.length > 0
+                                        ? moneyCompact(cell.requested)
+                                        : "opens"}
                                     </span>
                                   </>
                                 )}
@@ -480,15 +511,15 @@ export default function Horizon() {
                 dot means rather than leaving the colour to do it alone. */}
             <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5" aria-label="Calendar key">
               <li className="flex items-center gap-1.5 text-[11px] text-[var(--text-low)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--gain)]" aria-hidden="true" />
+                Withdrawal filed
+              </li>
+              <li className="flex items-center gap-1.5 text-[11px] text-[var(--text-low)]">
                 <span
                   className="h-1.5 w-1.5 rounded-full bg-[var(--accent-hi)]"
                   aria-hidden="true"
                 />
-                Maturing
-              </li>
-              <li className="flex items-center gap-1.5 text-[11px] text-[var(--text-low)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--gain)]" aria-hidden="true" />
-                Matured, ready to settle
+                The window opens
               </li>
               <li className="flex items-center gap-1.5 text-[11px] text-[var(--text-low)]">
                 <span
@@ -514,7 +545,7 @@ export default function Horizon() {
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1.5">
                   <div className="min-w-0">
-                    <p className="eyebrow">Maturing</p>
+                    <p className="eyebrow">Withdrawals</p>
                     <h3 className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]">
                       {fullDate(selected.getTime())}
                     </h3>
@@ -528,43 +559,41 @@ export default function Horizon() {
                   </button>
                 </div>
 
-                {selectedPositions.length ? (
+                {selectedRequests.length ? (
                   <>
                     <div className="ledger mt-3">
-                      {selectedPositions.map((p) => (
-                        <Link
-                          key={p.id}
-                          to={`/app/vaults/${p.id}`}
-                          className="rail-row rail-row-gain"
-                        >
+                      {selectedRequests.map((request) => (
+                        <div key={`${request.at}-${request.address}`} className="rail-row">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium text-[var(--text-hi)]">
-                                {p.tier.name} vault
-                              </p>
-                              <Status kind={p.matured ? "matured" : "accruing"} />
-                            </div>
-                            <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                              {money(p.principal)} principal · {money(p.termReward)} reward ·{" "}
-                              {p.matured ? "matured" : <Countdown to={p.maturesAt} compact />}
+                            <p className="truncate text-sm font-medium text-[var(--text-hi)]">
+                              Withdrawal request
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-[var(--text-low)]">
+                              {fullDate(request.at)} · to {request.address}
                             </p>
                           </div>
-                          <p className="metric shrink-0 text-sm text-[var(--gain)]">
-                            {money(p.principal + p.termReward)}
-                          </p>
-                        </Link>
+                          <p className="metric shrink-0 text-sm">{money(request.amount, 2)}</p>
+                        </div>
                       ))}
                     </div>
                     <p className="mt-3 text-xs text-[var(--text-low)]">
-                      {selectedTotals.count} {selectedTotals.count === 1 ? "position" : "positions"}{" "}
-                      releasing {money(selectedTotals.releases)}, of which{" "}
-                      {money(selectedTotals.principal)} is principal returning.
+                      {selectedRequests.length}{" "}
+                      {selectedRequests.length === 1 ? "request" : "requests"} filed,{" "}
+                      {money(selectedTotal, 2)} in total. The window reopened{" "}
+                      {WITHDRAW_INTERVAL_DAYS} days after the last of them.
                     </p>
                   </>
+                ) : selectedOpens ? (
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
+                    This is the day the window opens. From then it stays open until you file a
+                    request, and filing one sets the next date {WITHDRAW_INTERVAL_DAYS} days later.
+                  </p>
                 ) : (
                   <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
-                    Nothing matures on this day. A position opened today would reach its term on{" "}
-                    {fullDate(now + CYCLE_DAYS * DAY_MS)}.
+                    Nothing was filed on this day.{" "}
+                    {windowOpen
+                      ? "A request can be filed today, and the window stays open until you do."
+                      : `The next request is allowed ${fullDate(unlocksAt)}.`}
                   </p>
                 )}
               </motion.div>
@@ -574,12 +603,11 @@ export default function Horizon() {
       )}
 
       {/* ── Echelon ──
-          The planner that used to sit here is a surface of its own now, and
-          NAMING.md rule 3 is the reason the panel could not keep its old
-          title: `features/ladder` already means the tier progression, so
-          calling staggered maturities "Laddering" used one word for two
-          different things. This links rather than duplicating, because two
-          copies of a planner are two planners to keep in agreement. */}
+          The planner that used to sit here is a surface of its own now, and it
+          argues against itself: staggering placements bought separate return
+          dates, and there are no return dates any more. This links rather than
+          duplicating, because two copies of an argument are two to keep in
+          agreement. */}
       <section className="band" aria-labelledby="echelon-title">
         <BandHead id="echelon-title" title="Echelon" />
 
@@ -593,23 +621,23 @@ export default function Horizon() {
               />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="eyebrow">One cliff, or a rolling schedule</p>
+              <p className="eyebrow">What a split would cost</p>
               <h3 className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]">
-                Stagger a placement across the term
+                Splitting a placement across days
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
-                Opened at even intervals, each position still runs a full {CYCLE_DAYS} days, so
-                their maturities arrive spaced out instead of landing on one date. The rate is
-                identical either way: this changes when capital comes back, not how much.
+                Echelon used to stagger maturities so capital came back on several dates. Nothing
+                matures now, and this window belongs to the account rather than to any position, so
+                a split buys no extra access to cash.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
-                Echelon plans it. Every leg gets a date, a placement button on the day it is due,
-                and a comparison against placing the whole sum at once.
+                What it does cost is accrual: a leg that waits earns nothing while it waits, and
+                both plans accrue identically afterwards. Echelon works that out to the cent.
               </p>
 
               <Link to="/app/echelon" className="btn btn-secondary mt-4">
                 <AlignVerticalDistributeCenter className="h-4 w-4" aria-hidden="true" />
-                Plan an echelon
+                See what a split costs
               </Link>
             </div>
           </div>

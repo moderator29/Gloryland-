@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, Clock, Layers, Search } from "lucide-react";
-import { CYCLE_DAYS, CYCLE_RETURN, TIERS, dailyReward, termReward, tierById } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS, dailyReward, tierById } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { Crumbs, Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
@@ -99,10 +99,8 @@ export default function TierDetail() {
           </p>
         </div>
         <div className="inset p-3.5">
-          <p className="eyebrow">Per term</p>
-          <p className="metric mt-1.5 text-lg text-[var(--gain)]">
-            {money(termReward(tier.entry))}
-          </p>
+          <p className="eyebrow">Withdrawals</p>
+          <p className="metric mt-1.5 text-lg">every {WITHDRAW_INTERVAL_DAYS} days</p>
         </div>
         <div className="inset p-3.5">
           <p className="eyebrow">Settlement</p>
@@ -111,9 +109,10 @@ export default function TierDetail() {
       </motion.section>
 
       <p className="text-xs leading-relaxed text-[var(--text-low)]">
-        Figures shown are for a position placed at the entry amount, over one {CYCLE_DAYS}-day term
-        at the programme rate of {(CYCLE_RETURN * 100).toFixed(0)}%. Every tier earns that same
-        rate, so a larger position scales the figures rather than the percentage.
+        The daily figure is for a position placed at the entry amount, at the programme rate of{" "}
+        {(DAILY_RATE * 100).toFixed(0)}% of principal a day. There is no end date, so how much a
+        position accrues in total is a matter of how long you leave it in place. Every tier earns
+        that same rate, so a larger position scales the figure rather than the percentage.
       </p>
 
       {/* What this rung adds */}
@@ -163,7 +162,7 @@ export default function TierDetail() {
           </>
         ) : (
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-mid)]">
-            {tier.name} is the first rung, so nothing sits below it. It carries the full term rate
+            {tier.name} is the first rung, so nothing sits below it. It carries the full daily rate
             from the first dollar placed, with a {tier.settlementHours}h settlement target.
           </p>
         )}

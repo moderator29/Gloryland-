@@ -21,7 +21,9 @@ export function MobileTabs() {
       style={{ paddingBottom: "max(0.85rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
-      <div className="raised pointer-events-auto flex items-center gap-1 rounded-full p-1.5">
+      {/* gap-0.5 and a tighter inset than the four tab version carried: five
+          slots plus one expanded label has to clear a 360px screen. */}
+      <div className="raised pointer-events-auto flex max-w-full items-center gap-0.5 rounded-full p-1.5">
         {MOBILE_TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -29,7 +31,7 @@ export function MobileTabs() {
             end={end}
             onClick={() => playTap()}
             className={({ isActive }) =>
-              `relative flex min-h-[46px] items-center justify-center gap-2 rounded-full px-3.5 transition-colors ${
+              `relative flex min-h-[46px] items-center justify-center gap-1.5 rounded-full px-3 transition-colors ${
                 isActive ? "text-[#04101f]" : "text-[var(--text-mid)]"
               }`
             }

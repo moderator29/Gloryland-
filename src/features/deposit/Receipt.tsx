@@ -4,7 +4,7 @@ import { Mark } from "@/components/brand/Mark";
 import { assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
 import { money, fullDate } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, tierById } from "@/domain/tiers";
+import { DAILY_RATE, WITHDRAW_INTERVAL_DAYS, tierById } from "@/domain/tiers";
 
 export type ReceiptData = {
   reference: string;
@@ -158,8 +158,8 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
         <span style={{ fontFamily: "ui-monospace, monospace" }}>{data.reference}</span>
       </Row>
       <Row label="Term">
-        {CYCLE_DAYS} days at {(DAILY_RATE * 100).toFixed(2)}% daily,{" "}
-        {(CYCLE_RETURN * 100).toFixed(0)}% at maturity
+        {(DAILY_RATE * 100).toFixed(0)}% of principal daily, no term, withdrawals every{" "}
+        {WITHDRAW_INTERVAL_DAYS} days
       </Row>
       <Row label="Status">Recorded. No funds moved.</Row>
 
@@ -181,10 +181,10 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
         <TriangleAlert size={16} style={{ color: "#FBBF24", flexShrink: 0, marginTop: 1 }} />
         <p style={{ color: "#E6EDFA", fontSize: 12, lineHeight: 1.55 }}>
           <strong style={{ color: "#FBBF24", fontWeight: 700 }}>
-            This is not a payment confirmation.
+            This records your placement, not a payment.
           </strong>{" "}
-          It records a position in a preview build, held in one browser. No deposit was received, no
-          custody or settlement network is connected, and no value has moved.
+          A transfer is credited after it is reviewed. Keep this reference and the transaction hash
+          from your wallet.
         </p>
       </div>
 

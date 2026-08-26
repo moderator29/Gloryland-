@@ -6,26 +6,31 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, dailyReward, termReward } from "@/domain/tiers";
+import { DAILY_RATE, WITHDRAW_INTERVAL_DAYS, dailyReward, rewardOver } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { DAY_RATE, TERM_RATE, rate } from "./figures";
+import { DAY_RATE, WINDOW_RATE, rate } from "./figures";
 
 /**
- * The term, drawn and staged against scroll.
+ * A position running, drawn and staged against scroll.
  *
  * One column per day, each column's height being cumulative accrual on that
- * day, so the shape is the arithmetic: a straight ramp from open to maturity
- * with no compounding sleight of hand anywhere in it. Scrolling the stages
- * fills the ramp and moves the readout, which means the explanation and the
- * figure are the same object rather than a diagram sitting next to some prose.
+ * day, so the shape is the arithmetic: a straight ramp with no compounding
+ * sleight of hand anywhere in it. Scrolling the stages fills the ramp and
+ * moves the readout, which means the explanation and the figure are the same
+ * object rather than a diagram sitting next to some prose.
+ *
+ * The ramp used to end at a maturity. Nothing ends now, so it runs to the
+ * window below and the last stage says so: the line keeps climbing off the
+ * right hand edge, which is the honest picture of a position with no term.
  *
  * Under reduced motion the ramp is drawn complete, every stage is lit, and
  * neither the scroll listener nor the sticky column does any work.
  */
 
-const DAYS = Array.from({ length: CYCLE_DAYS }, (_, i) => i + 1);
-const HALF = CYCLE_DAYS / 2;
+/** Days drawn on the ramp. Not a term: just the width of the picture. */
+const SPAN = 16;
+const DAYS = Array.from({ length: SPAN }, (_, i) => i + 1);
 
 type Stage = {
   marker: string;
@@ -39,30 +44,30 @@ const STAGES: Stage[] = [
   {
     marker: "Day 0",
     title: "The vault is written",
-    body: "Principal, the day it opens and the day it matures are recorded before a cent accrues. Once written, none of the three can move.",
+    body: "Principal and the day it opens are recorded before a cent accrues. Neither can move afterwards.",
     figureLabel: "Principal placed",
     figure: (p) => money(p),
   },
   {
     marker: "Day 1",
     title: "Accrual begins",
-    body: `${DAY_RATE} of the original principal is credited to the position each day. Linear, against principal, never against the running balance, so there is no compounding hidden inside the term.`,
+    body: `${DAY_RATE} of the original principal is credited to the position each day. Linear, against principal, never against the running balance, so there is no compounding hidden anywhere in it.`,
     figureLabel: "Credited per day",
     figure: (p) => money(dailyReward(p), 2),
   },
   {
-    marker: `Day ${HALF}`,
-    title: "Half the term",
-    body: `At the midpoint the position carries ${rate(CYCLE_RETURN / 2, 0)} of principal. The figure in the portal is the same arithmetic you can do on paper, which is the point of publishing the rate rather than a projection.`,
-    figureLabel: `Accrued by day ${HALF}`,
-    figure: (p) => money(p * DAILY_RATE * HALF),
+    marker: `Day ${WITHDRAW_INTERVAL_DAYS}`,
+    title: "The window opens",
+    body: `A withdrawal may be requested every ${WITHDRAW_INTERVAL_DAYS} days. By the first window the position carries ${WINDOW_RATE} of principal, and the same window comes round again every ${WITHDRAW_INTERVAL_DAYS} days after it.`,
+    figureLabel: `Accrued by day ${WITHDRAW_INTERVAL_DAYS}`,
+    figure: (p) => money(rewardOver(p, WITHDRAW_INTERVAL_DAYS)),
   },
   {
-    marker: `Day ${CYCLE_DAYS}`,
-    title: "Maturity, and a decision",
-    body: `The term closes at ${TERM_RATE} of principal and stops accruing there. Claim the reward, settle to an address you own, or open a new term with the whole balance. Each is an instruction you give, and so is the fourth path: a relay armed earlier does the roll for you the next time you open Rigel after this date.`,
-    figureLabel: "Principal and reward",
-    figure: (p) => money(p + termReward(p)),
+    marker: `Day ${SPAN}`,
+    title: "And it keeps going",
+    body: `There is no maturity. Capital left in place accrues at the same rate for as long as it stays there, so day ${SPAN} carries ${rate(DAILY_RATE * SPAN, 0)} of principal and day ${SPAN * 2} would carry twice that. Leave it, claim from it, or request a withdrawal at any window.`,
+    figureLabel: `Accrued by day ${SPAN}`,
+    figure: (p) => money(rewardOver(p, SPAN)),
   },
 ];
 
@@ -75,7 +80,7 @@ function Bars({ bright }: { bright: boolean }) {
           key={d}
           className="min-w-0 flex-1 rounded-t-[2px]"
           style={{
-            height: `${(d / CYCLE_DAYS) * 100}%`,
+            height: `${(d / SPAN) * 100}%`,
             background: bright
               ? "linear-gradient(180deg, rgba(125,211,252,0.95), rgba(22,54,160,0.42))"
               : "rgba(120,160,220,0.12)",
@@ -107,9 +112,9 @@ export function TermTimeline({ principal }: { principal: number }) {
   const cut = useTransform(scrollYProgress, [0, 1], [0, 100]);
   const mask = useMotionTemplate`linear-gradient(90deg, #000 ${cut}%, transparent ${cut}%)`;
   const cursor = useMotionTemplate`${cut}%`;
-  const dayText = useTransform(scrollYProgress, (v) => String(Math.round(v * CYCLE_DAYS)));
+  const dayText = useTransform(scrollYProgress, (v) => String(Math.round(v * SPAN)));
   const accruedText = useTransform(scrollYProgress, (v) =>
-    money(principal * DAILY_RATE * Math.round(v * CYCLE_DAYS), 2),
+    money(rewardOver(principal, Math.round(v * SPAN)), 2),
   );
 
   return (
@@ -137,8 +142,9 @@ export function TermTimeline({ principal }: { principal: number }) {
               <div className="text-right">
                 <p className="tag-micro">Day</p>
                 <p className="metric text-xl text-[var(--text-hi)] sm:text-2xl">
-                  {reduce ? CYCLE_DAYS : <motion.span>{dayText}</motion.span>}
-                  <span className="text-sm text-[var(--text-low)]"> / {CYCLE_DAYS}</span>
+                  {reduce ? SPAN : <motion.span>{dayText}</motion.span>}
+                  {/* No denominator. There is nothing to be a fraction of:
+                      the ramp is a window onto a line that keeps going. */}
                 </p>
               </div>
             </figcaption>
@@ -147,8 +153,8 @@ export function TermTimeline({ principal }: { principal: number }) {
               className="relative mt-5 h-28 sm:h-36 lg:h-44"
               role="img"
               aria-label={`Cumulative accrual rises in a straight line from zero on day one to ${money(
-                termReward(principal),
-              )} on day ${CYCLE_DAYS}.`}
+                rewardOver(principal, SPAN),
+              )} on day ${SPAN}, and keeps rising at the same rate after it.`}
             >
               <Bars bright={false} />
               {reduce ? (
@@ -174,14 +180,17 @@ export function TermTimeline({ principal }: { principal: number }) {
             <div className="mt-3 flex items-baseline justify-between border-t border-[var(--line)] pt-3">
               <p className="tag-micro">Accrued</p>
               <p className="metric text-base text-[var(--gain)] sm:text-lg">
-                {reduce ? money(termReward(principal)) : <motion.span>{accruedText}</motion.span>}
+                {reduce ? (
+                  money(rewardOver(principal, SPAN))
+                ) : (
+                  <motion.span>{accruedText}</motion.span>
+                )}
               </p>
             </div>
           </figure>
 
           <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
-            Arithmetic on the published term structure, not a forecast and not a guarantee of
-            payment.
+            Arithmetic on the published rate, not a forecast and not a guarantee of payment.
           </p>
         </div>
       </div>

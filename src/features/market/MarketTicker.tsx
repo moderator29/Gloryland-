@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { useMarket } from "@/hooks/useMarket";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { money } from "@/components/system/format";
+import { assetById } from "./assets";
+import { CoinLogo } from "./CoinLogo";
 
 /**
  * Thin live band above the app header. Scrolls only when there is more to show
@@ -20,16 +22,27 @@ export function MarketTicker() {
   }
   if (coins.length === 0) return null;
 
-  const row = coins.map((c) => (
-    <span key={c.id} className="inline-flex shrink-0 items-center gap-2 px-4 text-[11px]">
-      <span className="font-semibold text-[var(--text-mid)]">{c.symbol}</span>
-      <span className="tabular text-[var(--text-hi)]">{money(c.price, c.price < 10 ? 4 : 0)}</span>
-      <span className={`tabular ${c.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-        {c.change24h >= 0 ? "+" : ""}
-        {c.change24h.toFixed(2)}%
+  // The mark leads each entry. The band is a scan, not a read: a logo is
+  // recognised before a three letter code is parsed, and the marks are bundled
+  // so there is no request and nothing to pop in behind the price.
+  const row = coins.map((c) => {
+    const meta = assetById(c.id);
+    return (
+      <span key={c.id} className="inline-flex shrink-0 items-center gap-2 px-4 text-[11px]">
+        {meta && <CoinLogo asset={meta} size={15} />}
+        <span className="font-semibold text-[var(--text-mid)]">{c.symbol}</span>
+        <span className="tabular text-[var(--text-hi)]">
+          {money(c.price, c.price < 10 ? 4 : 0)}
+        </span>
+        <span
+          className={`tabular ${c.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}
+        >
+          {c.change24h >= 0 ? "+" : ""}
+          {c.change24h.toFixed(2)}%
+        </span>
       </span>
-    </span>
-  ));
+    );
+  });
 
   return (
     <div

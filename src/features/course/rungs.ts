@@ -1,4 +1,4 @@
-import { CYCLE_DAYS, DAILY_RATE, TIERS, type Tier } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, type Tier } from "@/domain/tiers";
 import { DAY_MS, type Course, type Snapshot } from "@/domain/ledger";
 
 /**
@@ -31,12 +31,16 @@ export type Plan = {
   amount: number;
   everyDays: number;
   legs: number;
-  /** Capital entering terms across any thirty day stretch. */
+  /**
+   * Capital this rhythm commits across any thirty day stretch.
+   *
+   * Thirty days is a calendar window and nothing more. There is no term, and
+   * the figure exists only so two rhythms can be compared on one span rather
+   * than on their own intervals.
+   */
   per30: number;
-  /** What one leg does across its own term. */
+  /** What one leg accrues per day, from the moment it is placed. */
   perLegDaily: number;
-  perLegReward: number;
-  perLegReleases: number;
   /** Total capital the plan places, or null when it is open ended. */
   commits: number | null;
   /** Every rung above where the member stands today. */
@@ -47,6 +51,15 @@ export type Plan = {
 
 export const MIN_LEG = TIERS[0].entry;
 export const MAX_EVERY_DAYS = 90;
+
+/**
+ * The window a rhythm is quoted across, so two intervals can be compared.
+ *
+ * A calendar month, near enough, and nothing to do with how long capital is
+ * left in place. It matches the window the ledger uses for a running course,
+ * so the planner and the live figure cannot disagree.
+ */
+const RHYTHM_WINDOW_DAYS = 30;
 
 /** Intervals offered as one press, with the custom field for anything else. */
 export const INTERVALS = [7, 14, 30] as const;
@@ -104,10 +117,8 @@ export function planCourse(
     amount,
     everyDays: every,
     legs,
-    per30: amount * Math.floor(CYCLE_DAYS / every),
+    per30: amount * Math.floor(RHYTHM_WINDOW_DAYS / every),
     perLegDaily,
-    perLegReward: perLegDaily * CYCLE_DAYS,
-    perLegReleases: amount + perLegDaily * CYCLE_DAYS,
     commits: legs > 0 ? amount * legs : null,
     rungs,
     reaches: ahead.length > 0 ? ahead[ahead.length - 1] : null,

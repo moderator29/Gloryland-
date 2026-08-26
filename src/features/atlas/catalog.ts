@@ -25,7 +25,7 @@
 
 import { money } from "@/components/system/format";
 import { loadPosts } from "@/domain/feed";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { DAILY_RATE, TIERS, WITHDRAW_INTERVAL_DAYS } from "@/domain/tiers";
 
 /* ── shape ──────────────────────────────────────────────────────────────── */
 
@@ -110,7 +110,6 @@ export function foldRange(text: string, needle: string): { start: number; end: n
 
 const ENTRY_TIER = TIERS[0];
 const TOP_TIER = TIERS[TIERS.length - 1];
-const TERM_PCT = `${Math.round(CYCLE_RETURN * 100)}%`;
 const DAY_PCT = `${(DAILY_RATE * 100).toFixed(0)}%`;
 
 /* ── surfaces ───────────────────────────────────────────────────────────── */
@@ -138,16 +137,16 @@ const SURFACES: AtlasEntry[] = [
     id: "vaults",
     kind: "surface",
     title: "Vaults",
-    subtitle: "Every position and the term it is running.",
+    subtitle: "Every position, and what each one has accrued so far.",
     to: "/app/vaults",
     icon: "Landmark",
-    keywords: ["positions", "portfolio", "packages", "principal", "terms", "maturity"],
+    keywords: ["positions", "portfolio", "packages", "principal", "accruing", "maturity"],
   },
   {
     id: "tiers",
     kind: "surface",
     title: "Tiers",
-    subtitle: `${TIERS.length} rungs from ${money(ENTRY_TIER.entry)}, all on the same ${TERM_PCT} term.`,
+    subtitle: `${TIERS.length} rungs from ${money(ENTRY_TIER.entry)}, all on the same ${DAY_PCT} a day.`,
     to: "/app/tiers",
     icon: "Layers",
     keywords: ["ladder", "plans", "packages", "programme", "standing", "progression"],
@@ -183,11 +182,12 @@ const SURFACES: AtlasEntry[] = [
     id: "horizon",
     kind: "surface",
     title: "Horizon",
-    subtitle: "The maturity calendar: which dates your open terms reach.",
+    subtitle: `The withdrawal calendar: when cash can next leave, every ${WITHDRAW_INTERVAL_DAYS} days.`,
     to: "/app/horizon",
     icon: "CalendarRange",
     keywords: [
       "calendar",
+      "withdrawal window",
       "maturity",
       "matures",
       "payout calendar",
@@ -220,7 +220,7 @@ const SURFACES: AtlasEntry[] = [
     id: "echelon",
     kind: "surface",
     title: "Echelon",
-    subtitle: `One sum placed as several ${CYCLE_DAYS} day terms starting days apart.`,
+    subtitle: "What splitting one sum into placements days apart would cost.",
     to: "/app/echelon",
     icon: "AlignVerticalDistributeCenter",
     keywords: [
@@ -461,7 +461,7 @@ const ACTIONS: AtlasEntry[] = [
     id: "act-open",
     kind: "action",
     title: "Open a vault",
-    subtitle: `Place capital into a new ${CYCLE_DAYS} day term, from ${money(ENTRY_TIER.entry)}.`,
+    subtitle: `Place capital into a vault, from ${money(ENTRY_TIER.entry)}, accruing from that instant.`,
     to: "/app/vaults/new",
     icon: "Plus",
     keywords: ["new", "deposit", "place", "fund", "start", "invest", "position", "redeploy"],
@@ -488,7 +488,7 @@ const ACTIONS: AtlasEntry[] = [
     id: "act-relay",
     kind: "action",
     title: "Arm a relay",
-    subtitle: "Set a vault to carry itself into a new term the day it matures.",
+    subtitle: "Set a vault to fold its reward back into principal without asking again.",
     to: "/app/vaults",
     icon: "Repeat",
     keywords: [
@@ -517,7 +517,7 @@ const ACTIONS: AtlasEntry[] = [
     id: "act-echelon",
     kind: "action",
     title: "Plan an echelon",
-    subtitle: "Split one sum into terms that start days apart, so maturities arrive spaced.",
+    subtitle: "See what splitting one sum into placements days apart would cost.",
     to: "/app/echelon",
     icon: "AlignVerticalDistributeCenter",
     keywords: ["echelon", "ladder", "stagger", "split", "spread", "spacing", "formation"],
@@ -559,24 +559,24 @@ const TIER_ENTRIES: AtlasEntry[] = TIERS.map((tier) => ({
 /**
  * The words this product uses in a particular way, each pointing at the
  * surface where the word is doing its work. Every figure is interpolated from
- * the tier constants, so a change to the term or the rate rewrites the
- * glossary rather than leaving it stale.
+ * the tier constants, so a change to the rate or the withdrawal interval
+ * rewrites the glossary rather than leaving it stale.
  */
 const TERMS: AtlasEntry[] = [
   {
-    id: "term-term",
+    id: "term-window",
     kind: "term",
-    title: "Term",
-    subtitle: `The fixed ${CYCLE_DAYS} day window a vault runs, starting when capital is placed.`,
-    to: "/app/vaults",
+    title: "Withdrawal window",
+    subtitle: `Cash may leave the account once every ${WITHDRAW_INTERVAL_DAYS} days. The first request is allowed immediately.`,
+    to: "/app/horizon",
     icon: "Timer",
-    keywords: ["cycle", "duration", "30 day", "window", "length", "period"],
+    keywords: ["window", "how often", "liquidity", "term", "cycle", "period", "lock"],
   },
   {
     id: "term-accrual",
     kind: "term",
     title: "Accrual",
-    subtitle: `${DAY_PCT} of principal per day, continuous, stopping at maturity.`,
+    subtitle: `${DAY_PCT} of principal per day, continuous, with no end date.`,
     to: "/app/vaults",
     icon: "TrendingUp",
     keywords: ["accrue", "earning", "rate", "daily", "interest", "rewards", "continuous"],
@@ -609,19 +609,20 @@ const TERMS: AtlasEntry[] = [
     keywords: ["capital", "amount", "deposit", "stake", "base"],
   },
   {
-    id: "term-maturity",
+    id: "term-compound",
     kind: "term",
-    title: "Maturity",
-    subtitle: `The end of the term. The position holds at ${TERM_PCT} and accrues nothing further.`,
+    title: "Compounding",
+    subtitle:
+      "Folding a position's reward into its principal, so the reward starts accruing as well.",
     to: "/app/vaults",
     icon: "Flag",
-    keywords: ["matured", "complete", "finished", "ends", "expiry", "settle"],
+    keywords: ["compound", "fold", "roll", "reinvest", "matured", "maturity", "settle"],
   },
   {
     id: "term-redeploy",
     kind: "term",
     title: "Redeploy",
-    subtitle: "Putting principal from a matured position back to work in a new term.",
+    subtitle: "Putting idle cash from your balance back to work in a vault.",
     to: "/app/vaults/new",
     icon: "Repeat",
     keywords: ["reinvest", "roll over", "rollover", "top up", "again", "idle capital"],
@@ -631,7 +632,7 @@ const TERMS: AtlasEntry[] = [
     kind: "term",
     title: "Relay",
     subtitle:
-      "A standing instruction on one vault: at maturity it opens a new term and re-arms itself.",
+      "A standing instruction on one vault: fold the reward into principal, or claim it to cash.",
     to: "/app/vaults",
     icon: "Repeat",
     keywords: [
@@ -659,7 +660,8 @@ const TERMS: AtlasEntry[] = [
     id: "term-echelon",
     kind: "term",
     title: "Echelon",
-    subtitle: `One sum placed as several terms starting days apart. The reward is identical either way, so it buys timing rather than yield.`,
+    subtitle:
+      "One sum placed as several positions starting days apart. It buys nothing now, and the later legs give up the days they wait.",
     to: "/app/echelon",
     icon: "AlignVerticalDistributeCenter",
     keywords: ["ladder", "laddering", "stagger", "spacing", "split", "formation", "timing"],

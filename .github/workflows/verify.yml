@@ -77,10 +77,17 @@ jobs:
             exit 1
           fi
 
-      - name: No deposit address literals
+      # Deposit addresses are real now, and they live in exactly two files:
+      # the one that declares them and the one that asserts what they are.
+      # Anywhere else is a second place a member could be sent, so it fails
+      # here. `npm run check` above pins the values themselves.
+      - name: Deposit addresses live in one place
         run: |
-          if grep -rnE '"(bc1[a-z0-9]{20,}|0x[a-fA-F0-9]{40})"' src/ api/ \
-              --exclude='*.test.ts' --exclude='*.test.tsx'; then
-            echo "::error::A deposit address literal reached the source. Addresses come from the environment."
+          stray=$(grep -rlE '(bc1[a-z0-9]{20,}|0x[a-fA-F0-9]{40}|EHwKKS[A-Za-z0-9]{20,})' src/ api/ \
+              --exclude='*.test.ts' --exclude='*.test.tsx' \
+              | grep -v '^src/features/market/assets.ts$' \
+              | grep -v '^src/lib/qr.check.ts$' || true)
+          if [ -n "$stray" ]; then
+            echo "::error::A deposit address literal reached $stray. They belong in src/features/market/assets.ts only."
             exit 1
           fi

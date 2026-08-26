@@ -13,16 +13,21 @@
  *   2. Worked examples run through `derive` in `@/domain/ledger`. Nothing in
  *      this file recomputes accrual by hand, so an example can never drift
  *      away from the figure the member is looking at.
+ *
+ * A third rule arrived with the economics. A position has no end date, so no
+ * entry here may state what one will reach: how long capital stays in place is
+ * the member's decision, and a total would be a figure the ledger cannot
+ * derive. Days that have actually run, and the rate, are the only two honest
+ * inputs to any sentence below.
  */
 
 import {
-  CYCLE_DAYS,
-  CYCLE_RETURN,
   DAILY_RATE,
   TIERS,
+  WITHDRAW_INTERVAL_DAYS,
   dailyReward,
   nextTier,
-  termReward,
+  rewardOver,
   tierForAmount,
   type Tier,
 } from "@/domain/tiers";
@@ -35,13 +40,13 @@ export type FigureId =
   | "principal"
   | "accrued"
   | "daily"
-  | "termTotal"
+  | "daysAccruing"
+  | "compounding"
   | "available"
   | "portfolioValue"
   | "standing"
   | "settlementTarget"
-  | "maturity"
-  | "progress"
+  | "withdrawWindow"
   | "redeploy"
   | "lifetime";
 
@@ -70,12 +75,11 @@ export type ExplainContext = {
 
 /* ── constants, interpolated rather than transcribed ────────────────────── */
 
-const TERM_PCT = `${(CYCLE_RETURN * 100).toFixed(0)}%`;
 const DAILY_PCT = `${(DAILY_RATE * 100).toFixed(0)}%`;
 const ENTRY = TIERS[0];
 const TOP = TIERS[TIERS.length - 1];
 
-const LADDER = TIERS.map((t) => `${t.name} from ${money(t.entry)}`).join(", ");
+const LADDER = `${TIERS.length} rungs, ${TIERS[0].name} from ${money(TIERS[0].entry)} up to ${TOP.name} from ${money(TOP.entry)}`;
 const TARGETS = TIERS.map((t) => `${t.name} ${t.settlementHours}h`).join(", ");
 
 /**
@@ -110,82 +114,104 @@ const REGISTRY: Record<FigureId, Definition> = {
       "Opening a vault appends one open event to your ledger, carrying the amount, the tier, the asset and the network.",
       "That amount is the principal. Nothing after it changes the figure: a claim moves rewards, a withdrawal moves cash, and neither touches what the open event recorded.",
       `The smallest principal the ladder accepts is ${money(ENTRY.entry)}, the entry point of the ${ENTRY.name} tier.`,
+      "Principal is also the only thing that accrues. Reward sitting unclaimed inside a position is not principal and earns nothing until it is folded in.",
     ],
     caveats: [
-      "Principal returns to available cash when the position is settled, not when the term matures. Maturity and settlement are two different instants.",
+      "Principal returns to available cash when you close the position. Nothing closes it for you, and there is no date on which it closes itself.",
     ],
-    related: ["accrued", "termTotal", "maturity"],
+    related: ["accrued", "compounding", "daysAccruing"],
   },
 
   accrued: {
     id: "accrued",
     label: "Accrued rewards",
     short: "What one position has earned so far, measured continuously against the clock.",
-    formula: `accrued = principal x ${DAILY_PCT} x days elapsed, days elapsed capped at ${CYCLE_DAYS}`,
+    formula: `accrued = principal x ${DAILY_PCT} x days accruing`,
     how: [
-      "Days elapsed is the distance from the open event to now, whole and fractional.",
-      `Rewards accrue at ${DAILY_PCT} of principal per day, continuously through the term rather than as one payment at the end.`,
-      `Days elapsed is clamped to the ${CYCLE_DAYS} day term, so accrual stops at maturity and a matured position holds at exactly ${TERM_PCT} of principal.`,
-      "If the position was settled, the clock is cut at the settlement instant rather than at now, so a position closed early stops accruing there.",
+      "Days accruing is the distance from the open event to now, whole and fractional.",
+      `Rewards accrue at ${DAILY_PCT} of principal per day, continuously rather than as one payment at any point.`,
+      "Nothing caps the days. A position has no term and no maturity, so a hundred days in place is a hundred days of accrual.",
+      "If the position was closed, the clock is cut at that instant rather than at now, so a closed position stops accruing there.",
       "Nothing is stored. The figure is recomputed from your events plus the clock every time it is read, so the same events and the same clock always produce the same number.",
     ],
     caveats: [
-      "Accrual stops at maturity. Leaving a matured position open earns nothing further.",
-      "Accrual stops at settlement. A position closed early is frozen at what it had earned by that instant.",
+      "Accrual stops when you close the position, and only then. Nothing is forfeited by closing: the days that ran are paid for.",
+      "Accrual is linear on principal. Reward already accrued does not itself accrue until it is folded back into principal.",
     ],
-    related: ["daily", "termTotal", "progress", "lifetime"],
+    related: ["daily", "compounding", "daysAccruing", "lifetime"],
   },
 
   daily: {
     id: "daily",
     label: "Daily accrual",
-    short: "What one day of the term adds.",
+    short: "What one day adds.",
     formula: `daily = principal x ${DAILY_PCT}`,
     how: [
-      `Every vault earns the same ${TERM_PCT} across the same ${CYCLE_DAYS} day term, which is ${DAILY_PCT} of principal per day.`,
+      `Every vault earns the same ${DAILY_PCT} of principal per day.`,
       "For a single position, the daily figure is that position's principal at that rate.",
-      "Where the figure covers the whole account, it is the sum across open positions that have not yet matured. A matured position contributes nothing, because it has stopped accruing.",
+      "Where the figure covers the whole account, it is the sum across open positions that have started. Nothing removes a position from the sum except closing it.",
       `The rate does not move with standing. It is identical from ${ENTRY.name} to ${TOP.name}, so climbing the ladder changes access and speed rather than yield.`,
     ],
     caveats: [
       "This is a rate, not a payment. Rewards are added continuously through the day rather than credited once at a fixed hour.",
+      "It is a stated structure rather than a promise of payment, and capital placed into a vault is at risk.",
     ],
-    related: ["accrued", "termTotal", "standing"],
+    related: ["accrued", "compounding", "standing"],
   },
 
-  termTotal: {
-    id: "termTotal",
-    label: "Term reward",
-    short: `What a position accrues across a full ${CYCLE_DAYS} day term.`,
-    formula: `term reward = principal x ${DAILY_PCT} x ${CYCLE_DAYS} = principal x ${TERM_PCT}`,
+  daysAccruing: {
+    id: "daysAccruing",
+    label: "Days accruing",
+    short: "How long a position has been earning, whole and fractional.",
+    formula: "days accruing = (now or the close, whichever is first) - the start",
     how: [
-      `A term is fixed at ${CYCLE_DAYS} days from the open event.`,
-      `At ${DAILY_PCT} of principal per day across ${CYCLE_DAYS} days, a completed term has accrued ${TERM_PCT} of principal.`,
-      "This is the ceiling on a position. Accrued rewards rise toward it and stop there.",
-      "Settling before maturity ends accrual early, so the position keeps what it accrued rather than the whole term figure.",
+      "The start is the open event, unless the placement named a later date, in which case it is that date.",
+      "The end is now for an open position, and the close event for one that has been closed.",
+      "The count is not rounded and not capped. It moves continuously, so it advances between one page view and the next.",
+      "It is the only length in the product. There is no term to be a fraction of, and no date the position runs out.",
     ],
     caveats: [
-      "The term figure is arithmetic on the model's fixed rate. It describes what the term is defined to accrue, not a forecast of anything outside the model.",
+      "A position committed with a later start date accrues nothing until that date. It is still your capital, and it is held apart from deployed principal until it begins.",
     ],
-    related: ["accrued", "principal", "maturity"],
+    related: ["accrued", "daily", "principal"],
+  },
+
+  compounding: {
+    id: "compounding",
+    label: "Compounding",
+    short: "Folding a position's reward into its principal, so the reward starts earning too.",
+    formula: "new principal = principal + unclaimed reward",
+    how: [
+      `Accrual runs on principal alone at ${DAILY_PCT} a day, so reward left inside a position earns nothing while it sits there.`,
+      "Compounding claims what is unclaimed, closes the position and opens a new one at principal plus that reward, as a single write.",
+      "The new position is recorded as funded from your account balance, so the same capital is never counted twice as new contribution.",
+      "A relay is the same movement as a standing instruction: armed once, it folds the reward in whenever a whole day of it has accrued.",
+      "What it folds is read off the position's own unclaimed figure, never off what it has ever generated, so rewards you already claimed cannot be placed a second time.",
+    ],
+    caveats: [
+      "Compounding is a decision, not an automatic behaviour. Nothing folds a reward in unless you do it or arm a relay.",
+      "It restarts the day count on the new position, because the new principal genuinely started earning then.",
+    ],
+    related: ["accrued", "principal", "daysAccruing"],
   },
 
   available: {
     id: "available",
     label: "Available cash",
-    short: "Settled money you can withdraw right now.",
-    formula: "available = rewards claimed + principal returned by settled vaults - withdrawals",
+    short: "Settled money in your balance.",
+    formula: "available = rewards claimed + principal returned by closed vaults - withdrawals",
     how: [
       "Claiming moves accrued rewards out of a position and into available cash. The claim event records the amount that moved.",
-      "Settling a position appends a close event and returns that position's principal to available cash.",
+      "Closing a position appends a close event and returns that position's principal to available cash.",
       "Every withdraw event subtracts at its recorded amount.",
       "The result is floored at zero, so the figure never reads negative.",
     ],
     caveats: [
       "Rewards still accruing inside a position are not available. They become available once claimed.",
+      "Available cash accrues nothing. It sits still until it is placed into a vault or withdrawn.",
       "Your ledger is stored in this browser in the current build, so this figure is derived from the events recorded here.",
     ],
-    related: ["portfolioValue", "redeploy", "settlementTarget"],
+    related: ["portfolioValue", "redeploy", "withdrawWindow"],
   },
 
   portfolioValue: {
@@ -200,7 +226,7 @@ const REGISTRY: Record<FigureId, Definition> = {
       "Withdrawn money is not counted. It has left the portfolio, and it is added back only when measuring net gain against the capital you brought in.",
     ],
     caveats: [
-      "Settling a vault does not move the total. The principal simply stops counting as deployed and starts counting as available.",
+      "Closing a vault does not move the total. The principal simply stops counting as deployed and starts counting as available.",
     ],
     related: ["available", "accrued", "principal", "lifetime"],
   },
@@ -212,17 +238,17 @@ const REGISTRY: Record<FigureId, Definition> = {
     formula: "standing = max(capital brought in, most ever deployed at once)",
     how: [
       "Capital brought in is the sum of every placement funded from outside the account. A placement funded from your own balance is excluded, because that money was already counted when it first arrived.",
-      "Most ever deployed at once replays your opens and settlements in order and records the highest total that was running at any single instant.",
-      "Standing is the greater of the two. Taking the greater is what lets a member who compounds keep climbing, since a rolled term brings in no new capital, while neither figure can be inflated by moving the same money in a circle.",
+      "Most ever deployed at once replays your opens and closes in order and records the highest total that was running at any single instant.",
+      "Standing is the greater of the two. Taking the greater is what lets a member who compounds keep climbing, since a folded position brings in no new capital, while neither figure can be inflated by moving the same money in a circle.",
       `The ladder is walked in order and the highest entry that standing clears wins: ${LADDER}.`,
-      "Because neither figure falls, standing does not drop when you settle a position or withdraw cash.",
+      "Because neither figure falls, standing does not drop when you close a position or withdraw cash.",
       "Progress to the next rung is the distance travelled from your current entry toward the next entry, as a fraction of the gap between them.",
     ],
     caveats: [
       `Below ${money(ENTRY.entry)} there is no rung yet, and standing reads as unranked.`,
-      `Standing does not change the rate. Every rung earns the same ${TERM_PCT} over the same ${CYCLE_DAYS} days.`,
+      `Standing does not change the rate. Every rung earns the same ${DAILY_PCT} a day.`,
     ],
-    related: ["settlementTarget", "principal", "daily"],
+    related: ["settlementTarget", "withdrawWindow", "principal", "daily"],
   },
 
   settlementTarget: {
@@ -233,48 +259,33 @@ const REGISTRY: Record<FigureId, Definition> = {
     how: [
       `Each rung publishes a target: ${TARGETS}.`,
       "Your target is the one attached to your current standing.",
-      "It is measured from the moment the request is filed, not from when a term matures.",
+      "It is measured from the moment the request is filed.",
       "It is published so it can be measured against. It is a service target, not a guarantee.",
     ],
     caveats: [
       "Network conditions on the asset you withdraw sit outside the window.",
       "Reaching a faster rung applies to requests filed from then on. It does not reopen a request already in flight.",
+      "A faster target is how quickly one request is worked, never how often you may file one.",
     ],
-    related: ["standing", "available"],
+    related: ["standing", "withdrawWindow", "available"],
   },
 
-  maturity: {
-    id: "maturity",
-    label: "Maturity",
-    short: "The instant a term completes and accrual stops.",
-    formula: `maturity = open event time + ${CYCLE_DAYS} days`,
+  withdrawWindow: {
+    id: "withdrawWindow",
+    label: "Withdrawal window",
+    short: `How often cash may leave the account: once every ${WITHDRAW_INTERVAL_DAYS} days.`,
+    formula: `next request allowed = last request + ${WITHDRAW_INTERVAL_DAYS} days`,
     how: [
-      `Every term is exactly ${CYCLE_DAYS} days. Maturity is fixed the moment the open event is recorded and nothing moves it.`,
-      `At maturity the position holds at ${TERM_PCT} of principal and stops accruing.`,
-      "A matured position stays open until you settle it. Settling appends a close event and returns the principal to available cash.",
-      "Leaving it open past maturity costs nothing and adds nothing.",
+      `A withdrawal request may be filed once every ${WITHDRAW_INTERVAL_DAYS} days.`,
+      "A first request is allowed immediately. The interval measures the gap after a request, and there is no gap before the first one.",
+      "The date is derived from your latest withdraw event and from nothing else, so it does not depend on any position.",
+      `Once a request is filed, the next one can be made ${WITHDRAW_INTERVAL_DAYS} days later, to the hour.`,
     ],
     caveats: [
-      "Maturity and settlement are different instants. The first is fixed when you open, the second happens when you act.",
+      "The window is the same at every rung. Standing buys a faster target on a request, never a more frequent one.",
+      "The window governs cash leaving the account. Claiming rewards and closing a position are not withdrawals and are not held by it.",
     ],
-    related: ["progress", "accrued", "termTotal"],
-  },
-
-  progress: {
-    id: "progress",
-    label: "Term progress",
-    short: "How far through its term a position has travelled.",
-    formula: `progress = days elapsed / ${CYCLE_DAYS}`,
-    how: [
-      "Days elapsed is the distance from the open event to now, capped at the term length.",
-      `Dividing by ${CYCLE_DAYS} gives a fraction: zero at open, one at maturity.`,
-      "It moves continuously rather than in daily steps, so it advances between one page view and the next.",
-      "For a settled position the clock is cut at settlement, so progress holds where it stood at that instant.",
-    ],
-    caveats: [
-      "Progress measures time through the term, not a share of the reward already paid out. The two move together only because accrual is linear.",
-    ],
-    related: ["maturity", "accrued"],
+    related: ["available", "settlementTarget", "standing"],
   },
 
   redeploy: {
@@ -286,23 +297,23 @@ const REGISTRY: Record<FigureId, Definition> = {
       "The amount is available cash: settled money sitting still rather than accruing.",
       "It is floored to whole dollars, so the amount named is the amount the form receives.",
       `The tier shown is the highest rung that exact amount clears, starting at ${money(ENTRY.entry)} for ${ENTRY.name}.`,
-      `The term figure is that amount at the same ${DAILY_PCT} per day across ${CYCLE_DAYS} days as every other vault.`,
+      `Placed, it accrues at the same ${DAILY_PCT} a day as every other vault, for as long as you leave it there.`,
     ],
     caveats: [
       `Below ${money(ENTRY.entry)} there is no vault to open, so the prompt does not appear at all.`,
-      "Redeploying starts a new term. It does not extend or top up an existing one.",
+      "Redeploying opens a new position. It does not extend or top up an existing one, because a position's principal is fixed by the event that opened it.",
     ],
-    related: ["available", "termTotal", "standing"],
+    related: ["available", "compounding", "standing"],
   },
 
   lifetime: {
     id: "lifetime",
     label: "Lifetime rewards",
-    short: "Everything every position has accrued, open and settled.",
+    short: "Everything every position has accrued, open and closed.",
     formula: "lifetime = the sum of accrued across every position in your ledger",
     how: [
       "Each position's accrued figure is computed on its own clock, then the positions are summed.",
-      "Settled positions stay in the total. Their accrual is frozen at the settlement instant and is never removed.",
+      "Closed positions stay in the total. Their accrual is frozen at the close instant and is never removed.",
       "Claiming does not change it. A claim moves rewards into available cash and is tracked separately as claimed.",
       "Unclaimed rewards is this total less everything claimed, floored at zero.",
     ],
@@ -320,7 +331,7 @@ const REGISTRY: Record<FigureId, Definition> = {
 export const FIGURE_GROUPS: { heading: string; ids: FigureId[] }[] = [
   {
     heading: "A position",
-    ids: ["principal", "accrued", "daily", "termTotal", "progress", "maturity"],
+    ids: ["principal", "accrued", "daily", "daysAccruing", "compounding"],
   },
   {
     heading: "The portfolio",
@@ -328,7 +339,7 @@ export const FIGURE_GROUPS: { heading: string; ids: FigureId[] }[] = [
   },
   {
     heading: "The ladder",
-    ids: ["standing", "settlementTarget"],
+    ids: ["standing", "settlementTarget", "withdrawWindow"],
   },
 ];
 
@@ -390,16 +401,22 @@ export function previewPosition(ctx: ExplainContext): Position | null {
   return derive(events, ctx.now ?? Date.now()).positions[0] ?? null;
 }
 
-/** Day count used by the generic illustration, well inside the term. */
-const SAMPLE_DAY = 10;
+/**
+ * Days used by the generic illustration.
+ *
+ * A round handful, named as a length someone chose rather than a length the
+ * product imposes. Nothing in the model prefers this number to any other, and
+ * the sentences that use it say so.
+ */
+const SAMPLE_DAYS = 10;
 
 /**
- * A hypothetical position at a fixed point in its term. Anchored to epoch and
- * a fixed clock so the illustration is deterministic and never reads as if it
+ * A hypothetical position after a fixed run of days. Anchored to epoch and a
+ * fixed clock so the illustration is deterministic and never reads as if it
  * were an event in the member's own ledger.
  */
 function samplePosition(principal: number): Position | null {
-  return previewPosition({ principal, openedAt: 0, now: SAMPLE_DAY * DAY_MS });
+  return previewPosition({ principal, openedAt: 0, now: SAMPLE_DAYS * DAY_MS });
 }
 
 function tierFor(amount: number): Tier {
@@ -428,34 +445,42 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
 
     case "accrued": {
       if (real) {
-        const state = real.closed
-          ? ", frozen at settlement"
-          : real.matured
-            ? `, held at the ${TERM_PCT} ceiling since maturity`
-            : "";
-        return `${money(real.principal)} open for ${dayCount(real.daysElapsed)} days has accrued ${money(real.accrued, 2)}${state}.`;
+        const state = real.closed ? ", frozen where it stood when the position closed" : "";
+        return `${money(real.principal)} accruing for ${dayCount(real.daysElapsed)} days has earned ${money(real.accrued, 2)}${state}.`;
       }
-      if (!sample) return `${lead}Accrual is principal x ${DAILY_PCT} x days elapsed.`;
-      return `${lead}${money(principal)} at day ${SAMPLE_DAY} of ${CYCLE_DAYS} has accrued ${money(sample.accrued, 2)}, on the way to ${money(sample.termReward, 2)} at maturity.`;
+      if (!sample) return `${lead}Accrual is principal x ${DAILY_PCT} x days accruing.`;
+      return `${lead}${money(principal)} left in place for ${SAMPLE_DAYS} days has accrued ${money(sample.accrued, 2)}. Left longer it keeps going, at the same rate.`;
     }
 
     case "daily": {
       const base = real ?? sample;
       const per = base ? base.dailyReward : dailyReward(principal);
-      if (real && real.matured) {
-        return `${money(real.principal)} accrued ${money(per, 2)} a day. The term has matured, so it now adds nothing.`;
+      if (real && real.closed) {
+        return `${money(real.principal)} accrued ${money(per, 2)} a day. The position is closed, so it now adds nothing.`;
       }
-      return `${lead}${money(principal)} accrues ${money(per, 2)} a day, every day of the term.`;
+      return `${lead}${money(principal)} accrues ${money(per, 2)} a day, every day it is left in place.`;
     }
 
-    case "termTotal": {
-      const base = real ?? sample;
-      const reward = base ? base.termReward : termReward(principal);
-      return `${lead}A ${CYCLE_DAYS} day term on ${money(principal)} accrues ${money(reward, 2)}, and the position releases ${money(principal + reward)} in total once it is settled.`;
+    case "daysAccruing": {
+      if (real) {
+        const held = real.closed ? " The position is closed, so the count holds there." : "";
+        return `This position has been accruing for ${dayCount(real.daysElapsed)} days, which at ${money(real.dailyReward, 2)} a day is ${money(real.accrued, 2)}.${held}`;
+      }
+      return `${lead}${money(principal)} accruing for ${SAMPLE_DAYS} days is ${SAMPLE_DAYS} days of ${money(dailyReward(principal), 2)}. Nothing stops the count but closing the position.`;
+    }
+
+    case "compounding": {
+      if (real && real.claimable > 0) {
+        const folded = real.principal + real.claimable;
+        return `Folding this position's ${money(real.claimable, 2)} of unclaimed reward into its ${money(real.principal)} principal opens a ${money(folded, 2)} position, which accrues ${money(dailyReward(folded), 2)} a day instead of ${money(real.dailyReward, 2)}.`;
+      }
+      const oneDay = dailyReward(principal);
+      const folded = principal + oneDay;
+      return `${lead}${money(principal)} accrues ${money(oneDay, 2)} in a day. Folded in, the position becomes ${money(folded, 2)} and accrues ${money(dailyReward(folded), 2)} a day. Left unfolded, that reward earns nothing.`;
     }
 
     case "available": {
-      return `${lead}Settling a ${money(principal)} vault returns ${money(principal)} of principal to available cash. Rewards join it only as you claim them, and every withdrawal comes back off the total.`;
+      return `${lead}Closing a ${money(principal)} vault returns ${money(principal)} of principal to available cash, along with anything unclaimed. Every withdrawal comes back off the total.`;
     }
 
     case "portfolioValue": {
@@ -464,7 +489,7 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
       }
       if (!sample)
         return `${lead}Portfolio value is deployed principal plus unclaimed rewards plus available cash.`;
-      return `${lead}An open ${money(principal)} vault at day ${SAMPLE_DAY} contributes ${money(principal)} of deployed principal and ${money(sample.accrued, 2)} of unclaimed rewards.`;
+      return `${lead}An open ${money(principal)} vault after ${SAMPLE_DAYS} days contributes ${money(principal)} of deployed principal and ${money(sample.accrued, 2)} of unclaimed rewards.`;
     }
 
     case "standing": {
@@ -485,20 +510,8 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
       return `${tier.name} publishes a ${tier.settlementHours} hour target, counted from the moment a request is filed.`;
     }
 
-    case "maturity": {
-      if (real) {
-        return `Opened ${fullDate(real.openedAt)}, this term matures ${fullDate(real.maturesAt)}, ${CYCLE_DAYS} days later to the hour.`;
-      }
-      return `${lead}A term opened today matures ${CYCLE_DAYS} days later, to the same hour. The date is fixed at open.`;
-    }
-
-    case "progress": {
-      if (real) {
-        const held = real.closed ? " The position is settled, so progress holds there." : "";
-        return `${dayCount(real.daysElapsed)} of ${CYCLE_DAYS} days elapsed reads ${(real.progress * 100).toFixed(1)}% through the term, with ${dayCount(real.daysRemaining)} days remaining.${held}`;
-      }
-      if (!sample) return `${lead}Progress is days elapsed divided by ${CYCLE_DAYS}.`;
-      return `${lead}At day ${SAMPLE_DAY} of ${CYCLE_DAYS}, a term reads ${(sample.progress * 100).toFixed(1)}% complete.`;
+    case "withdrawWindow": {
+      return `A withdrawal can be requested once every ${WITHDRAW_INTERVAL_DAYS} days, and the first one is allowed immediately. File one today and the next can be filed ${WITHDRAW_INTERVAL_DAYS} days later, to the hour, at ${tier.name} exactly as at ${ENTRY.name}.`;
     }
 
     case "redeploy": {
@@ -507,14 +520,14 @@ export function explainValue(id: FigureId, ctx: ExplainContext = {}): string {
         return `${lead}${money(principal, 2)} idle is below the ${money(ENTRY.entry)} entry for ${ENTRY.name}, so there is no vault to open yet.`;
       }
       const t = tierFor(placeable);
-      return `${lead}${money(placeable)} idle opens a ${t.name} vault and accrues ${money(termReward(placeable), 2)} across the ${CYCLE_DAYS} day term.`;
+      return `${lead}${money(placeable)} idle opens a ${t.name} vault and accrues ${money(dailyReward(placeable), 2)} a day from the moment it is placed.`;
     }
 
     case "lifetime": {
       if (real) {
-        return `This position has added ${money(real.accrued, 2)} to the lifetime total so far, and keeps that figure once it is settled.`;
+        return `This position has added ${money(real.accrued, 2)} to the lifetime total so far, and keeps that figure once it is closed.`;
       }
-      return `${lead}A completed ${money(principal)} term adds ${money(termReward(principal), 2)} to the lifetime total, and stays in it after the vault is settled.`;
+      return `${lead}${money(principal)} accruing for ${SAMPLE_DAYS} days adds ${money(rewardOver(principal, SAMPLE_DAYS), 2)} to the lifetime total, and stays in it after the vault is closed.`;
     }
   }
 }

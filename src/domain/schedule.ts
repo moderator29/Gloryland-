@@ -15,7 +15,7 @@
  */
 
 import { POST_KINDS, type Post, type PostKind } from "./feed";
-import { TIERS, CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE } from "./tiers";
+import { TIERS, DAILY_RATE, WITHDRAW_INTERVAL_DAYS } from "./tiers";
 
 /** Posts released per day. */
 export const POSTS_PER_DAY = 20;
@@ -59,7 +59,7 @@ const WRITERS: ((s: number) => Draft)[] = [
     return {
       kind: "tier",
       title: `${t.name} at ${usd(t.entry)}`,
-      body: `${t.blurb} Settlement target is ${t.settlementHours} hours. The rate is the same ${pct(CYCLE_RETURN)} every rung earns, so what changes here is access and speed, not yield.`,
+      body: `${t.blurb} Settlement target is ${t.settlementHours} hours. The rate is the same ${pct(DAILY_RATE)} a day every rung earns, so what changes here is access and speed, not yield.`,
       tierId: t.id,
       tags: ["tiers"],
     };
@@ -69,22 +69,22 @@ const WRITERS: ((s: number) => Draft)[] = [
     const daily = t.entry * DAILY_RATE;
     return {
       kind: "education",
-      title: `What ${usd(t.entry)} does across a term`,
-      body: `Placed at ${t.name}, it accrues ${usd(Math.round(daily))} a day. Across ${CYCLE_DAYS} days that is ${usd(Math.round(daily * CYCLE_DAYS))} in rewards, returning ${usd(Math.round(t.entry + daily * CYCLE_DAYS))} at maturity.`,
+      title: `What ${usd(t.entry)} accrues in a day`,
+      body: `Placed at ${t.name}, it accrues ${usd(Math.round(daily))} a day, every day it is left in place. There is no end date, so what it comes to is a matter of how long you leave it: over ${WITHDRAW_INTERVAL_DAYS} days, the interval between withdrawal requests, that is ${usd(Math.round(daily * WITHDRAW_INTERVAL_DAYS))}.`,
       tierId: t.id,
-      tags: ["terms"],
+      tags: ["accrual"],
     };
   },
   () => ({
     kind: "vault",
-    title: "Accrual does not wait for the end of the term",
-    body: `Rewards build continuously from the moment capital is placed, not in a lump at day ${CYCLE_DAYS}. You can claim what has accrued at any point during the term without closing the position.`,
+    title: "Accrual does not wait for anything",
+    body: "Rewards build continuously from the moment capital is placed, not in a lump at any point. You can claim what has accrued whenever you like, without closing the position.",
     tags: ["vaults"],
   }),
   () => ({
     kind: "principle",
     title: "One rate across every rung",
-    body: `Core and Sovereign earn the identical ${pct(CYCLE_RETURN)} over ${CYCLE_DAYS} days. Tiers differ on settlement speed, access and tooling. A ladder that paid more at the top would be selling size, not service.`,
+    body: `Core and Sovereign earn the identical ${pct(DAILY_RATE)} of principal a day. Tiers differ on settlement speed, access and tooling. A ladder that paid more at the top would be selling size, not service.`,
     tags: ["principles"],
   }),
   (s) => {
@@ -105,7 +105,7 @@ const WRITERS: ((s: number) => Draft)[] = [
   () => ({
     kind: "principle",
     title: "Capital placed in a vault is at risk",
-    body: "A published rate is a target, not a promise. Returns and risk do not decouple, and a fixed high return says something about the risk carried to produce it. Read the risk disclosure before committing funds.",
+    body: "Capital is at risk. A published rate is a target, not a promise, and a high one says something about the risk behind it.",
     tags: ["risk"],
   }),
   (s) => {
@@ -123,20 +123,20 @@ const WRITERS: ((s: number) => Draft)[] = [
   },
   () => ({
     kind: "question",
-    title: "Do you ladder your terms, or run them together?",
-    body: `Staggering placements means capital returns in tranches rather than all at once on the same day. Neither is wrong. It depends on whether you want optionality or a single decision every ${CYCLE_DAYS} days.`,
+    title: "Do you compound, or take the reward as cash?",
+    body: "Accrual runs on principal alone, so reward left inside a position earns nothing. Folding it into principal is what puts it to work. Claiming it makes it spendable. Neither is wrong.",
     tags: ["strategy"],
   }),
   () => ({
     kind: "vault",
-    title: "What maturity actually means",
-    body: `At day ${CYCLE_DAYS} accrual stops. The position holds at exactly ${pct(CYCLE_RETURN)} and earns nothing further until it is settled or rolled into a new term.`,
+    title: "There is no maturity",
+    body: `A position accrues from the day it opens until you close it. Nothing stops on its own, and nothing has to be renewed. What is on a schedule is liquidity: a withdrawal can be requested once every ${WITHDRAW_INTERVAL_DAYS} days.`,
     tags: ["vaults"],
   }),
   () => ({
     kind: "product",
-    title: "Rolling a matured term",
-    body: "Settling returns principal to available cash. Rolling carries principal plus the full term reward straight into a new term, which is usually what moves a member up a rung.",
+    title: "Compounding a position",
+    body: "Closing returns principal to available cash. Compounding claims the reward, closes the position and re-opens it larger in one movement, which is usually what moves a member up a rung.",
     tags: ["vaults"],
   }),
   () => ({
@@ -188,7 +188,7 @@ const WRITERS: ((s: number) => Draft)[] = [
   () => ({
     kind: "product",
     title: "Claiming and settling are not the same move",
-    body: `A claim moves rewards that have already accrued into available cash and leaves the term running. Settling closes the position and returns principal. Only settling ends accrual before day ${CYCLE_DAYS}.`,
+    body: "A claim moves rewards that have already accrued into available cash and leaves the position running. Closing ends the position and returns principal. Only closing ends accrual.",
     tags: ["vaults"],
   }),
   (s) => {
@@ -196,8 +196,8 @@ const WRITERS: ((s: number) => Draft)[] = [
     const daily = t.entry * DAILY_RATE;
     return {
       kind: "insight",
-      title: "Splitting a placement changes when capital returns",
-      body: `Two ${usd(Math.round(t.entry / 2))} terms opened a fortnight apart accrue the same ${usd(Math.round(daily))} a day between them as one ${usd(t.entry)} term, but they mature on two dates instead of one. Horizon shows the calendar either way.`,
+      title: "Splitting a placement now costs something",
+      body: `Two ${usd(Math.round(t.entry / 2))} positions opened a fortnight apart eventually accrue the same ${usd(Math.round(daily))} a day between them as one ${usd(t.entry)} position, but the second one earns nothing for the fortnight it waits, and that gap never closes. Echelon works out the figure.`,
       tierId: t.id,
       tags: ["strategy"],
     };
