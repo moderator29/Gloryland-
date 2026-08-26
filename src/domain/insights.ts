@@ -2,7 +2,7 @@
  * The intelligence layer: turns a `Snapshot` into a short, ranked list of
  * things the member should actually do something about.
  *
- * Everything here is pure and deterministic — the only inputs are the
+ * Everything here is pure and deterministic, the only inputs are the
  * snapshot and the clock, and every sentence interpolates a real figure that
  * came out of the ledger. Nothing is invented, nothing is sampled, and the
  * same snapshot always produces the same list, so the surface can re-render
@@ -25,7 +25,7 @@ export type Insight = {
 /* ── thresholds ─────────────────────────────────────────────────────────────
    Each one is a judgement about when a fact becomes worth interrupting
    someone for. They live together so the noise floor of the whole feed can be
-   read — and tuned — in one place. */
+   read, and tuned, in one place. */
 
 /**
  * A term is 30 days, so three days is the last tenth of it: long enough that
@@ -37,8 +37,8 @@ const MATURING_WINDOW_DAYS = 3;
 /**
  * Claims are only worth surfacing once the amount clears both a flat floor
  * and a full day of accrual. The flat floor keeps trivial balances quiet on
- * small positions; the daily-accrual test keeps large portfolios — where a
- * single day is worth far more than the floor — from nagging hourly.
+ * small positions; the daily-accrual test keeps large portfolios, where a
+ * single day is worth far more than the floor, from nagging hourly.
  */
 const CLAIM_FLOOR = 25;
 
@@ -58,7 +58,7 @@ const TIER_PROXIMITY = 0.75;
 const STRONG_RETURN = 0.1;
 
 /**
- * Cash is only "redeployable" once it clears the lowest tier entry — below
+ * Cash is only "redeployable" once it clears the lowest tier entry, below
  * that there is no vault to put it into, so the prompt would be a dead end.
  */
 const IDLE_CASH_FLOOR = TIERS[0].entry;
@@ -126,7 +126,7 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
   }
 
   /* Principal that finished its term and is still sitting in the vault earns
-     nothing — accrual stops at maturity — so this outranks everything else. */
+     nothing, accrual stops at maturity, so this outranks everything else. */
   const matured = active.filter((p) => daysLeft(p, now) <= 0);
   if (matured.length > 0) {
     const principal = matured.reduce((s, p) => s + num(p.principal), 0);
@@ -221,7 +221,7 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
     });
   }
 
-  /* Performance is the one rule that asks for nothing — it has no action and
+  /* Performance is the one rule that asks for nothing, it has no action and
      the lowest weight, so it fills the feed only when nothing needs doing. */
   const returnPct = num(snap.returnPct);
   if (num(snap.contributed) > 0 && returnPct >= STRONG_RETURN) {
@@ -231,7 +231,7 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
       title: `Up ${pct(returnPct).replace(/^\+/, "")} since inception`,
       body: `${money(num(snap.portfolioValue))} against ${money(
         num(snap.contributed),
-      )} contributed — a net gain of ${money(num(snap.netGain))}.`,
+      )} contributed, a net gain of ${money(num(snap.netGain))}.`,
       priority: P.performance,
     });
   }

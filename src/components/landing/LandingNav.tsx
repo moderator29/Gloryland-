@@ -1,27 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, useScroll } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/brand/Mark";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
  * Public site header.
  *
- * Transparent over the hero, then glass once the page has scrolled so the
- * links stay legible against content. Below `lg` the section links collapse
- * into a disclosure panel; the portal call to action never collapses.
+ * Transparent over the hero, then glass once the page has scrolled, so the
+ * links stay legible against content rather than fighting it. The hairline
+ * along the bottom edge doubles as a read position: it is the one piece of
+ * page furniture that tells you how much of the argument is left. Below `lg`
+ * the section links collapse into a disclosure panel, and the portal call to
+ * action never collapses.
  */
 
 const LINKS = [
-  { href: "#product", label: "Product" },
-  { href: "#vaults", label: "Vaults" },
-  { href: "#tiers", label: "Tiers" },
-  { href: "#security", label: "Security" },
-  { href: "#faq", label: "FAQ" },
+  { href: "#instrument", label: "Instrument" },
+  { href: "#term", label: "Term" },
+  { href: "#ladder", label: "Ladder" },
+  { href: "#desk", label: "Desk" },
+  { href: "#questions", label: "Questions" },
 ];
 
 export function LandingNav() {
+  const reduce = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -30,7 +37,7 @@ export function LandingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close the mobile panel on resize up to desktop, so state can't get stuck.
+  // Close the mobile panel on resize up to desktop, so state cannot get stuck.
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     const handle = (e: MediaQueryListEvent) => e.matches && setOpen(false);
@@ -50,7 +57,7 @@ export function LandingNav() {
         <Link
           to="/"
           className="shrink-0 rounded-lg"
-          aria-label="Rigel — home"
+          aria-label="Rigel, home"
           onClick={() => setOpen(false)}
         >
           <Wordmark size={26} />
@@ -109,6 +116,20 @@ export function LandingNav() {
           ))}
         </nav>
       </div>
+
+      {/* Read position. Decorative, and the transform is driven straight from
+          the scroll value, so it never costs a React render. */}
+      {!reduce && (
+        <motion.div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-px origin-left"
+          style={{
+            scaleX: scrollYProgress,
+            background:
+              "linear-gradient(90deg, var(--accent-deep), var(--accent) 45%, var(--accent-soft))",
+          }}
+        />
+      )}
     </header>
   );
 }

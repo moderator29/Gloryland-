@@ -149,7 +149,7 @@ export function MobileMenuButton() {
                           to={to}
                           end={end}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                            `min-h-[36px] flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                               isActive
                                 ? "border border-[rgba(46,139,255,0.32)] bg-[rgba(46,139,255,0.12)] text-[var(--text-hi)]"
                                 : "text-[var(--text-mid)]"

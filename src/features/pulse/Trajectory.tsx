@@ -116,7 +116,7 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
             {beyond > 0 ? `, with ${beyond} maturing later` : ""}
           </p>
         </div>
-        <Link to="/app/vaults" className="btn btn-ghost shrink-0 !py-1.5 !text-xs">
+        <Link to="/app/vaults" className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-xs">
           All vaults <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </div>

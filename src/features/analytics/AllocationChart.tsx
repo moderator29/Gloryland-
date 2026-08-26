@@ -3,8 +3,8 @@
  *
  * Drawn as a stacked rail rather than a pie: with six possible tiers and a
  * 360px floor, a horizontal bar keeps every share legible and every label on
- * its own line. Colour stays inside the blue/cyan family — the ladder is one
- * ordered thing, not six unrelated categories — with a single steel neutral
+ * its own line. Colour stays inside the blue/cyan family, the ladder is one
+ * ordered thing, not six unrelated categories, with a single steel neutral
  * reserved for anything that falls off the known ladder.
  */
 

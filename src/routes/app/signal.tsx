@@ -101,7 +101,7 @@ export default function Signal() {
                 type="button"
                 onClick={() => setView(tab.id)}
                 aria-pressed={active}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   active
                     ? "bg-[rgba(46,139,255,0.14)] text-[var(--accent-hi)]"
                     : "text-[var(--text-low)] hover:text-[var(--text-hi)]"

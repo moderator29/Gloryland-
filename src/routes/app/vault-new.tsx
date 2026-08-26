@@ -135,7 +135,7 @@ export default function VaultNew() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <Link to="/app/vaults" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+      <Link to="/app/vaults" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
         <ArrowLeft className="h-4 w-4" /> Vaults
       </Link>
 
@@ -358,7 +358,7 @@ export default function VaultNew() {
           <motion.div key="done" {...fade} className="space-y-4">
             <ConfirmationTracker />
 
-            <div className="flex justify-center overflow-x-auto py-1">
+            <div className="min-h-[36px] flex justify-center overflow-x-auto py-1">
               <Receipt ref={receiptRef} data={receipt} />
             </div>
 

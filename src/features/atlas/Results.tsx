@@ -204,7 +204,7 @@ export function AtlasResults({
                       event.preventDefault();
                       onSelect(entry, index);
                     }}
-                    className={`flex items-center gap-3 rounded-xl border px-2.5 transition-colors ${
+                    className={`min-h-[36px] flex items-center gap-3 rounded-xl border px-2.5 transition-colors ${
                       dense ? "py-2" : "py-2.5"
                     } ${
                       selected

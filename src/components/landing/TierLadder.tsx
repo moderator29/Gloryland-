@@ -1,87 +1,87 @@
-import { Check } from "lucide-react";
-import { TIERS, termReward } from "@/domain/tiers";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, ChevronRight, Timer } from "lucide-react";
+import { CYCLE_DAYS, CYCLE_RETURN, TIERS, termReward } from "@/domain/tiers";
 import { money } from "@/components/system/format";
+import { Counter } from "./Counter";
+import { TERM_RATE, TOP_TIER } from "./figures";
 import { Stagger, StaggerItem } from "./Reveal";
 
 /**
- * The tier ladder.
+ * The ladder.
  *
- * Not a pricing table — every tier carries the same rate, so a column grid
- * comparing prices would be lying about what changes. It is drawn as a rail
- * you climb: one rung per tier, a node on the rail, and a reach bar showing
- * where the entry threshold sits against the top of the ladder.
+ * Not a pricing table. Every rung carries the same rate, so a column grid
+ * comparing prices would be lying about what actually changes between them.
+ * It is drawn as a ledger instead: ruled rows behind an accent rail, with the
+ * rate column repeating the identical figure six times, because the repetition
+ * is the argument. Settlement is the column that moves.
+ *
+ * Every rung is a link to its own detail route, so the page hands a visitor
+ * straight to the rung they were reading rather than to a generic sign up.
  */
 
-const TOP = TIERS[TIERS.length - 1].entry;
+const TOP = TOP_TIER.entry;
 
 export function TierLadder() {
   return (
-    <div className="relative">
-      {/* The rail itself, behind the rungs. */}
-      <span
-        aria-hidden="true"
-        className="absolute bottom-6 left-[19px] top-6 hidden w-px sm:block"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(46,139,255,0.12), rgba(92,171,255,0.55), rgba(125,211,252,0.85))",
-        }}
-      />
+    <div>
+      {/* The constant, stated once before the rows repeat it. */}
+      <div className="panel-hi edge-light flex flex-wrap items-center justify-between gap-x-6 gap-y-4 p-5 sm:p-6">
+        <div className="min-w-0">
+          <p className="eyebrow">Rate at every rung</p>
+          <p className="figure-lead mt-2 text-[var(--accent-hi)]">
+            <Counter value={CYCLE_RETURN * 100} format={(n) => `${n.toFixed(0)}%`} />
+          </p>
+        </div>
+        <p className="max-w-sm text-sm leading-relaxed text-[var(--text-mid)]">
+          {TERM_RATE} over {CYCLE_DAYS} days, from {TIERS[0].name} at {money(TIERS[0].entry)} to{" "}
+          {TOP_TIER.name} at {money(TOP)}. Climbing the ladder buys settlement speed and tooling. It
+          does not buy a better number.
+        </p>
+      </div>
 
-      <Stagger as="ol" className="space-y-2.5">
-        {TIERS.map((tier) => {
+      <Stagger as="ol" className="ledger mt-6">
+        {TIERS.map((tier, i) => {
+          const last = i === TIERS.length - 1;
           const reach = (tier.entry / TOP) * 100;
-          const top = tier.entry === TOP;
 
           return (
-            <StaggerItem as="li" key={tier.id} className="relative">
-              <article
-                className={`${top ? "panel-hi edge-light" : "panel"} group relative flex gap-4 p-4 transition-colors hover:border-[var(--line-hi)] sm:p-5 sm:pl-16`}
+            <StaggerItem as="li" key={tier.id} className="min-w-0">
+              <Link
+                to={`/app/tiers/${tier.id}`}
+                className={`rail-row sheen group !items-start gap-3 sm:gap-4 ${
+                  last ? "!border-b-0" : ""
+                }`}
               >
-                {/* Rail node. */}
                 <span
                   aria-hidden="true"
-                  className="absolute left-[11px] top-1/2 hidden h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full border sm:flex"
-                  style={{
-                    borderColor: top ? "var(--accent-soft)" : "var(--line-hi)",
-                    background: "var(--ink-000)",
-                  }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{
-                      background: top ? "var(--accent-soft)" : "var(--accent)",
-                      opacity: top ? 1 : 0.35 + (tier.rank / TIERS.length) * 0.55,
-                    }}
-                  />
-                </span>
-
-                {/* Rank numeral, doubles as the mobile rail marker. */}
-                <span
-                  className="tabular grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)] text-[13px] font-semibold text-[var(--accent-hi)] sm:hidden"
-                  aria-hidden="true"
+                  className="metric mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--line)] bg-[rgba(46,139,255,0.07)] text-[13px] text-[var(--accent-hi)]"
                 >
                   {tier.rank}
                 </span>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h3 className="text-base font-semibold text-[var(--text-hi)] sm:text-lg">
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                    <span className="text-[15px] font-semibold text-[var(--text-hi)] sm:text-base">
                       {tier.name}
-                    </h3>
-                    <p className="metric text-sm text-[var(--accent-hi)] sm:text-base">
-                      from {money(tier.entry)}
-                    </p>
-                    {top && <span className="chip chip-accent">Full programme</span>}
-                  </div>
+                    </span>
+                    {/* The same chip on all six rows. The repetition is the point. */}
+                    <span className="chip chip-accent tabular">{TERM_RATE} term</span>
+                  </span>
 
-                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-mid)]">
+                  <span className="mt-1 block text-xs text-[var(--text-low)]">
+                    <span className="metric text-[var(--text-mid)]">from {money(tier.entry)}</span>
+                    <span className="mx-1.5">&middot;</span>
+                    {money(termReward(tier.entry))} at maturity on the entry amount
+                  </span>
+
+                  <span className="mt-1.5 hidden text-sm leading-relaxed text-[var(--text-mid)] sm:block">
                     {tier.blurb}
-                  </p>
+                  </span>
 
-                  {/* Reach bar: entry threshold against the top of the ladder. */}
-                  <div
+                  {/* Where the entry threshold sits against the top of the ladder. */}
+                  <span
                     aria-hidden="true"
-                    className="mt-3.5 h-1 w-full overflow-hidden rounded-full bg-[rgba(5,7,15,0.7)]"
+                    className="mt-3 block h-1 w-full overflow-hidden rounded-full bg-[rgba(5,7,15,0.7)]"
                   >
                     <span
                       className="block h-full rounded-full"
@@ -91,37 +91,48 @@ export function TierLadder() {
                           "linear-gradient(90deg, var(--accent-deep), var(--accent), var(--accent-soft))",
                       }}
                     />
-                  </div>
+                  </span>
+                </span>
 
-                  <ul className="mt-3.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                    {tier.benefits.map((b) => (
-                      <li
-                        key={b}
-                        className="flex items-center gap-1.5 text-xs text-[var(--text-low)]"
-                      >
-                        <Check
-                          className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]"
-                          strokeWidth={2.2}
-                          aria-hidden="true"
-                        />
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="hidden shrink-0 flex-col items-end justify-center gap-1.5 border-l border-[var(--line)] pl-5 md:flex">
-                  <p className="eyebrow">Settlement</p>
-                  <p className="metric tabular text-lg">{tier.settlementHours}h</p>
-                  <p className="text-[11px] text-[var(--text-low)]">
-                    {money(termReward(tier.entry))} at term
-                  </p>
-                </div>
-              </article>
+                <span className="flex shrink-0 items-center gap-3 pt-0.5 sm:gap-5">
+                  <span className="text-right">
+                    <span className="tag-micro">Settles</span>
+                    <span className="metric mt-1 flex items-center justify-end gap-1.5 text-base sm:text-lg">
+                      <Timer
+                        className="h-3.5 w-3.5 text-[var(--text-low)]"
+                        strokeWidth={1.9}
+                        aria-hidden="true"
+                      />
+                      {tier.settlementHours}h
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-[var(--text-low)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--accent-hi)]"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
             </StaggerItem>
           );
         })}
       </Stagger>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2.5">
+        <Link to="/app/tiers/compare" className="btn btn-outline text-[13px]">
+          Compare the rungs
+          <ArrowUpRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+        </Link>
+        <Link to="/app/tiers/match" className="btn btn-ghost text-[13px]">
+          Find the rung that fits
+        </Link>
+      </div>
+
+      <p className="mt-5 text-xs leading-relaxed text-[var(--text-low)]">
+        Settlement figures are the targets the desk works to, measured from an approved withdrawal
+        request. They are operational objectives, not contractual guarantees, and network conditions
+        or review checks can extend them.
+      </p>
     </div>
   );
 }

@@ -209,7 +209,7 @@ export function SegmentedControl<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className={`relative min-w-0 rounded-[0.6rem] px-2 py-2 text-center transition-colors ${
+            className={`min-h-[36px] relative min-w-0 rounded-[0.6rem] px-2 py-2 text-center transition-colors ${
               active ? "text-[var(--text-hi)]" : "text-[var(--text-mid)] hover:text-[var(--text)]"
             }`}
           >

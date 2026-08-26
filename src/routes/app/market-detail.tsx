@@ -69,7 +69,7 @@ export default function MarketDetail() {
 
   return (
     <div className="space-y-5">
-      <Link to="/app/market" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+      <Link to="/app/market" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
         <ArrowLeft className="h-4 w-4" /> Markets
       </Link>
 
@@ -186,7 +186,7 @@ export default function MarketDetail() {
               role="tab"
               aria-selected={win === w}
               onClick={() => setWin(w)}
-              className={`relative flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+              className={`min-h-[36px] relative flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
                 win === w ? "text-[#04101f]" : "text-[var(--text-mid)] hover:text-[var(--text-hi)]"
               }`}
             >

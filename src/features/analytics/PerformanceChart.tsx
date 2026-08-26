@@ -1,8 +1,8 @@
 /**
  * Portfolio value over a window, replayed from the ledger.
  *
- * Every point is `derive(events up to t, t).portfolioValue` — the same
- * function the rest of the product reads — so the curve can never drift from
+ * Every point is `derive(events up to t, t).portfolioValue`, the same
+ * function the rest of the product reads, so the curve can never drift from
  * the headline figures on the page around it.
  */
 
@@ -76,7 +76,7 @@ export function PerformanceChart({
   const flat = series.length === 0 || series.every((p) => p.v === 0);
 
   /* Pad the domain by 8% so the stroke never sits on the frame, and keep the
-     floor at zero — portfolio value is never negative. */
+     floor at zero, portfolio value is never negative. */
   const domain = useMemo<[number, number]>(() => {
     if (series.length === 0) return [0, 1];
     const values = series.map((p) => p.v);

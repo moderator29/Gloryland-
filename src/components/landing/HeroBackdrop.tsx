@@ -1,13 +1,18 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
- * The hero's atmosphere: a faint technical grid, a horizon glow and three
- * slow blue orbs that drift on long, unsynchronised cycles.
+ * The hero's atmosphere: a faint technical grid, three slow blue orbs on long
+ * unsynchronised cycles, and a raking ray across the upper field.
  *
- * Deliberately quiet — three large soft shapes rather than a particle field,
- * so it reads as depth rather than decoration. Purely presentational, so it
- * is hidden from assistive technology and never intercepts pointer events.
+ * Two layers of movement, and they are different on purpose. The orbs drift
+ * on their own clock so the page is never quite still, while the grid and the
+ * ray are tied to scroll position, which is what gives the hero depth as it
+ * leaves the screen. The hero sits at the top of the document, so page scroll
+ * is the correct driver and no measurement of the section is needed.
+ *
+ * Purely presentational: hidden from assistive technology, inert to the
+ * pointer, and completely static under reduced motion.
  */
 
 const ORBS = [
@@ -39,13 +44,23 @@ const ORBS = [
 
 export function HeroBackdrop() {
   const reduce = useReducedMotion();
+  const { scrollY } = useScroll();
+
+  // Parallax: the grid falls behind the content, the field lifts, and the ray
+  // slides across. Small ranges, because the point is depth, not spectacle.
+  const gridY = useTransform(scrollY, [0, 900], [0, 130]);
+  const gridFade = useTransform(scrollY, [0, 620], [0.55, 0.12]);
+  const fieldY = useTransform(scrollY, [0, 900], [0, -70]);
+  const rayX = useTransform(scrollY, [0, 900], ["0%", "26%"]);
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Technical grid, faded out toward the edges so it never reads as a table. */}
-      <div
-        className="absolute inset-0 opacity-[0.55]"
+      <motion.div
+        className="absolute inset-0"
         style={{
+          opacity: reduce ? 0.55 : gridFade,
+          y: reduce ? 0 : gridY,
           backgroundImage:
             "linear-gradient(to right, rgba(120,160,220,0.07) 1px, transparent 1px)," +
             "linear-gradient(to bottom, rgba(120,160,220,0.07) 1px, transparent 1px)",
@@ -55,38 +70,41 @@ export function HeroBackdrop() {
         }}
       />
 
+      {/* A raking ray of brand light, the same angle as the glass stride. */}
+      <motion.div
+        className="absolute -inset-x-1/4 -top-1/3 h-[160%]"
+        style={{
+          x: reduce ? 0 : rayX,
+          background:
+            "linear-gradient(104deg, transparent 30%, rgba(125,211,252,0.055) 45%, transparent 60%)",
+        }}
+      />
+
       {/* Drifting orbs. */}
-      {ORBS.map((orb, i) =>
-        reduce ? (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: orb.size,
-              height: orb.size,
-              left: orb.left,
-              top: orb.top,
-              background: `radial-gradient(circle, ${orb.color} 0%, transparent 68%)`,
-              filter: "blur(28px)",
-            }}
-          />
-        ) : (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: orb.size,
-              height: orb.size,
-              left: orb.left,
-              top: orb.top,
-              background: `radial-gradient(circle, ${orb.color} 0%, transparent 68%)`,
-              filter: "blur(28px)",
-            }}
-            animate={{ x: [...orb.drift.x], y: [...orb.drift.y] }}
-            transition={{ duration: orb.duration, repeat: Infinity, ease: "easeInOut" }}
-          />
-        ),
-      )}
+      <motion.div className="absolute inset-0" style={{ y: reduce ? 0 : fieldY }}>
+        {ORBS.map((orb, i) => {
+          const paint = {
+            width: orb.size,
+            height: orb.size,
+            left: orb.left,
+            top: orb.top,
+            background: `radial-gradient(circle, ${orb.color} 0%, transparent 68%)`,
+            filter: "blur(28px)",
+          };
+
+          if (reduce) return <div key={i} className="absolute rounded-full" style={paint} />;
+
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={paint}
+              animate={{ x: [...orb.drift.x], y: [...orb.drift.y] }}
+              transition={{ duration: orb.duration, repeat: Infinity, ease: "easeInOut" }}
+            />
+          );
+        })}
+      </motion.div>
 
       {/* Horizon: a single hairline of brand light where the hero ends. */}
       <div

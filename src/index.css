@@ -299,6 +299,27 @@
     );
   }
 
+  /* Touch targets.
+     A dense row of chips can stay dense on a mouse and still be easy to hit
+     on a phone, so the floor is applied only to coarse pointers. min-height
+     has no effect on a non replaced inline element, which is exactly what a
+     link inside a paragraph is, so prose is untouched by construction. A
+     button centres its own content vertically in every engine, so growing one
+     never leaves its label stranded at the top. */
+  @media (pointer: coarse) {
+    :is(button, a[href], summary, label[for], [role="radio"], [role="tab"], [role="option"]):not(
+        .sr-only
+      ):not([aria-hidden="true"]) {
+      min-height: 44px;
+    }
+
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+      min-height: 44px;
+    }
+  }
+
   /* A hairline that carries brand light rather than sitting flat. */
   .rule-glow {
     height: 1px;

@@ -95,7 +95,7 @@ export function RangeTabs({
             aria-controls={controls}
             tabIndex={isSelected ? 0 : -1}
             onClick={() => onChange(range.days)}
-            className={`tabular relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-3 ${
+            className={`min-h-[36px] tabular relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-3 ${
               isSelected
                 ? "text-[var(--accent-hi)]"
                 : "text-[var(--text-mid)] hover:text-[var(--text-hi)]"

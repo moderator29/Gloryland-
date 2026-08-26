@@ -42,7 +42,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
                       end={end}
                       title={collapsed ? label : undefined}
                       className={({ isActive }) =>
-                        `group relative flex items-center gap-3 rounded-full py-2.5 text-sm transition-colors ${
+                        `min-h-[36px] group relative flex items-center gap-3 rounded-full py-2.5 text-sm transition-colors ${
                           collapsed ? "justify-center px-0" : "px-3"
                         } ${
                           isActive

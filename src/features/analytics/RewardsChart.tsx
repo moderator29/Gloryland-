@@ -1,7 +1,7 @@
 /**
  * Rewards accrued per day across a window.
  *
- * There is no "reward event" in the ledger — accrual is continuous — so the
+ * There is no "reward event" in the ledger, accrual is continuous, so the
  * series is built by replaying `derive(...).rewardsAccrued` at each day
  * boundary and taking the day-over-day difference. That keeps the bars
  * consistent with the lifetime figure by construction.
@@ -60,7 +60,7 @@ export function RewardsChart({
     if (src.length === 0) return [];
     try {
       /* Cumulative accrual as of an instant, replaying only what had happened
-         by then — the same shape of replay `valueSeries` performs. */
+         by then, the same shape of replay `valueSeries` performs. */
       const cumulativeAt = (t: number) =>
         derive(
           src.filter((e) => e.at <= t),
@@ -150,7 +150,7 @@ export function RewardsChart({
                     <TooltipShell
                       title={
                         bucketDays > 1
-                          ? `${shortDate(bucket.from)} – ${shortDate(bucket.t)}`
+                          ? `${shortDate(bucket.from)}, ${shortDate(bucket.t)}`
                           : fullDate(bucket.t)
                       }
                       rows={[{ label: "Accrued", value: money(bucket.v, 2), tone: "accent" }]}

@@ -343,16 +343,24 @@ export default function TierMatch() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between gap-3">
         {step === 0 ? (
-          <Link to="/app/tiers" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+          <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
             <ArrowLeft className="h-4 w-4" /> Tiers
           </Link>
         ) : (
-          <button type="button" onClick={back} className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+          <button
+            type="button"
+            onClick={back}
+            className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
         )}
         {step > 0 && (
-          <button type="button" onClick={restart} className="btn btn-ghost !py-1.5 !text-xs">
+          <button
+            type="button"
+            onClick={restart}
+            className="min-h-[36px] btn btn-ghost !py-1.5 !text-xs"
+          >
             <RotateCcw className="h-3.5 w-3.5" /> Start over
           </button>
         )}
@@ -518,7 +526,7 @@ export default function TierMatch() {
                 </p>
                 <Link
                   to={`/app/tiers/${runnerUp.id}`}
-                  className="btn btn-ghost !py-1.5 !text-xs shrink-0"
+                  className="min-h-[36px] btn btn-ghost !py-1.5 !text-xs shrink-0"
                 >
                   View <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>

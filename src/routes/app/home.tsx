@@ -12,6 +12,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { LiveTicker, Trajectory } from "@/features/pulse";
 import { Orientation } from "@/features/onboarding";
 import { RelayDue } from "@/features/relay";
+import { Explain } from "@/features/explain";
 import { Arrange, type ArrangeItem } from "@/features/utility";
 import {
   Cadence,
@@ -327,6 +328,7 @@ export default function Home() {
           <p className="figure-lead mt-3">
             <Value value={snap.portfolioValue} decimals={2} />
           </p>
+          <Explain id="portfolioValue" className="mt-2" />
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <span className={`chip ${snap.netGain >= 0 ? "chip-gain" : ""}`}>

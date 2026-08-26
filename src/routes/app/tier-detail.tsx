@@ -15,7 +15,7 @@ function isCarryOver(line: string) {
 function NotFound({ id }: { id?: string }) {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link to="/app/tiers" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+      <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
         <ArrowLeft className="h-4 w-4" /> Tiers
       </Link>
       <section className="panel-hi edge-light p-8 text-center">
@@ -67,7 +67,7 @@ export default function TierDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link to="/app/tiers" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+      <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
         <ArrowLeft className="h-4 w-4" /> Tiers
       </Link>
 

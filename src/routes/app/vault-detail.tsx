@@ -11,6 +11,7 @@ import { Metric, Progress, Status } from "@/components/system/ui";
 import { money, fullDate, days, relative } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { RelayPanel } from "@/features/relay";
+import { Explain } from "@/features/explain";
 
 /** The four moments in a term, rendered as a vertical timeline. */
 function Timeline({
@@ -117,7 +118,7 @@ export default function VaultDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to="/app/vaults" className="btn btn-ghost -ml-2 !py-1.5 !text-xs">
+      <Link to="/app/vaults" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
         <ArrowLeft className="h-4 w-4" /> Vaults
       </Link>
 
@@ -143,6 +144,11 @@ export default function VaultDetail() {
             <p className="mt-1.5 text-xs text-[var(--text-low)]">
               of {money(p.termReward)} across the full term
             </p>
+            <Explain
+              id="accrued"
+              ctx={{ principal: p.principal, openedAt: p.openedAt }}
+              className="mt-2"
+            />
           </div>
           {!p.closed && (
             <div className="flex flex-wrap gap-2">

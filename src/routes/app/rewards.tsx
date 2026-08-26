@@ -8,6 +8,7 @@ import { claimRewards, recordWithdrawal } from "@/domain/ledger";
 import { Value } from "@/components/system/Value";
 import { Progress, Empty } from "@/components/system/ui";
 import { money, fullDate, relative } from "@/components/system/format";
+import { Explain } from "@/features/explain";
 
 /** Left-aligned section head: accent tick, label, hairline out to the edge. */
 function BandHead({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
@@ -88,6 +89,7 @@ export default function Rewards() {
           <p className="figure-lead mt-3 text-[var(--gain)]">
             <Value value={claimable} decimals={2} />
           </p>
+          <Explain id="accrued" className="mt-2" />
           <p className="mt-3 text-xs text-[var(--text-low)]">
             across {snap.activePositions.length} open vault
             {snap.activePositions.length === 1 ? "" : "s"}
@@ -173,7 +175,7 @@ export default function Rewards() {
                   />
                   <button
                     onClick={() => setAmt(String(snap.available.toFixed(2)))}
-                    className="btn btn-ghost shrink-0 !py-1 !text-[11px]"
+                    className="min-h-[36px] btn btn-ghost shrink-0 !py-1 !text-[11px]"
                     disabled={snap.available <= 0}
                   >
                     MAX

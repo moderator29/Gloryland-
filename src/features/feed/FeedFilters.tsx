@@ -114,7 +114,7 @@ export function FeedFilters({
             aria-controls={controls}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(o.id)}
-            className={`relative shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`min-h-[36px] relative shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               selected
                 ? "text-[#04101f]"
                 : "border border-[var(--line)] bg-[rgba(5,7,15,0.5)] text-[var(--text-mid)] hover:border-[var(--line-hi)] hover:text-[var(--text-hi)]"

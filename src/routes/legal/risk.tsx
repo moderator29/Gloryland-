@@ -16,7 +16,7 @@ const SECTIONS: LegalSection[] = [
             Capital placed in a Rigel vault is at risk. You may lose part of it. You may lose all of
             it.
           </strong>{" "}
-          That is not a formality at the bottom of a page — it is the single most important fact
+          That is not a formality at the bottom of a page, it is the single most important fact
           about this product, and everything else in this document explains how it could happen.
         </p>
         <p>
@@ -54,21 +54,21 @@ const SECTIONS: LegalSection[] = [
         <p>
           A {pct(CYCLE_RETURN, 0)} return every {CYCLE_DAYS} days is very far above what established
           markets produce. Sustained and reinvested, it compounds to an annualised rate in the
-          thousands of percent — a rate no conventional asset class, lending market or treasury
+          thousands of percent, a rate no conventional asset class, lending market or treasury
           strategy delivers reliably.
         </p>
         <p>
           <strong>
             Returns and risk do not decouple. A product offering returns of this magnitude is, by
             definition, carrying risk of a matching magnitude
-          </strong>{" "}
-          — whether that risk sits in market exposure, leverage, counterparty concentration, or in
+          </strong>
+          , whether that risk sits in market exposure, leverage, counterparty concentration, or in
           the continued solvency and honesty of the operator. If you cannot articulate where the
           return comes from and what would make it stop, treat that as a reason not to place
           capital.
         </p>
         <p>
-          Be especially sceptical of any platform — including this one — that presents a high fixed
+          Be especially sceptical of any platform, including this one, that presents a high fixed
           return as though it were low risk, or that describes payment as &ldquo;guaranteed&rdquo;,
           &ldquo;insured&rdquo; or &ldquo;risk-free&rdquo;. Ask for the underlying strategy and the
           documents that evidence it.
@@ -94,7 +94,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           Rigel does not claim any licence, insurance policy, audit certification or custody
-          partnership on this site. Absence of such a claim is honest — it is not a substitute for
+          partnership on this site. Absence of such a claim is honest, it is not a substitute for
           protection you do not have.
         </p>
       </>
@@ -113,7 +113,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           Circumstances can change quickly. If there is a realistic chance you will need this money
-          before maturity — an emergency, a bill, a margin call elsewhere — do not place it.
+          before maturity, an emergency, a bill, a margin call elsewhere, do not place it.
         </p>
       </>
     ),
@@ -131,7 +131,7 @@ const SECTIONS: LegalSection[] = [
           <li>The platform could become insolvent and be unable to meet withdrawal requests.</li>
           <li>A counterparty the platform relies on could fail, taking value with it.</li>
           <li>
-            The platform could suspend withdrawals during stress — the point at which you would most
+            The platform could suspend withdrawals during stress, the point at which you would most
             want them.
           </li>
           <li>
@@ -191,7 +191,7 @@ const SECTIONS: LegalSection[] = [
           The rules governing digital assets and fixed-return products are unsettled and change
           quickly. A change in law, a regulatory action, or a determination that a product must be
           authorised could force the platform to suspend services, restrict your jurisdiction,
-          freeze balances, or wind down — with or without notice.
+          freeze balances, or wind down, with or without notice.
         </p>
         <p>
           You are responsible for the tax consequences of anything you do here, and for determining
@@ -227,7 +227,7 @@ const SECTIONS: LegalSection[] = [
           communication from us should be read as a recommendation to place capital.
         </p>
         <p>
-          Before committing anything, consider taking independent professional advice — particularly
+          Before committing anything, consider taking independent professional advice, particularly
           if the amount is material to you.
         </p>
       </>
@@ -252,7 +252,7 @@ const SECTIONS: LegalSection[] = [
         <p>
           Read this alongside the <Link to="/legal/terms">Terms of Service</Link> and the{" "}
           <Link to="/legal/privacy">Privacy Policy</Link>. If any part of this document is unclear,
-          ask before you place capital — not after.
+          ask before you place capital, not after.
         </p>
       </>
     ),

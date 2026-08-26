@@ -155,7 +155,7 @@ export function Arrange({
             type="button"
             onClick={() => setEditing((e) => !e)}
             aria-pressed={editing}
-            className={`btn ${editing ? "btn-secondary" : "btn-ghost"} px-2.5 py-2 text-xs`}
+            className={`min-h-[36px] btn ${editing ? "btn-secondary" : "btn-ghost"} px-2.5 py-2 text-xs`}
           >
             {editing ? (
               <>
@@ -198,7 +198,7 @@ export function Arrange({
                   onClick={() => move(item.key, "up")}
                   disabled={i === 0}
                   aria-label={`Move ${item.label} up`}
-                  className="btn btn-outline px-2 py-1.5"
+                  className="min-h-[36px] btn btn-outline px-2 py-1.5"
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
                 </button>
@@ -210,7 +210,7 @@ export function Arrange({
                   onClick={() => move(item.key, "down")}
                   disabled={i === ordered.length - 1}
                   aria-label={`Move ${item.label} down`}
-                  className="btn btn-outline px-2 py-1.5"
+                  className="min-h-[36px] btn btn-outline px-2 py-1.5"
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
                 </button>

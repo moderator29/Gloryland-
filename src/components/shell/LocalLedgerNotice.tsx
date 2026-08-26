@@ -37,9 +37,9 @@ export function LocalLedgerNotice() {
           }
         }}
         aria-label="Dismiss notice"
-        className="shrink-0 rounded p-0.5 text-[var(--text-low)] transition-colors hover:text-[var(--text-hi)]"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--text-low)] transition-colors hover:bg-[rgba(120,160,220,0.08)] hover:text-[var(--text-hi)]"
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-4 w-4" />
       </button>
     </div>
   );

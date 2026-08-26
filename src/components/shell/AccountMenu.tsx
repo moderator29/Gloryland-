@@ -36,7 +36,7 @@ export function AccountMenu() {
     <div ref={wrap} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.02)] py-1.5 pl-1.5 pr-2 transition-colors hover:border-[var(--line-hi)]"
+        className="min-h-[36px] flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.02)] py-1.5 pl-1.5 pr-2 transition-colors hover:border-[var(--line-hi)]"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
@@ -84,7 +84,7 @@ export function AccountMenu() {
             <button
               role="menuitem"
               onClick={requestLogout}
-              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
+              className={`min-h-[36px] flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
                 armed
                   ? "bg-[rgba(248,113,113,0.14)] font-semibold text-[var(--loss)]"
                   : "text-[var(--text)] hover:bg-[rgba(120,160,220,0.07)]"

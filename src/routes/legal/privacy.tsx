@@ -59,7 +59,7 @@ const SECTIONS: LegalSection[] = [
             approximate location derived from your IP address.
           </li>
           <li>
-            <strong>Usage data.</strong> Pages viewed, actions taken in the portal, and timestamps —
+            <strong>Usage data.</strong> Pages viewed, actions taken in the portal, and timestamps ,
             used for security, debugging and product decisions.
           </li>
           <li>
@@ -87,7 +87,7 @@ const SECTIONS: LegalSection[] = [
             To open, track, mature and settle vault positions, and to keep the ledger correct.
           </li>
           <li>
-            To detect fraud, unauthorised access and abuse — including reviewing unusual withdrawal
+            To detect fraud, unauthorised access and abuse, including reviewing unusual withdrawal
             patterns before value moves.
           </li>
           <li>To respond to your support requests and to notify you about your positions.</li>
@@ -112,8 +112,8 @@ const SECTIONS: LegalSection[] = [
           a secure platform, or your consent where we have asked for it.
         </p>
         <p>
-          Where we rely on consent — for example for non-essential analytics — you can withdraw it
-          at any time, and withdrawing it does not affect processing already carried out.
+          Where we rely on consent, for example for non-essential analytics, you can withdraw it at
+          any time, and withdrawing it does not affect processing already carried out.
         </p>
         <ReviewNote>
           The lawful-basis framework above is written in the language of European-style data
@@ -167,7 +167,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           This is a property of the networks themselves. Any right you have to erasure under this
-          policy applies to data we hold — it cannot extend to a public ledger.
+          policy applies to data we hold, it cannot extend to a public ledger.
         </p>
       </>
     ),
@@ -225,7 +225,7 @@ const SECTIONS: LegalSection[] = [
         </ul>
         <p>
           To exercise any of these, contact us through the channel listed in your account. We may
-          need to verify your identity first — precisely because we should not hand your data to
+          need to verify your identity first, precisely because we should not hand your data to
           somebody claiming to be you.
         </p>
       </>
@@ -237,7 +237,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          We use cookies and browser storage for things the platform cannot work without — keeping
+          We use cookies and browser storage for things the platform cannot work without, keeping
           you signed in, remembering your interface preferences, and protecting against cross-site
           request forgery. Where we use anything beyond that, such as product analytics, we ask
           first and you can decline without losing access to the service.
@@ -256,8 +256,8 @@ const SECTIONS: LegalSection[] = [
           moves.
         </p>
         <ReviewNote>
-          The transfer mechanisms relied on — standard contractual clauses, adequacy decisions or
-          equivalents — must be specified once hosting regions and vendors are fixed.
+          The transfer mechanisms relied on, standard contractual clauses, adequacy decisions or
+          equivalents, must be specified once hosting regions and vendors are fixed.
         </ReviewNote>
       </>
     ),
@@ -290,8 +290,8 @@ const SECTIONS: LegalSection[] = [
           <Link to="/legal/risk">Risk Disclosure</Link>.
         </p>
         <ReviewNote>
-          A published contact route for privacy enquiries — and, where required, a named data
-          protection representative — must be added here. Do not publish a postal address until the
+          A published contact route for privacy enquiries, and, where required, a named data
+          protection representative, must be added here. Do not publish a postal address until the
           operating entity and its registered office are confirmed.
         </ReviewNote>
       </>

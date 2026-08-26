@@ -7,7 +7,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  *
  * Re-derives on two triggers: a write to the ledger, and a slow tick so
  * continuously accruing figures visibly move while the page is open. The tick
- * is deliberately unhurried — rewards accrue at 1% of principal per day, so a
+ * is deliberately unhurried, rewards accrue at 1% of principal per day, so a
  * faster clock would only burn battery to animate noise. It stops entirely
  * when the tab is hidden or the user prefers reduced motion.
  */

@@ -173,7 +173,7 @@ export function Palette({ atlas }: PaletteProps = {}) {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close Atlas"
-                className="btn btn-ghost shrink-0 !px-2 !py-1.5"
+                className="min-h-[36px] btn btn-ghost shrink-0 !px-2 !py-1.5"
               >
                 <X className="h-4 w-4" />
               </button>

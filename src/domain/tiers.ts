@@ -3,7 +3,7 @@
  *
  * One rule governs every tier: capital placed into a vault accrues a fixed
  * 30% over a 30-day term, which is 1% of principal per day. Tiers do not
- * differ on rate — they differ on access, limits and service. Keeping the
+ * differ on rate, they differ on access, limits and service. Keeping the
  * rate uniform means the number on screen is always the same promise, and
  * progression is about what a member unlocks rather than a better yield.
  */

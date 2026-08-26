@@ -37,7 +37,7 @@ function ActionButton({
       onClick={onPress}
       aria-label={label}
       aria-pressed={pressed}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+      className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
         active
           ? "text-[var(--accent-hi)]"
           : "text-[var(--text-low)] hover:bg-[rgba(120,160,220,0.08)] hover:text-[var(--text-hi)]"

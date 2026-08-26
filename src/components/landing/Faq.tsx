@@ -1,118 +1,388 @@
-import { Plus } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import type { ReactNode } from "react";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
-import { money, pct } from "@/components/system/format";
-import { Stagger, StaggerItem } from "./Reveal";
+import { LifeBuoy, Plus } from "lucide-react";
+import { CYCLE_DAYS, TIERS, dailyReward, termReward } from "@/domain/tiers";
+import { money } from "@/components/system/format";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "./figures";
 
 /**
- * Frequently asked questions.
+ * Questions, answered at the length the answer actually needs.
  *
- * Built on native <details>/<summary>, which gives correct keyboard and
- * screen-reader behaviour for free — expanded state, Enter/Space toggling
- * and in-page find — without a single line of state management.
+ * Built by hand rather than on <details>, because a native disclosure cannot
+ * animate its own height and the page wants that motion. Everything the
+ * native element gave away for free is put back explicitly: a real button
+ * carrying aria-expanded, a region named by that button, and no interactive
+ * content left reachable while a panel is closed. Under reduced motion the
+ * panel simply appears, with no height animation at all.
+ *
+ * The answers are deliberately specific. A question worth asking about money
+ * is not answered by a sentence of reassurance.
  */
 
-const ITEMS: { q: string; a: ReactNode }[] = [
+/** A worked figure the accrual answer leans on, so the arithmetic is visible. */
+const SAMPLE = TIERS[1].entry;
+
+type Item = { q: string; a: ReactNode };
+type Group = { title: string; items: Item[] };
+
+const legalLink =
+  "text-[var(--accent-hi)] underline underline-offset-2 hover:text-[var(--accent-soft)]";
+
+const GROUPS: Group[] = [
   {
-    q: "What is a vault term?",
-    a: (
-      <>
-        A vault term is a fixed {CYCLE_DAYS}-day commitment of capital. When you open a vault your
-        principal is recorded as a discrete position with a start date and a maturity date. It
-        accrues from day one and settles at the end of the term. Terms do not roll automatically —
-        at maturity you choose to withdraw or open a new one.
-      </>
-    ),
+    title: "The term",
+    items: [
+      {
+        q: "What is a vault term?",
+        a: (
+          <>
+            A fixed {CYCLE_DAYS} day commitment of capital. Opening a vault writes a position
+            carrying your principal, the day it opened and the day it matures. It accrues from the
+            first day and closes at the end of the term. Nothing rolls on its own: at maturity you
+            choose to settle or to open a new one.
+          </>
+        ),
+      },
+      {
+        q: "How does accrual actually work?",
+        a: (
+          <>
+            Linearly, against your original principal. Each day credits {DAY_RATE} of principal, so
+            a full {CYCLE_DAYS} day term reaches {TERM_RATE}. There is no compounding inside a term
+            and no performance fee taken out of the figure. On a {money(SAMPLE)} position that is{" "}
+            {money(dailyReward(SAMPLE), 2)} a day and {money(termReward(SAMPLE))} over the term. The
+            number quoted on day one is the number at maturity.
+          </>
+        ),
+      },
+      {
+        q: "Does the rate ever change?",
+        a: (
+          <>
+            Not inside an open term. The rate is fixed when the position is written, and it is the
+            same rate at every rung of the ladder. If the published term structure for new positions
+            ever changes, it applies to positions opened after that point. It cannot reach back into
+            a term already running.
+          </>
+        ),
+      },
+      {
+        q: "What happens at maturity?",
+        a: (
+          <>
+            The position stops accruing at {TERM_RATE} of principal. Principal and reward sit in the
+            position until you act on them. You can settle to an allow listed address, or open a new{" "}
+            {CYCLE_DAYS} day term with the whole balance. Both start with an instruction from you.
+          </>
+        ),
+      },
+      {
+        q: "Can I withdraw before maturity?",
+        a: (
+          <>
+            A term is a commitment, so capital inside an open vault is not available on demand.
+            Accrual is calculated for completed terms. An early exit is handled by the desk as an
+            exception, forfeits accrual on the unfinished term, and may not be granted at all. If
+            there is a realistic chance you will need the money inside {CYCLE_DAYS} days, do not
+            place it.
+          </>
+        ),
+      },
+    ],
   },
   {
-    q: `How is the ${pct(CYCLE_RETURN, 0)} calculated?`,
-    a: (
-      <>
-        Linearly, against your original principal. Each day of the term accrues {pct(DAILY_RATE, 2)}{" "}
-        of principal, so a full {CYCLE_DAYS}-day term accrues {pct(CYCLE_RETURN, 0)}. There is no
-        compounding inside a term and no performance fee that changes the figure — the number you
-        see on day one is the number you see at maturity.
-      </>
-    ),
+    title: "Money in, money out",
+    items: [
+      {
+        q: "What does a tier actually change?",
+        a: (
+          <>
+            Access, and nothing about the rate. The ladder runs from {FIRST_TIER.name} at{" "}
+            {money(FIRST_TIER.entry)} to {TOP_TIER.name} at {money(TOP_TIER.entry)}, and every rung
+            earns the same {TERM_RATE} term. Climbing buys analytics depth, queue priority, coverage
+            and shorter settlement targets: {FIRST_TIER.settlementHours} hours at {FIRST_TIER.name}{" "}
+            down to {TOP_TIER.settlementHours} hours at {TOP_TIER.name}.
+          </>
+        ),
+      },
+      {
+        q: "What does settlement mean?",
+        a: (
+          <>
+            Settlement is the moment value leaves the platform and lands at your address. Until
+            then, an accrued figure is an entry against your position rather than money in your
+            hands. Settlement targets are measured from an approved withdrawal request, and they are
+            targets the desk works to rather than guarantees. Network conditions and review checks
+            can extend them.
+          </>
+        ),
+      },
+      {
+        q: "What is the difference between claiming and settling?",
+        a: (
+          <>
+            Claiming moves accrued reward out of a position and into your available balance inside
+            the platform. Settling moves an available balance out of the platform, to an address you
+            own. Claiming is internal bookkeeping. Settling is an external transfer, and it takes as
+            long as the queue, the checks and the network take.
+          </>
+        ),
+      },
+      {
+        q: "What happens if I do nothing at maturity?",
+        a: (
+          <>
+            Nothing happens, which is the design. A matured position stops accruing and waits. It
+            does not roll into a new term, it does not reallocate and it does not settle itself. It
+            holds principal plus reward until you claim, settle or open a new term. Capital that is
+            not inside a term is not accruing, so leaving it there is a decision with a cost.
+          </>
+        ),
+      },
+      {
+        q: "How do referrals work?",
+        a: (
+          <>
+            <Link to="/app/circle" className={legalLink}>
+              Circle
+            </Link>{" "}
+            issues a code derived from your member name, so it is stable and never needs looking up,
+            plus a link that carries it. A browser arriving on that link remembers the code.
+            Attribution past that point, and any reward attached to it, needs the production
+            backend, so Circle shows the code and the link and does not show a count or a balance it
+            cannot stand behind.
+          </>
+        ),
+      },
+    ],
   },
   {
-    q: "What determines my tier?",
-    a: (
-      <>
-        Total capital placed. Tiers begin at {money(TIERS[0].entry)} for {TIERS[0].name} and run to{" "}
-        {money(TIERS[TIERS.length - 1].entry)} for {TIERS[TIERS.length - 1].name}. Critically, tiers
-        do not change your rate — every tier earns the same {pct(CYCLE_RETURN, 0)} term. What
-        changes is access: analytics depth, queue priority, settlement targets and coverage.
-      </>
-    ),
-  },
-  {
-    q: "Can I withdraw before maturity?",
-    a: (
-      <>
-        A term is a commitment, so capital inside an open vault is not available on demand. Accrual
-        is calculated for completed terms; an early exit request is handled by the desk as an
-        exception and forfeits accrual on the unfinished term. If you may need the capital inside{" "}
-        {CYCLE_DAYS} days, do not place it.
-      </>
-    ),
-  },
-  {
-    q: "How fast are withdrawals settled?",
-    a: (
-      <>
-        Settlement targets are set by tier, from {TIERS[0].settlementHours} hours at {TIERS[0].name}{" "}
-        down to {TIERS[TIERS.length - 1].settlementHours} hours at {TIERS[TIERS.length - 1].name}.
-        These are targets the desk works to, not contractual guarantees — network conditions and
-        review checks can extend them.
-      </>
-    ),
-  },
-  {
-    q: "What are the risks?",
-    a: (
-      <>
-        Real, and worth reading in full. Capital placed in a vault can be lost, in part or entirely.
-        Published term rates are targets rather than promises, the platform is not a bank, and
-        deposits carry no government or scheme protection. Before committing anything, read the{" "}
-        <Link
-          to="/legal/risk"
-          className="text-[var(--accent-hi)] underline underline-offset-2 hover:text-[var(--accent-soft)]"
-        >
-          risk disclosure
-        </Link>
-        .
-      </>
-    ),
+    title: "The record, the risk and the help",
+    items: [
+      {
+        q: "Where does the ledger live today?",
+        a: (
+          <>
+            In your browser. This build records events in local storage on the device you are using,
+            so the record is real and every figure can be reconstructed from it, but it does not
+            follow you to another device and clearing site data clears it. That is a stated
+            constraint of the current build rather than a design goal: storage is isolated behind
+            two functions, so moving the ledger to a server replaces those and nothing else.
+          </>
+        ),
+      },
+      {
+        q: "What risk am I carrying?",
+        a: (
+          <>
+            All of it. Capital placed in a vault can be lost in part or in full. The published rate
+            is a target rather than a promise, no deposit protection or compensation scheme sits
+            behind it, the platform is not a bank, and a return of this size implies risk of the
+            same size. The{" "}
+            <Link to="/legal/risk" className={legalLink}>
+              risk disclosure
+            </Link>{" "}
+            sets out counterparty, lock up, network, security and regulatory risk in full. Read it
+            before anything else on this site.
+          </>
+        ),
+      },
+      {
+        q: "Is any of this financial advice?",
+        a: (
+          <>
+            No. Rigel does not assess whether this product suits your circumstances, objectives or
+            tolerance for loss. Nothing here, including anything either assistant says, is
+            investment, tax or legal advice, and none of it is a recommendation to place capital. If
+            the amount is material to you, take independent professional advice first.
+          </>
+        ),
+      },
+      {
+        q: "What can the assistants do, and what can they not?",
+        a: (
+          <>
+            <Link to="/app/copilot" className={legalLink}>
+              Copilot
+            </Link>{" "}
+            is an analyst for your own position: it reads the figures derived from your ledger, when
+            you allow that in settings, and explains what they mean.{" "}
+            <Link to="/app/support" className={legalLink}>
+              Support
+            </Link>{" "}
+            is practical help with using the product. Neither advises, neither can move capital, and
+            both can be wrong. Verify anything that would change what you place or when you settle.
+          </>
+        ),
+      },
+      {
+        q: "How do I get help?",
+        a: (
+          <>
+            Start with{" "}
+            <Link to="/app/support" className={legalLink}>
+              Support
+            </Link>{" "}
+            inside the portal. The{" "}
+            <Link to="/app/glossary" className={legalLink}>
+              glossary
+            </Link>{" "}
+            defines every term the product uses, and the risk disclosure, terms and privacy policy
+            are linked from the foot of every page including this one. If a screen does not match
+            what you expected, ask before you act on it rather than after.
+          </>
+        ),
+      },
+      {
+        q: "What does Rigel not claim?",
+        a: (
+          <>
+            Licences, insurance cover, audit certificates, regulatory registrations, custody
+            partners, press coverage, awards, member counts and assets under management. None of
+            them appear on this site, because none of them has been published as a document you
+            could read and check. Where a platform genuinely holds such things, they should be
+            verifiable documents rather than badges in a footer. Treat any platform that does the
+            opposite with suspicion, this one included.
+          </>
+        ),
+      },
+    ],
   },
 ];
 
-export function Faq() {
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+function Row({
+  id,
+  item,
+  open,
+  onToggle,
+}: {
+  id: string;
+  item: Item;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const body = (
+    <div className="max-w-2xl pb-5 pr-1 text-sm leading-relaxed text-[var(--text-mid)] sm:pr-10">
+      {item.a}
+    </div>
+  );
+
   return (
-    <Stagger className="space-y-2.5">
-      {ITEMS.map((item) => (
-        <StaggerItem key={item.q}>
-          <details className="panel group overflow-hidden transition-colors open:border-[var(--line-hi)] hover:border-[var(--line-hi)]">
-            <summary className="flex cursor-pointer list-none items-start gap-4 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-              <h3 className="min-w-0 flex-1 text-[15px] font-medium text-[var(--text-hi)]">
-                {item.q}
-              </h3>
-              <span
-                aria-hidden="true"
-                className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-[var(--line)] bg-[rgba(46,139,255,0.07)] text-[var(--accent-hi)] transition-transform duration-200 group-open:rotate-45"
+    <li className="border-b border-[var(--line)] last:border-b-0">
+      <h4>
+        <button
+          type="button"
+          id={`${id}-q`}
+          aria-expanded={open}
+          aria-controls={`${id}-a`}
+          onClick={onToggle}
+          className="group flex w-full items-start gap-4 py-4 text-left"
+        >
+          <span
+            className={`min-w-0 flex-1 text-[15px] font-medium transition-colors ${
+              open ? "text-[var(--accent-hi)]" : "text-[var(--text-hi)]"
+            } group-hover:text-[var(--accent-hi)]`}
+          >
+            {item.q}
+          </span>
+          <span
+            aria-hidden="true"
+            className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border text-[var(--accent-hi)] transition-transform duration-200 ${
+              open
+                ? "rotate-45 border-[rgba(46,139,255,0.45)] bg-[rgba(46,139,255,0.14)]"
+                : "border-[var(--line)] bg-[rgba(46,139,255,0.07)]"
+            }`}
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
+          </span>
+        </button>
+      </h4>
+
+      {/* The region stays mounted so aria-controls always resolves; only its
+          contents come and go, so nothing inside a closed panel is focusable. */}
+      <div id={`${id}-a`} role="region" aria-labelledby={`${id}-q`}>
+        {reduce ? (
+          open && body
+        ) : (
+          <AnimatePresence initial={false}>
+            {open && (
+              <motion.div
+                key="body"
+                className="overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.32, ease: EASE }}
               >
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
-              </span>
-            </summary>
-            <div className="px-4 pb-5 sm:px-5">
-              <p className="max-w-2xl border-t border-[var(--line)] pt-4 text-sm leading-relaxed text-[var(--text-mid)]">
-                {item.a}
+                {body}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export function Faq() {
+  const [open, setOpen] = useState<string[]>([]);
+
+  const toggle = (id: string) =>
+    setOpen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  return (
+    <div className="space-y-10 sm:space-y-12">
+      {GROUPS.map((group, gi) => {
+        const groupId = `faq-group-${gi}`;
+        return (
+          <section key={group.title} aria-labelledby={groupId}>
+            <div className="band-head">
+              <h3 id={groupId} className="band-title">
+                {group.title}
+              </h3>
+              <span aria-hidden="true" className="hairline" />
+              <p aria-hidden="true" className="metric shrink-0 text-xs text-[var(--text-low)]">
+                {String(group.items.length).padStart(2, "0")}
               </p>
             </div>
-          </details>
-        </StaggerItem>
-      ))}
-    </Stagger>
+
+            <ul className="mt-2">
+              {group.items.map((item, qi) => {
+                const id = `faq-${gi}-${qi}`;
+                return (
+                  <Row
+                    key={id}
+                    id={id}
+                    item={item}
+                    open={open.includes(id)}
+                    onToggle={() => toggle(id)}
+                  />
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+
+      <div className="panel flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold text-[var(--text-hi)]">
+            Still unclear about something?
+          </p>
+          <p className="mt-1 text-sm text-[var(--text-mid)]">
+            Ask before you place capital, not after.
+          </p>
+        </div>
+        <Link to="/app/support" className="btn btn-secondary">
+          <LifeBuoy className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+          Open Support
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -136,7 +136,7 @@ export default function Glossary() {
                     <li key={id}>
                       <a
                         href={`#${id}`}
-                        className="block truncate rounded-md px-2 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[rgba(46,139,255,0.06)] hover:text-[var(--text-hi)]"
+                        className="min-h-[36px] block truncate rounded-md px-2 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[rgba(46,139,255,0.06)] hover:text-[var(--text-hi)]"
                       >
                         {getDefinition(id).label}
                       </a>

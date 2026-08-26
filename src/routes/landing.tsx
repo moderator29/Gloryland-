@@ -2,153 +2,182 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
-  ChartLine,
+  ChartSpline,
   Check,
-  Clock,
-  KeyRound,
+  Compass,
+  Fingerprint,
   Layers,
   Lock,
   Network,
   ScrollText,
   ShieldCheck,
+  Sparkles,
   SquareStack,
+  TriangleAlert,
   Vault,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
 import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
-import { money, pct } from "@/components/system/format";
+import { money } from "@/components/system/format";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { HeroBackdrop } from "@/components/landing/HeroBackdrop";
+import { PointerLight } from "@/components/landing/PointerLight";
 import { Reveal, Stagger, StaggerItem } from "@/components/landing/Reveal";
 import { Section, SectionIntro } from "@/components/landing/Section";
+import { DrawRule } from "@/components/landing/DrawRule";
+import { Counter } from "@/components/landing/Counter";
+import { CapitalMarquee } from "@/components/landing/CapitalMarquee";
+import { TermWorkedExample } from "@/components/landing/TermWorkedExample";
 import { TermTimeline } from "@/components/landing/TermTimeline";
 import { TierLadder } from "@/components/landing/TierLadder";
+import { DeskStatement } from "@/components/landing/DeskStatement";
 import { Faq } from "@/components/landing/Faq";
+import { DAY_RATE, FIRST_TIER, TERM_RATE, TOP_TIER } from "@/components/landing/figures";
 
 /**
- * RIGEL — public marketing page.
+ * RIGEL, the public page.
  *
- * The whole argument of the page is that there is exactly one rate and one
- * term, and that everything else the platform offers is access rather than
- * yield. Every figure on this page is read from `domain/tiers`, so the
- * marketing surface and the product can never disagree.
+ * The argument runs in one direction and does not double back: here is the
+ * offer, here is where the capital works, here is the machine, here is the
+ * term drawn to scale, here is the ladder that does not change the rate, here
+ * is why it was built that way, here is what it refuses to do, here are the
+ * questions, here is the risk. Every figure is read from `domain/tiers`, so
+ * the marketing surface and the product cannot disagree with one another.
+ *
+ * Nothing on this page carries social proof. There is no licence, regulator,
+ * partner, client, award, press mention or member count to cite, so the page
+ * carries verifiable statements about how the product works instead. Where a
+ * section would normally hold a badge, it holds a mechanism.
  */
 
-const FIRST = TIERS[0];
-const LAST = TIERS[TIERS.length - 1];
+/* ── The published constants, counted up once ────────────────────────── */
 
-/* ── Section 3: trust strip ──────────────────────────────────────────── */
-
-const TRUST = [
-  { value: `${CYCLE_DAYS}`, unit: "days", label: "Fixed term, start to maturity" },
-  { value: pct(DAILY_RATE, 2).replace("+", ""), unit: "", label: "Of principal accrued per day" },
-  { value: `${TIERS.length}`, unit: "tiers", label: "One published rate across all of them" },
-  { value: money(FIRST.entry), unit: "", label: `Entry threshold at ${FIRST.name}` },
+const CONSTANTS: { value: number; format: (n: number) => string; label: string }[] = [
+  {
+    value: CYCLE_DAYS,
+    format: (n) => `${n.toFixed(0)}`,
+    label: "Days from open to maturity, fixed at the moment a vault is written",
+  },
+  {
+    value: DAILY_RATE * 100,
+    format: (n) => `${n.toFixed(2)}%`,
+    label: "Of the original principal, credited to the position every day",
+  },
+  {
+    value: CYCLE_RETURN * 100,
+    format: (n) => `${n.toFixed(0)}%`,
+    label: "Reached at maturity, on every rung of the ladder without exception",
+  },
+  {
+    value: TIERS.length,
+    format: (n) => `${n.toFixed(0)}`,
+    label: `Rungs, from ${money(FIRST_TIER.entry)} to ${money(TOP_TIER.entry)}, all at one rate`,
+  },
 ];
 
-/* ── Section 4: what the platform is ─────────────────────────────────── */
+/* ── Section 02: the surfaces, as a bento of unequal cells ───────────── */
 
-const PRODUCT: { icon: LucideIcon; kicker: string; title: string; body: string }[] = [
+type Surface = {
+  to: string;
+  icon: LucideIcon;
+  kicker: string;
+  title: string;
+  body: string;
+  span: string;
+  foot?: string;
+};
+
+const SURFACES: Surface[] = [
   {
+    to: "/app/vaults/new",
     icon: Vault,
     kicker: "Vaults",
-    title: "Positions, not a pool",
-    body: `Capital enters as a discrete position with its own principal, start date and maturity date. Each one accrues on its own record, so you can always tell which tranche is doing what and when it comes back.`,
+    title: "Capital enters as a dated position",
+    body: "Not a share of a pool. Each placement is written as its own position with its own principal, its opening timestamp and its maturity timestamp, and it accrues on its own record. You can always say which tranche is doing what, and exactly when it comes back.",
+    foot: `From ${money(FIRST_TIER.entry)} · ${CYCLE_DAYS} days · ${TERM_RATE} at maturity`,
+    span: "lg:col-span-7 lg:row-span-2",
   },
   {
+    to: "/app/tiers",
     icon: Layers,
     kicker: "Tiers",
-    title: "Access, not a better rate",
-    body: `${TIERS.length} rungs from ${FIRST.name} to ${LAST.name}. Climbing unlocks analytics depth, queue priority and shorter settlement targets. The term rate is identical at every rung — deliberately.`,
+    title: "Access, never a better rate",
+    body: `${TIERS.length} rungs from ${FIRST_TIER.name} to ${TOP_TIER.name}. Climbing shortens settlement and deepens the tooling. The term rate does not move.`,
+    span: "lg:col-span-5",
   },
   {
-    icon: ChartLine,
-    kicker: "Intelligence",
-    title: "Instrumentation for the desk",
-    body: `Maturity calendars, projection curves and portfolio breakdowns computed from your own positions — so the question "what matures, and when" is answered before you commit the next tranche.`,
+    to: "/app/analytics",
+    icon: ChartSpline,
+    kicker: "Telemetry",
+    title: "Charts drawn from your own ledger",
+    body: "Maturity calendars, projection curves and portfolio breakdowns computed from your positions, so what matures and when is answered before the next tranche is committed.",
+    span: "lg:col-span-5",
+  },
+  {
+    to: "/app/activity",
+    icon: ScrollText,
+    kicker: "Ledger",
+    title: "Every event, in order",
+    body: "Deposits, accrual, requests and settlements are written as entries, never as edits. Any balance on screen reconstructs from the history that produced it.",
+    span: "lg:col-span-4",
+  },
+  {
+    to: "/app/insights",
+    icon: Compass,
+    kicker: "Insight",
+    title: "Observations, not opinions",
+    body: "Derived from your own record and nobody else's. With no positions there is nothing to derive, and the surface says so rather than borrowing a curve.",
+    span: "lg:col-span-4",
+  },
+  {
+    to: "/app/copilot",
+    icon: Sparkles,
+    kicker: "Copilot",
+    title: "An analyst that cannot act",
+    body: "It reads the figures derived from your ledger, when you allow it, and explains what they mean. It does not advise, and it cannot move capital.",
+    span: "lg:col-span-4",
   },
 ];
 
-/* ── Section 5: the term, in words ───────────────────────────────────── */
+/* ── Section 06: what the system refuses to do ───────────────────────── */
 
-const TERM_STEPS = [
-  {
-    marker: "Day 0",
-    title: "The vault opens",
-    body: "You set the amount. The position is written with its principal and both timestamps — opened and maturing — before a single cent accrues.",
-  },
-  {
-    marker: `Days 1–${CYCLE_DAYS - 1}`,
-    title: "Accrual, daily and linear",
-    body: `${pct(DAILY_RATE, 2)} of principal is credited to the position every day. No compounding inside the term, no performance fee, no rate that moves while you are not looking.`,
-  },
-  {
-    marker: `Day ${CYCLE_DAYS}`,
-    title: "The term closes",
-    body: `The position matures at ${pct(CYCLE_RETURN, 0)} of principal. Withdraw it, or open a new term with the whole balance. Nothing rolls without your instruction.`,
-  },
-];
-
-/* ── Section 7: how it works ─────────────────────────────────────────── */
-
-const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: KeyRound,
-    title: "Open an account",
-    body: "Create your member profile and bind the device you will use to authorise anything that moves value.",
-  },
-  {
-    icon: Wallet,
-    title: "Fund a vault",
-    body: "Transfer to the address issued for that position. Confirmations post to your ledger as they land on chain.",
-  },
-  {
-    icon: Clock,
-    title: "Watch it accrue",
-    body: `The portal shows the day count, the accrued figure and the maturity date for every open position, updated daily.`,
-  },
-  {
-    icon: ArrowUpRight,
-    title: "Settle at maturity",
-    body: `Request withdrawal to an allow-listed address, or roll the balance into a new ${CYCLE_DAYS}-day term.`,
-  },
-];
-
-/* ── Section 8: security principles ──────────────────────────────────── */
-
-const PRINCIPLES: { icon: LucideIcon; title: string; body: string }[] = [
+const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: ScrollText,
-    title: "Append-only ledgering",
-    body: "Deposits, daily accrual, requests and settlements are written as entries, never edits. Any balance on screen can be reconstructed from the history that produced it.",
+    title: "It will not edit history",
+    body: "Deposits, daily accrual, requests and settlements are appended as entries. Corrections are new entries too, so the record of a mistake survives the fix.",
   },
   {
     icon: Lock,
-    title: "Withdrawal allow-listing",
-    body: "Value leaves only to destinations you have registered in advance, and a newly added destination sits behind a hold window before it can be used.",
+    title: "It will not send value somewhere new",
+    body: "Capital leaves only to destinations registered in advance, and a newly added destination waits behind a hold window before it can be used.",
   },
   {
-    icon: ShieldCheck,
-    title: "Device-bound authorisation",
-    body: "Sensitive actions are tied to devices you have approved. An unrecognised device has to be enrolled through an existing one before it can act.",
+    icon: Fingerprint,
+    title: "It will not trust an unknown device",
+    body: "Actions that move value are tied to devices you have approved. An unrecognised device is enrolled through an existing one before it can act at all.",
   },
   {
     icon: SquareStack,
-    title: "Separation of duties",
+    title: "It will not let one role do everything",
     body: "Internal roles carry the narrowest permissions that let them work, and no single role can both create a payout and approve it.",
   },
   {
     icon: Network,
-    title: "Segregated environments",
-    body: "The systems that hold key material are isolated from the systems that serve the application, with no shared credentials across that boundary.",
+    title: "It will not share a credential across a boundary",
+    body: "The systems holding key material are isolated from the systems serving the application, with nothing reused across that line.",
   },
   {
     icon: Check,
-    title: "Explicit over implicit",
-    body: "Nothing renews, reallocates or reinvests on your behalf. Every movement of capital starts with an instruction you gave.",
+    title: "It will not act on your behalf",
+    body: "Nothing renews, reallocates or reinvests by itself. Every movement of capital starts from an instruction you gave, including the ones you might have wanted automated.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "It will not wear a badge it cannot show you",
+    body: "No licence, insurer, auditor, regulator, custodian or press mention is claimed anywhere on this site, because none has been published as a document you could verify.",
   },
 ];
 
@@ -165,347 +194,377 @@ export default function Landing() {
       <LandingNav />
 
       <main id="main">
-        {/* ── 2. Hero ─────────────────────────────────────────────────── */}
+        {/* ── Hero ─────────────────────────────────────────────────────
+            One slab rather than the usual text-left, card-right split. The
+            offer is written across the masthead and the calculator is built
+            into its base, so the first thing a visitor can do is check the
+            arithmetic rather than read an adjective. */}
         <section className="relative isolate overflow-hidden" aria-labelledby="hero-title">
           <HeroBackdrop />
 
-          <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24 lg:pb-36 lg:pt-32">
-            <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
-              <Reveal y={22}>
-                <span className="chip chip-accent">
-                  <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />
-                  Fixed {CYCLE_DAYS}-day digital-asset vaults
-                </span>
+          <div className="relative mx-auto max-w-6xl px-5 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-14 lg:pb-24 lg:pt-20">
+            <Reveal y={26}>
+              <div className="glass relative p-5 sm:p-8 lg:p-12">
+                <PointerLight />
+
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                  <span className="chip chip-accent">
+                    <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />
+                    Fixed {CYCLE_DAYS} day vault terms
+                  </span>
+                  <p className="machine break-normal text-[10px] text-[var(--text-low)] sm:text-[11px]">
+                    TERM {CYCLE_DAYS}D &middot; ACCRUAL {DAY_RATE}/DAY &middot; MATURITY {TERM_RATE}
+                  </p>
+                </div>
 
                 <h1
                   id="hero-title"
-                  className="display mt-6 text-balance text-[clamp(2.25rem,7.2vw,4.25rem)]"
+                  className="display mt-7 text-balance text-[clamp(2.1rem,7.4vw,4.5rem)] sm:mt-9"
                 >
-                  Capital held to a <span className="text-accent-gradient">defined horizon</span>.
+                  The entire offer fits on one line.
                 </h1>
 
-                <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-[var(--text-mid)] sm:text-lg">
-                  Rigel is a vault platform for members who want a defined outcome rather than a
-                  market view. One term, one published rate: {pct(DAILY_RATE, 2)} of principal a
-                  day, {pct(CYCLE_RETURN, 0)} at maturity, {CYCLE_DAYS} days end to end.
+                {/* And here is the line. Read as an instrument, not a promise. */}
+                <p className="display mt-6 max-w-3xl text-[clamp(1.05rem,3.6vw,1.8rem)] leading-snug text-[var(--text-low)]">
+                  <span className="tabular text-[var(--accent-hi)]">{DAY_RATE}</span> of principal a
+                  day, <span className="tabular text-[var(--text-hi)]">{CYCLE_DAYS} days</span> end
+                  to end, <span className="tabular text-[var(--gain)]">{TERM_RATE}</span> at
+                  maturity.
                 </p>
 
-                <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Link to="/app" className="btn btn-primary h-12 px-6 text-[15px]">
-                    Enter Portal
-                    <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  </Link>
-                  <a href="#how" className="btn btn-outline h-12 px-6 text-[15px]">
-                    See how it works
-                  </a>
-                </div>
+                <DrawRule className="mt-8" delay={0.25} />
 
-                <p className="mt-6 max-w-md text-xs leading-relaxed text-[var(--text-low)]">
-                  Capital placed in a vault is at risk, including the risk of total loss. Read the{" "}
-                  <Link
-                    to="/legal/risk"
-                    className="text-[var(--text-mid)] underline underline-offset-2 hover:text-[var(--accent-hi)]"
-                  >
-                    risk disclosure
-                  </Link>{" "}
-                  before you commit funds.
-                </p>
-              </Reveal>
+                <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-12">
+                  <div className="min-w-0">
+                    <p className="max-w-xl text-[15px] leading-relaxed text-[var(--text-mid)] sm:text-base">
+                      Rigel holds capital in fixed terms and instruments the result. A position is
+                      written with its principal and both dates before a cent accrues, it credits{" "}
+                      {DAY_RATE} of that principal every day, and it closes at {TERM_RATE}. The rate
+                      is identical at {FIRST_TIER.name} and at {TOP_TIER.name}. What a larger
+                      position buys is settlement speed and tooling, and the ladder says so out
+                      loud.
+                    </p>
 
-              {/* Programme terms — the entire offer, on one card. */}
-              <Reveal y={26} delay={0.12}>
-                <div className="panel-hi edge-light p-6 sm:p-7">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="eyebrow">Programme terms</p>
-                    <Mark size={26} />
-                  </div>
+                    <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Link to="/app" className="btn btn-primary h-12 px-6 text-[15px]">
+                        Enter the portal
+                        <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                      </Link>
+                      <a href="#term" className="btn btn-outline h-12 px-6 text-[15px]">
+                        See how a term works
+                      </a>
+                    </div>
 
-                  <dl className="mt-6 space-y-4">
-                    {[
-                      { k: "Term length", v: `${CYCLE_DAYS} days`, tone: "hi" },
-                      { k: "Daily accrual", v: pct(DAILY_RATE, 2), tone: "accent" },
-                      { k: "Return at maturity", v: pct(CYCLE_RETURN, 0), tone: "gain" },
-                      { k: "Entry threshold", v: `from ${money(FIRST.entry)}`, tone: "hi" },
-                    ].map((row) => (
-                      <div
-                        key={row.k}
-                        className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] pb-4 last:border-0 last:pb-0"
-                      >
-                        <dt className="text-sm text-[var(--text-mid)]">{row.k}</dt>
-                        <dd
-                          className={`metric text-lg sm:text-xl ${
-                            row.tone === "accent"
-                              ? "text-[var(--accent-hi)]"
-                              : row.tone === "gain"
-                                ? "text-[var(--gain)]"
-                                : "text-[var(--text-hi)]"
-                          }`}
+                    <p className="mt-7 flex max-w-md items-start gap-2.5 text-xs leading-relaxed text-[var(--text-low)]">
+                      <TriangleAlert
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warn)]"
+                        strokeWidth={1.9}
+                        aria-hidden="true"
+                      />
+                      <span>
+                        Capital placed in a vault is at risk, including the risk of total loss. Read
+                        the{" "}
+                        <Link
+                          to="/legal/risk"
+                          className="text-[var(--text-mid)] underline underline-offset-2 hover:text-[var(--accent-hi)]"
                         >
-                          {row.v}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-
-                  <p className="mt-6 text-xs leading-relaxed text-[var(--text-low)]">
-                    Identical at every tier, from {FIRST.name} to {LAST.name}. Tiers change access,
-                    never the rate.
-                  </p>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 3. Trust strip ──────────────────────────────────────────── */}
-        <section aria-label="Programme at a glance" className="border-t border-[var(--line)]">
-          <div className="mx-auto max-w-6xl px-5 sm:px-6">
-            <Stagger className="grid grid-cols-2 divide-x divide-y divide-[var(--line)] border-x border-[var(--line)] lg:grid-cols-4 lg:divide-y-0">
-              {TRUST.map((t) => (
-                <StaggerItem key={t.label} className="px-5 py-7 sm:px-6 sm:py-9">
-                  <p className="metric text-[clamp(1.5rem,4vw,2rem)]">
-                    {t.value}
-                    {t.unit && (
-                      <span className="ml-1.5 text-sm font-medium text-[var(--text-low)]">
-                        {t.unit}
+                          risk disclosure
+                        </Link>{" "}
+                        before you commit funds.
                       </span>
-                    )}
-                  </p>
-                  <p className="mt-2 text-xs leading-relaxed text-[var(--text-low)]">{t.label}</p>
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
-        </section>
-
-        {/* ── 4. Product ──────────────────────────────────────────────── */}
-        <Section id="product" labelledBy="product-title">
-          <SectionIntro
-            id="product-title"
-            eyebrow="The platform"
-            title="Three parts, and no fourth."
-            lead="Rigel does one thing and instruments it thoroughly: it holds capital in fixed terms, ranks members by commitment rather than by rate, and shows both without a marketing layer on top."
-          />
-
-          <Stagger className="mt-12 grid gap-4 md:grid-cols-3">
-            {PRODUCT.map((c) => (
-              <StaggerItem key={c.kicker} className="h-full">
-                <article className="panel flex h-full flex-col p-6 transition-colors hover:border-[var(--line-hi)]">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
-                    <c.icon
-                      className="h-5 w-5 text-[var(--accent-hi)]"
-                      strokeWidth={1.7}
-                      aria-hidden="true"
-                    />
-                  </span>
-                  <p className="eyebrow mt-5">{c.kicker}</p>
-                  <h3 className="mt-2 text-lg font-semibold text-[var(--text-hi)]">{c.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[var(--text-mid)]">{c.body}</p>
-                </article>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </Section>
-
-        {/* ── 5. Vaults explainer ─────────────────────────────────────── */}
-        <Section id="vaults" labelledBy="vaults-title">
-          <SectionIntro
-            id="vaults-title"
-            eyebrow="Vaults"
-            title="One term. One rate. No discretion."
-            lead={
-              <>
-                A vault is a {CYCLE_DAYS}-day commitment. Accrual is linear against your original
-                principal — {pct(DAILY_RATE, 2)} a day, {pct(CYCLE_RETURN, 0)} at the end — so the
-                figure quoted on day one is the figure paid on day {CYCLE_DAYS}.
-              </>
-            }
-          />
-
-          <div className="mt-12 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-12">
-            <Stagger as="ol" className="space-y-3">
-              {TERM_STEPS.map((s) => (
-                <StaggerItem as="li" key={s.marker}>
-                  <div className="panel p-5">
-                    <p className="tabular chip chip-accent">{s.marker}</p>
-                    <h3 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
-                      {s.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-mid)]">{s.body}</p>
+                    </p>
                   </div>
-                </StaggerItem>
-              ))}
-            </Stagger>
 
-            <Reveal delay={0.08}>
-              <TermTimeline principal={LAST.entry} />
-              <p className="mt-4 text-xs leading-relaxed text-[var(--text-low)]">
-                Illustration of the published term structure applied to a {money(LAST.entry)}{" "}
-                position. It is arithmetic, not a forecast, and not a guarantee of payment.
-              </p>
+                  <TermWorkedExample />
+                </div>
+              </div>
             </Reveal>
           </div>
-        </Section>
+        </section>
 
-        {/* ── 6. Tiers ────────────────────────────────────────────────── */}
-        <Section id="tiers" labelledBy="tiers-title">
+        {/* ── The constants, ruled off edge to edge ────────────────────── */}
+        <section aria-label="The published term structure at a glance">
+          <div className="mx-auto max-w-6xl px-5 sm:px-6">
+            <Stagger className="grid grid-cols-2 border-y border-[var(--line)] lg:grid-cols-4">
+              {CONSTANTS.map((c, i) => (
+                // Rules are set per cell rather than with divide-*, which on a
+                // two column grid would put a stray line above the second cell.
+                <StaggerItem
+                  key={c.label}
+                  className={`border-[var(--line)] px-4 py-7 sm:px-6 sm:py-9 lg:border-b-0 lg:border-r lg:last:border-r-0 ${
+                    i % 2 === 0 ? "border-r" : ""
+                  } ${i < 2 ? "border-b" : ""}`}
+                >
+                  <p className="figure-mid text-[var(--text-hi)]">
+                    <Counter value={c.value} format={c.format} />
+                  </p>
+                  <p className="mt-2.5 text-xs leading-relaxed text-[var(--text-low)]">{c.label}</p>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          </div>
+        </section>
+
+        {/* ── 01. Where the capital works ──────────────────────────────── */}
+        <Section id="capital" labelledBy="capital-title">
           <SectionIntro
-            id="tiers-title"
-            eyebrow="The ladder"
-            title="Tiers change access, never the rate."
-            lead={
-              <>
-                Most platforms pay their largest members more. Rigel does not: the term rate is
-                {" " + pct(CYCLE_RETURN, 0)} at every rung from {FIRST.name} to {LAST.name}. What
-                climbing buys is depth of analytics, priority in the queue and shorter settlement
-                targets.
-              </>
-            }
+            id="capital-title"
+            label="Deployment"
+            index="01"
+            title="Nine income lines, and not one of them waits on the next."
+            lead="The programme is built around music rights and the businesses that sit on top of them. What follows are the categories the capital works in. They are named as categories rather than as holdings, because no counterparty, catalogue or agreement has been published as a document you could check, and an unverifiable name is worth less than an honest gap."
           />
 
-          <div className="mt-12">
-            <TierLadder />
+          <div className="mt-10 sm:mt-14">
+            <CapitalMarquee />
           </div>
 
-          <Reveal className="mt-6">
-            <p className="text-xs leading-relaxed text-[var(--text-low)]">
-              Settlement figures are the targets the desk works to, measured from an approved
-              withdrawal request. They are operational objectives rather than contractual
-              guarantees.
+          <Reveal className="mt-8">
+            <p className="inset max-w-3xl p-5 text-sm leading-relaxed text-[var(--text-mid)] sm:p-6">
+              Independent lines reduce the chance that one weak season carries the whole return.
+              They do not remove it, and no arrangement of them turns a published rate into a
+              promise. What the rate is, and what stands behind it, is set out in full in the{" "}
+              <Link
+                to="/legal/risk"
+                className="text-[var(--accent-hi)] underline underline-offset-2 hover:text-[var(--accent-soft)]"
+              >
+                risk disclosure
+              </Link>
+              .
             </p>
           </Reveal>
         </Section>
 
-        {/* ── 7. How it works ─────────────────────────────────────────── */}
-        <Section id="how" labelledBy="how-title">
+        {/* ── 02. The instrument ───────────────────────────────────────── */}
+        <Section id="instrument" labelledBy="instrument-title">
           <SectionIntro
-            id="how-title"
-            eyebrow="How it works"
-            title="Four steps, then it repeats."
-            lead="From account to settlement, the whole path is four actions — and every one of them is something you initiate."
+            id="instrument-title"
+            label="The instrument"
+            index="02"
+            title="Six surfaces, one record underneath all of them."
+            lead="Every screen in the portal derives from the same append only ledger of your own events. Nothing is averaged across members, nothing is illustrative, and nothing appears before there is a record to produce it."
           />
 
-          <Stagger as="ol" className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <StaggerItem as="li" key={s.title} className="h-full">
-                <div className="panel relative flex h-full flex-col p-5 pt-6">
-                  <span
-                    aria-hidden="true"
-                    className="tabular absolute right-5 top-5 text-2xl font-semibold text-[rgba(120,160,220,0.16)]"
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
+          <Stagger className="bento mt-10 sm:mt-14">
+            {SURFACES.map((s) => (
+              <StaggerItem key={s.kicker} className={`bento-cell ${s.span}`}>
+                <Link
+                  to={s.to}
+                  className="panel sheen group flex h-full flex-col p-5 transition-colors hover:border-[var(--line-hi)] sm:p-6"
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
                     <s.icon
                       className="h-[18px] w-[18px] text-[var(--accent-hi)]"
                       strokeWidth={1.7}
                       aria-hidden="true"
                     />
                   </span>
-                  <h3 className="mt-4 text-[15px] font-semibold text-[var(--text-hi)]">
+
+                  <span className="eyebrow mt-5 flex items-center gap-1.5">
+                    {s.kicker}
+                    <ArrowUpRight
+                      className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100"
+                      strokeWidth={2.4}
+                      aria-hidden="true"
+                    />
+                  </span>
+
+                  <h3 className="mt-2 text-base font-semibold text-[var(--text-hi)] sm:text-lg">
                     {s.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-mid)]">{s.body}</p>
-                </div>
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--text-mid)]">{s.body}</p>
+
+                  {s.foot && (
+                    <span className="machine mt-6 block break-normal border-t border-[var(--line)] pt-4 text-[11px] text-[var(--text-low)] sm:mt-auto">
+                      {s.foot}
+                    </span>
+                  )}
+                </Link>
               </StaggerItem>
             ))}
           </Stagger>
         </Section>
 
-        {/* ── 8. Security & trust ─────────────────────────────────────── */}
-        <Section id="security" labelledBy="security-title">
+        {/* ── 03. How a term works ─────────────────────────────────────── */}
+        <Section id="term" labelledBy="term-title">
           <SectionIntro
-            id="security-title"
-            eyebrow="Security model"
-            title="How the platform is built."
-            lead="Principles we hold ourselves to in the architecture — what the system does, and what it refuses to do on your behalf."
+            id="term-title"
+            label="How a term works"
+            index="03"
+            title="Thirty days, drawn to scale."
+            lead={
+              <>
+                Accrual is linear against the original principal, so the shape of a term is a
+                straight ramp and not a curve that flatters itself. Scroll the stages and the figure
+                keeps pace: every reading on it is {DAY_RATE} of principal multiplied by the day
+                count, and nothing else.
+              </>
+            }
           />
 
-          <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PRINCIPLES.map((p) => (
-              <StaggerItem key={p.title} className="h-full">
-                <article className="panel flex h-full gap-4 p-5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)]">
-                    <p.icon
+          <div className="mt-10 sm:mt-14">
+            <TermTimeline principal={TIERS[1].entry} />
+          </div>
+        </Section>
+
+        {/* ── 04. The ladder ───────────────────────────────────────────── */}
+        <Section id="ladder" labelledBy="ladder-title">
+          <SectionIntro
+            id="ladder-title"
+            label="The ladder"
+            index="04"
+            title="Six rungs, and the only column that moves is speed."
+            lead={
+              <>
+                Most platforms pay their largest members more. Rigel does not. The term rate is{" "}
+                {TERM_RATE} at every rung from {FIRST_TIER.name} to {TOP_TIER.name}. What climbing
+                buys is settlement measured in hours instead of days, deeper analytics and priority
+                in the queue. Each rung below links to its own terms.
+              </>
+            }
+          />
+
+          <div className="mt-10 sm:mt-14">
+            <TierLadder />
+          </div>
+        </Section>
+
+        {/* ── 05. From the desk ────────────────────────────────────────── */}
+        <Section id="desk" labelledBy="desk-title">
+          <SectionIntro
+            id="desk-title"
+            label="From the desk"
+            index="05"
+            title="Why it is shaped this way."
+            lead="Three decisions produced almost everything else on this page. They are the ones worth arguing with, so they are set out in full rather than compressed into a slogan. No individual signs for them, because there is no track record to attach to a name yet, and inventing one would be the first unverifiable thing on the page."
+          />
+
+          <div className="mt-10 sm:mt-14">
+            <DeskStatement />
+          </div>
+        </Section>
+
+        {/* ── 06. Discipline ───────────────────────────────────────────── */}
+        <Section id="discipline" labelledBy="discipline-title">
+          <SectionIntro
+            id="discipline-title"
+            label="Discipline"
+            index="06"
+            title="What the system refuses to do on your behalf."
+            lead="Stated as refusals rather than as promises. A refusal is easier to check, harder to quietly drop, and considerably more useful when you are deciding whether to trust a platform with money."
+          />
+
+          <Stagger as="ul" className="ledger mt-10 sm:mt-14">
+            {DISCIPLINE.map((d, i) => (
+              <StaggerItem as="li" key={d.title} className="min-w-0">
+                <div
+                  className={`rail-row rail-row-mute !items-start gap-4 ${
+                    i === DISCIPLINE.length - 1 ? "!border-b-0" : ""
+                  }`}
+                >
+                  <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)]">
+                    <d.icon
                       className="h-4 w-4 text-[var(--accent-hi)]"
                       strokeWidth={1.8}
                       aria-hidden="true"
                     />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-[15px] font-semibold text-[var(--text-hi)]">{p.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-mid)]">{p.body}</p>
+                    <h3 className="text-[15px] font-semibold text-[var(--text-hi)]">{d.title}</h3>
+                    <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--text-mid)]">
+                      {d.body}
+                    </p>
                   </div>
-                </article>
+                </div>
               </StaggerItem>
             ))}
           </Stagger>
-
-          <Reveal className="mt-8">
-            <aside className="inset p-5 sm:p-6" aria-label="What Rigel does not claim">
-              <h3 className="eyebrow">What we do not claim</h3>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--text-mid)]">
-                This page describes architecture, not credentials. Rigel does not advertise
-                licences, insurance cover, audit certificates, regulatory registrations or custody
-                partners on this site. Where such things exist for a platform, they should be
-                published as documents you can read and verify — not as badges in a footer. Treat
-                any platform that does the opposite with suspicion, this one included.
-              </p>
-            </aside>
-          </Reveal>
         </Section>
 
-        {/* ── 9. FAQ ──────────────────────────────────────────────────── */}
-        <Section id="faq" labelledBy="faq-title">
+        {/* ── 07. Questions ────────────────────────────────────────────── */}
+        <Section id="questions" labelledBy="questions-title">
           <SectionIntro
-            id="faq-title"
-            eyebrow="Questions"
-            title="The six we are asked most."
-            lead="Answered plainly, including the one about what can go wrong."
+            id="questions-title"
+            label="Questions"
+            index="07"
+            title="Everything worth asking before you place capital."
+            lead="Including where the record actually lives today, what happens if you do nothing at maturity, and what this product is not."
           />
-          <div className="mt-12 max-w-3xl">
+
+          <div className="mt-10 max-w-3xl sm:mt-14">
             <Faq />
           </div>
         </Section>
 
-        {/* ── 10. Closing CTA ─────────────────────────────────────────── */}
-        <Section id="start" labelledBy="start-title">
-          <Reveal>
-            <div className="panel-hi edge-light relative overflow-hidden px-6 py-14 text-center sm:px-10 sm:py-20">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 -top-24 h-64"
-                style={{
-                  background:
-                    "radial-gradient(ellipse 50% 100% at 50% 0%, rgba(46,139,255,0.22), transparent 70%)",
-                }}
-              />
-              <div className="relative">
-                <Mark size={46} className="mx-auto" />
-                <h2
-                  id="start-title"
-                  className="display mx-auto mt-7 max-w-2xl text-balance text-[clamp(1.75rem,5vw,2.75rem)]"
-                >
-                  Open a term, or read the risks first.
-                </h2>
-                <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--text-mid)]">
-                  Both take one click, and we would rather you did the second one. Entry starts at{" "}
-                  {money(FIRST.entry)}; the rate is the same whether you place that or{" "}
-                  {money(LAST.entry)}.
-                </p>
-                <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link to="/app" className="btn btn-primary h-12 px-6 text-[15px]">
-                    Enter Portal
-                    <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  </Link>
-                  <Link to="/legal/risk" className="btn btn-outline h-12 px-6 text-[15px]">
-                    Read the risk disclosure
-                  </Link>
+        {/* ── Closing ──────────────────────────────────────────────────── */}
+        <section
+          id="start"
+          aria-labelledby="start-title"
+          className="scroll-mt-20 pb-20 pt-14 sm:pb-28 sm:pt-20"
+        >
+          <div className="mx-auto max-w-6xl px-5 sm:px-6">
+            <DrawRule className="mb-12 sm:mb-16" />
+
+            <Reveal>
+              <div className="glass relative p-6 sm:p-10 lg:p-14">
+                <PointerLight size={520} />
+
+                <div className="grid gap-9 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end lg:gap-14">
+                  <div className="min-w-0">
+                    <Mark size={40} />
+                    <h2
+                      id="start-title"
+                      className="display mt-6 text-balance text-[clamp(1.85rem,5.4vw,3.25rem)]"
+                    >
+                      Open a term, or read what can go wrong first.
+                    </h2>
+                    <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--text-mid)] sm:text-base">
+                      Both are one click, and we would rather you did the second one. Entry starts
+                      at {money(FIRST_TIER.entry)}, and the rate is the same whether you place that
+                      or {money(TOP_TIER.entry)}.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <Link to="/app/vaults/new" className="btn btn-primary h-12 px-6 text-[15px]">
+                      Open a term
+                      <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                    </Link>
+                    <Link to="/legal/risk" className="btn btn-outline h-12 px-6 text-[15px]">
+                      Read the risk disclosure
+                    </Link>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-low)]">
+                      No account system stands behind this build yet. The portal identifies you by a
+                      name held in your own browser, and it says so on the way in.
+                    </p>
+                  </div>
+                </div>
+
+                {/* The risk line sits at the same weight as the call to action,
+                    not in the small print underneath it. */}
+                <div className="mt-10 border-t border-[var(--line)] pt-6">
+                  <p className="flex items-start gap-3 text-sm leading-relaxed text-[var(--text)]">
+                    <TriangleAlert
+                      className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--warn)]"
+                      strokeWidth={1.9}
+                      aria-hidden="true"
+                    />
+                    <span className="max-w-3xl">
+                      <strong className="font-semibold text-[var(--text-hi)]">
+                        The risk, stated plainly.
+                      </strong>{" "}
+                      Capital placed in a vault can be lost in part or in full. The published rate
+                      is a target, not a promise. There is no deposit protection and no compensation
+                      scheme, Rigel is not a bank, and a return of this size implies risk of the
+                      same size. Place only what you can lose entirely without it changing how you
+                      live.
+                    </span>
+                  </p>
                 </div>
               </div>
-            </div>
-          </Reveal>
-        </Section>
+            </Reveal>
+          </div>
+        </section>
       </main>
 
       <LandingFooter />

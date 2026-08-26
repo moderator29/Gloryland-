@@ -209,7 +209,7 @@ function buildItems(snap: Snapshot, now: number): TickerItem[] {
 function Item({ item }: { item: TickerItem }) {
   const Icon = item.icon;
   return (
-    <span className="mr-2 inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-3 py-1.5">
+    <span className="min-h-[36px] mr-2 inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-3 py-1.5">
       <Icon className={`h-3.5 w-3.5 shrink-0 ${TONE[item.tone]}`} strokeWidth={1.9} />
       <span className="whitespace-nowrap text-[12px] text-[var(--text-mid)]">{item.label}</span>
       <span className={`tabular whitespace-nowrap text-[12px] font-semibold ${TONE[item.tone]}`}>
@@ -303,7 +303,7 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
 
   return (
     <section
-      className={`panel flex items-center gap-3 overflow-hidden px-3 py-2.5 ${className}`}
+      className={`min-h-[36px] panel flex items-center gap-3 overflow-hidden px-3 py-2.5 ${className}`}
       aria-label="Live account activity"
     >
       <span className="chip chip-gain shrink-0">
@@ -333,7 +333,10 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
             />
             Nothing is moving yet. Open a vault and this band starts reporting your own accrual.
           </p>
-          <Link to="/app/vaults/new" className="btn btn-ghost shrink-0 !py-1.5 !text-xs">
+          <Link
+            to="/app/vaults/new"
+            className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-xs"
+          >
             Open a vault
           </Link>
         </div>

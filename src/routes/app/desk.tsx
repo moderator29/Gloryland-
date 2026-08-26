@@ -181,7 +181,7 @@ export default function Desk() {
             <button
               onClick={() => setAmt(snap.available.toFixed(2))}
               disabled={snap.available <= 0}
-              className="btn btn-ghost !py-1 !text-[11px]"
+              className="min-h-[36px] btn btn-ghost !py-1 !text-[11px]"
             >
               MAX
             </button>

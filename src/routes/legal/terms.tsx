@@ -153,8 +153,8 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Tiers are determined by the capital you have placed, beginning at {money(FIRST.entry)} for{" "}
-          {FIRST.name} and running to {money(LAST.entry)} for {LAST.name}. Tiers affect access —
-          analytics, queue priority, settlement targets and service coverage — and do not change the
+          {FIRST.name} and running to {money(LAST.entry)} for {LAST.name}. Tiers affect access ,
+          analytics, queue priority, settlement targets and service coverage, and do not change the
           term rate, which is identical at every rung.
         </p>
         <p>
@@ -175,7 +175,7 @@ const SECTIONS: LegalSection[] = [
           the time.
         </p>
         <ReviewNote>
-          The full fee schedule — deposit, withdrawal, early-exit and any administrative charges —
+          The full fee schedule, deposit, withdrawal, early-exit and any administrative charges ,
           must be defined and disclosed here, and must match what the portal charges.
         </ReviewNote>
       </>
@@ -247,8 +247,8 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           To the maximum extent the law allows, we are not liable for indirect, incidental,
-          consequential or punitive loss, for lost profits, or for loss arising from your own errors
-          — including sending assets to a wrong address or losing control of your credentials.
+          consequential or punitive loss, for lost profits, or for loss arising from your own
+          errors, including sending assets to a wrong address or losing control of your credentials.
         </p>
         <ReviewNote>
           Liability caps, carve-outs and any consumer-protection rights that cannot be excluded must
@@ -265,7 +265,7 @@ const SECTIONS: LegalSection[] = [
       <p>
         You agree to cover losses, claims and reasonable costs we incur that arise from your breach
         of these terms, your misuse of the platform, or your violation of any law or third-party
-        right — except to the extent they result from our own breach or negligence.
+        right, except to the extent they result from our own breach or negligence.
       </p>
     ),
   },

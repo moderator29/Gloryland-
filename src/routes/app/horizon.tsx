@@ -525,7 +525,7 @@ export default function Horizon() {
                   <button
                     type="button"
                     onClick={() => setSelected(null)}
-                    className="btn btn-ghost !px-2.5 !py-1.5 !text-xs"
+                    className="min-h-[36px] btn btn-ghost !px-2.5 !py-1.5 !text-xs"
                   >
                     Close
                   </button>

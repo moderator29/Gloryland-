@@ -65,7 +65,7 @@ export function LegalPage({
     <div className="min-h-screen bg-[var(--ink-000)] text-[var(--text)]">
       <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[rgba(8,11,22,0.82)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-5 sm:px-6">
-          <Link to="/" className="rounded-lg" aria-label="Rigel — home">
+          <Link to="/" className="rounded-lg" aria-label="Rigel, home">
             <Wordmark size={24} />
           </Link>
           <Link to="/" className="btn btn-ghost text-[13px]">

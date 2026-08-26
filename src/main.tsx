@@ -22,7 +22,11 @@ import { AppShell } from "./components/shell/AppShell";
 import { Gate } from "./components/shell/Gate";
 import { Skeleton } from "./components/system/ui";
 
+import { applyStoredDisplayPrefs } from "./features/profile";
+
 import "./index.css";
+
+applyStoredDisplayPrefs();
 
 /* Public */
 const Landing = lazy(() => import("./routes/landing"));
@@ -44,6 +48,7 @@ const Activity = lazy(() => import("./routes/app/activity"));
 const OrientationRoute = lazy(() => import("./routes/app/orientation"));
 const Glossary = lazy(() => import("./routes/app/glossary"));
 const Atlas = lazy(() => import("./routes/app/atlas"));
+const Security = lazy(() => import("./routes/app/security"));
 const HorizonRoute = lazy(() => import("./routes/app/horizon"));
 const Signal = lazy(() => import("./routes/app/signal"));
 const SignalPost = lazy(() => import("./routes/app/signal-post"));
@@ -331,6 +336,14 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Support />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="security"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <Security />
                     </Suspense>
                   }
                 />
