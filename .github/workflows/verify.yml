@@ -52,6 +52,9 @@ jobs:
       - name: Install the test toolchain
         run: pnpm run test:install
 
+      - name: Typecheck the tests
+        run: pnpm run typecheck:test
+
       - name: Tests
         run: pnpm run test
 

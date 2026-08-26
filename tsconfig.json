@@ -1,5 +1,10 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
+  // Test files import a toolchain that is installed on demand rather than
+  // declared, so including them here would make a fresh checkout fail to
+  // typecheck before it has run `npm run test:install`. They are covered by
+  // tsconfig.test.json, which CI runs after that step.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

@@ -1,0 +1,10 @@
+{
+  // The tests, checked against the same rules as the app. Run after
+  // `npm run test:install`, which is the step that puts the toolchain in place.
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**/*.ts", "src/test/**/*.tsx"],
+  "exclude": [],
+  "compilerOptions": {
+    "types": ["vite/client", "vitest/globals"]
+  }
+}

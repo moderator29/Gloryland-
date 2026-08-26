@@ -6,6 +6,7 @@ Everything in here needs a runner, and the runner is installed on demand:
 ```sh
 npm run test:install   # once per checkout
 npm run test
+npm run typecheck:test # the tests, checked against the same rules as the app
 ```
 
 ## Why it is not in package.json
