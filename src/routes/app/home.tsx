@@ -12,6 +12,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { LiveTicker, Trajectory } from "@/features/pulse";
 import { Orientation } from "@/features/onboarding";
 import { RelayDue } from "@/features/relay";
+import { AwayDigest } from "@/features/notify";
 import { Explain } from "@/features/explain";
 import { Arrange, type ArrangeItem } from "@/features/utility";
 import {
@@ -365,6 +366,10 @@ export default function Home() {
           account never sees an introduction it has outgrown. */}
       <Orientation />
       <FirstLight snap={snap} />
+
+      {/* Shown once after a real absence, then stamped and gone. It is the
+          only thing standing in for a notification the product cannot send. */}
+      <AwayDigest snap={snap} />
 
       {/* A relay that has come due but not run, which only happens when a
           member turned automatic firing off. Names what the wait costs. */}
