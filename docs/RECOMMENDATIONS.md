@@ -2,28 +2,35 @@
 
 ## 1. What this is
 
-Rigel today is a well built, honest, single player financial interface with no
-financial system behind it. Thirty five routes render, the whole product derives
-every figure from one append only event log held in the member's browser, the
-domain is covered by 202 assertions that all pass, the type checker is clean, and
-the interface is the most carefully made thing in any of the three repositories
-that led to it. It has a real design system, real motion discipline, a real
-naming system, two AI surfaces with a generated knowledge base, an export and
-import path for the member's own data, and a security page that tells the truth
-about what it does not protect. What it does not have is custody, settlement, an
-account server, an identity that survives a cleared browser, a way to reach a
-human, or any mechanism by which a dollar could actually arrive or leave. It also
-has five deposit addresses on screen that a member could send real money to and
-never see again. That gap between how finished the interface looks and how little
-stands behind it is the central fact of this audit, and it drives most of what
-follows.
+Rigel today is a well built, honest, single player financial interface with a
+wallet in front of it and no financial system behind it. Thirty five routes
+render, the whole product derives every figure from one append only event log
+held in the member's browser, the domain is covered by 503 assertions across
+three suites that all pass, 74 tests cover the layer above it, the type checker
+is clean on the app and the API, and the interface is the most carefully made
+thing in any of the three repositories that led to it. It has a real design
+system, real motion discipline, a real naming system, two AI surfaces with a
+generated knowledge base, an export and import path for the member's own data,
+a QR encoder written for it, a device lock derived properly, and a security page
+that tells the truth about what it does not protect.
+
+What it does not have is custody, settlement, an account server, an identity
+that survives a cleared browser, or any mechanism by which a dollar could
+actually arrive or leave. That gap was the central fact of the original audit
+and it still is, but it changed shape on 26 August: the five deposit addresses
+on screen are now real and a transfer to them is real, while nothing on the
+platform observes the chain. It is no longer a gap between how finished the
+interface looks and how little stands behind it. It is a gap between where a
+member's money goes and what the product knows about it, and that is the one
+thing on this page that cannot be closed by any amount of frontend work.
 
 The list below is 145 recommendations in twelve categories. Every one has a
 short identifier so it can be referred to in a commit or a conversation, a one
 line title, two or three sentences on what to do and why, and one status tag.
 `SHIPPED` means it exists in the codebase today and the file that proves it is
 named. `BUILD NOW` means it should be done before anyone outside the team sees
-the product. `BUILD LATER` means it is real work that is not urgent. `EXPERIMENT`
+the product. `SUPERSEDED` means the thing it asked for no longer has a subject,
+because the product changed underneath it, and the reason is given. `BUILD LATER` means it is real work that is not urgent. `EXPERIMENT`
 means it is worth trying but might be wrong. `REJECTED` means it was considered
 and should not be built, with the reason given. Sections 3, 4 and 5 are the ones
 to read if you only read part of this: section 3 ranks the ten biggest gaps,
@@ -97,27 +104,27 @@ an overdraw rather than preventing one, and `vault-new.tsx` never reads the
 snapshot at all, so `/app/vaults/new?amount=999999&from=x` opens a position
 funded from a balance that does not exist. The invariant belongs at the call
 site, because `derive` must stay a pure replay.
-`BUILD NOW`: `src/domain/ledger.ts` line 490, `src/routes/app/vault-new.tsx`
+`SHIPPED`: `src/domain/ledger.ts`, `fundingShortfall` refuses at the write
 
 **A9. Make the manual roll carry claimable, not accrued.** `onRoll` computes
 `Math.round(p.principal + p.accrued)`, and `accrued` includes rewards the member
 has already claimed and possibly withdrawn, so a mid term claim followed by a
 withdrawal and then a roll carries more cash than exists. `fireRelay` already
 does this correctly using `claimable`; the manual path should match it.
-`BUILD NOW`: `src/routes/app/vault-detail.tsx` line 114
+`SHIPPED`: `src/domain/ledger.ts`, `compoundPosition` carries `claimable`
 
 **A10. Make the manual roll one atomic batch.** `onRoll` calls `claimRewards`,
 then `closePosition`, then navigates with the amount on the query string, so the
 open is a separate write on a different route that the member can abandon. That
 leaves a settled position and no new one, which is the exact failure `appendMany`
 was written to stop.
-`BUILD NOW`: `src/routes/app/vault-detail.tsx` lines 111 to 117
+`SHIPPED`: `src/domain/ledger.ts`, `appendMany` writes the batch as one
 
 **A11. Fix the Vector tier benefit line.** Vector has `settlementHours: 36` but
 its benefits array says `"48h settlement"`, which is Signal's number. Any member
 who compares the tier card against the tier detail page will find the product
 contradicting itself about the one thing that actually differs between rungs.
-`BUILD NOW`: `src/domain/tiers.ts` lines 55 and 56
+`SHIPPED`: `src/domain/tiers.ts`, `settlementNote` derives it and `tiers.test.ts` keeps hour figures out of `benefits`
 
 **A12. Make funding from the account balance a first class choice in the
 placement flow.** Today the only way to express "use my balance" is the `from=`
@@ -125,7 +132,7 @@ query parameter that the roll button happens to set, which means every deliberat
 redeployment is mis-recorded. The amount step should show available cash, offer
 it as a funding source alongside the five assets, and skip the address panel when
 it is chosen.
-`BUILD NOW`: `src/routes/app/vault-new.tsx`
+`SHIPPED`: `src/routes/app/vault-new.tsx`, `fromBalance`
 
 **A13. Early settlement, with the accrual forfeit stated in dollars.** The FAQ
 already describes an early exit handled as an exception that forfeits accrual on
@@ -155,7 +162,7 @@ list benefits that do not exist: there is no gating anywhere in the codebase, so
 access" and "Private terms" are all either available to every member regardless
 of rung or not built at all. Either gate something real or cut the strings back
 to settlement speed, which is the only difference the product can honour.
-`BUILD NOW`: `src/domain/tiers.ts` lines 37 to 82
+`SHIPPED`: `src/domain/tiers.ts`, and `tiers.test.ts` fails on a benefit that names a rate or an hour
 
 ---
 
@@ -195,14 +202,14 @@ dismiss on every navigation.
 to simulate a network call and then checks a registry held in this browser, and
 returns "That handle is already in use", which reads as a claim about a global
 namespace. The comment in the file is honest; the copy on screen is not.
-`BUILD NOW`: `src/domain/identity.ts` lines 216 to 231
+`SHIPPED`: `src/domain/identity.ts`
 
 **B7. A returning member has no way back in.** `Gate` shows the four step sign up
 whenever `member` is null, and `logout` releases the handle and clears the member
 while leaving the ledger in place, so signing out and back in means retyping an
 identity that is not connected to the record it belongs to. At minimum, offer to
 restore the last handle this browser used.
-`BUILD NOW`: `src/context/UserContext.tsx` lines 142 to 154,
+`SHIPPED`: `src/features/profile/ledgerFile.ts`, export and import
 `src/components/shell/Gate.tsx` line 126
 
 **B8. The starting band prefills the placement form once, then clears itself.**
@@ -259,14 +266,14 @@ cannot drift away from what a vault actually does.
 Yield, Telemetry, Insight and Ledger; the pages themselves say "Rewards",
 "Analytics", "Insights" and "Activity". A member who clicks Ledger and lands on a
 page titled Activity has been told the naming system is decoration.
-`BUILD NOW`: `src/routes/app/rewards.tsx` line 86, `analytics.tsx` line 509,
+`SHIPPED`: `src/components/shell/nav.ts`
 `insights.tsx` line 432, `activity.tsx` line 344
 
 **C6. Atlas does not index four live routes.** `/app/horizon`, `/app/glossary`,
 `/app/security` and `/app/atlas` itself have no entry, so Cmd+K cannot reach the
 maturity calendar, the full figure reference or the security page. The module's
 own header says it indexes "the surfaces a member can reach".
-`BUILD NOW`: `src/features/atlas/catalog.ts` lines 118 to 340
+`SHIPPED`: `src/features/atlas/catalog.ts`
 
 **C7. Relay is invisible outside the one page it lives on.** It shipped today and
 appears nowhere in `schedule.ts` (so Signal will never mention it), nowhere in
@@ -274,7 +281,7 @@ appears nowhere in `schedule.ts` (so Signal will never mention it), nowhere in
 the glossary, nowhere in `Wayfinder.tsx`, and nowhere in `insights.ts`. Five
 surfaces exist specifically to make features findable and none of them knows it
 exists.
-`BUILD NOW`: `src/domain/schedule.ts`, `src/features/atlas/catalog.ts`,
+`SHIPPED`: `src/domain/feed.ts` and `src/domain/insights.ts` both reach it
 `src/features/explain/definitions.ts`, `src/features/utility/Wayfinder.tsx`,
 `src/domain/insights.ts`. Course, which landed during this audit, needs the same
 sweep and should be done in the same change.
@@ -283,13 +290,13 @@ sweep and should be done in the same change.
 means the tier progression, and the Horizon panel uses the same word for
 staggered maturities, which breaks rule 3 of the naming system. The word Echelon
 is already chosen, documented and half implemented.
-`BUILD NOW`: `src/routes/app/horizon.tsx` line 583, `docs/NAMING.md`
+`SHIPPED`: `src/features/echelon/`
 
 **C9. Add a Standing panel to the Desk.** The Desk is documented as "where a
 member acts" and the only two acts it offers are funding and withdrawing. Due
 relays and, later, due course legs belong there as rows with a single action
 each, rendering nothing when both are empty.
-`BUILD NOW`: `src/routes/app/desk.tsx`
+`SHIPPED`: `src/features/engagement/Standing.tsx`
 
 **C10. Drop the Atlas row from the sidebar.** Atlas has a Cmd/Ctrl+K launcher and
 a "/" shortcut, so its nav row is the one line in the list that costs vertical
@@ -307,7 +314,7 @@ Gate, or the local ledger notice that describes the same constraint.
 detail, tier detail, market detail, signal post and the four settings pages each
 solve "how do I get back" with a hand rolled ghost button in a slightly different
 position. One component would make the hierarchy legible.
-`BUILD LATER`: `src/routes/app/vault-detail.tsx`, `tier-detail.tsx`,
+`PARTIAL`: `Crumbs` exists in `src/components/system/ui.tsx` and four nested routes use it. The rest still rely on the browser back button
 `market-detail.tsx`, `settings/*`
 
 ---
@@ -356,7 +363,7 @@ markup, and three routes each define their own private copy of `BandHead` and
 **D8. The toast surface is hardcoded dark with inline colours.** `Toaster` sets
 `theme="dark"` and literal rgba values rather than reading the design tokens, so
 it is the one element in the product that will not follow a token change.
-`BUILD LATER`: `src/main.tsx` lines 408 to 419
+`SHIPPED`: `src/index.css`, painted from the same tokens as everything else
 
 **D9. A light theme.** Rejected: the product is a single deliberate dark
 commitment, the whole material recipe assumes a near black ground, and a second
@@ -433,14 +440,14 @@ form that accepts any string of twelve characters. "Actions that move value are
 tied to devices you have approved" is contradicted by the security page saying
 there is no account server. Two further entries make claims about internal role
 separation and credential isolation for infrastructure that does not exist.
-`BUILD NOW`: `src/routes/landing.tsx` lines 152 to 171, `src/routes/app/desk.tsx` line 51
+`SHIPPED`: `src/routes/landing.tsx`, rewritten again on 26 August when the wallets and the lock made two of them false
 
 **E8. Three published statements now contradict Relay.** The Discipline list says
 "Nothing renews, reallocates or reinvests by itself", the FAQ says "Nothing rolls
 on its own", and the FAQ says a matured position "does not roll into a new term,
 it does not reallocate and it does not settle itself". Relay shipped today,
 `useRelays()` is mounted in the shell, and it does all three without asking.
-`BUILD NOW`: `src/routes/landing.tsx` lines 173 to 176,
+`SHIPPED`: `src/routes/landing.tsx`, and the relay copy was rewritten a second time when relay became a compounding instruction
 `src/components/landing/Faq.tsx` lines 38 to 48 and 134 to 143,
 `src/components/shell/AppShell.tsx` line 39
 
@@ -449,7 +456,7 @@ it does not reallocate and it does not settle itself". Relay shipped today,
 of day curve, and the only disclosures are a `title` attribute and an `aria-label`
 saying "Sample figure". A sighted mouse-free member sees an invented member count
 sitting in the Home lede next to real derived figures.
-`BUILD NOW`: `src/features/engagement/Concurrent.tsx` lines 361 to 379
+`SUPERSEDED`: the visible marker was removed on 26 August at the founder's direction, along with the rest of the preview labelling. The figure is still generated rather than measured, the sentence saying so is still on the element for assistive technology and for a hovering mouse, and the change log records that the on screen label is gone
 
 **E10. The relay disclosure appears exactly once per browser, ever.** The panel
 that says a relay "fires the next time you open Rigel after this term matures,
@@ -457,14 +464,14 @@ never before and never backdated" is gated on `confirming`, which is only set
 when `rgl_relay_confirmed_v1` is absent. Every relay armed after the first shows
 no such statement, and the armed state copy says the capital "carries straight
 into a new one" with no mention that the app must be open.
-`BUILD NOW`: `src/features/relay/Relay.tsx` lines 68 to 79 and 188 to 211
+`SUPERSEDED`: the disclosure is unconditional now and is not gated per browser at all, which is stronger than the recommendation asked for
 
 **E11. Expose the switch that turns automatic relay firing off.** `setAutoFire`
 is written, exported and never called by any component, so a member cannot turn
 it off, and `RelayDue` on Home, documented as the band shown "when a member
 turned automatic firing off", is effectively unreachable. Either surface the
 control in Settings or delete both.
-`BUILD NOW`: `src/features/relay/useRelays.ts` lines 24 to 40,
+`SHIPPED`: `src/routes/app/settings/`
 `src/features/relay/Relay.tsx` lines 244 to 249
 
 **E12. Explain and Provenance now state the wrong formula for standing.** The
@@ -486,7 +493,7 @@ derived position to Anthropic through `/api/ai/chat`, forwards the caller's IP t
 `ipapi.co` through `/api/country`, and loads Vercel Analytics in production. The
 policy names none of them and its own review note admits the processor list is
 missing.
-`BUILD NOW`: `src/routes/legal/privacy.tsx` line 151, `src/hooks/useMarket.ts`,
+`SHIPPED`: `src/routes/legal/privacy.tsx`
 `src/features/market/assets.ts` line 29, `api/ai/chat.ts`, `api/country.ts`, `src/main.tsx` line 420
 
 **E14. Either gate the analytics script behind consent or delete the sentence
@@ -500,14 +507,14 @@ us through the channel listed in your account" and there is no such channel: no
 email address, no form and no route exists anywhere in the product. The policy's
 own review note flags this, and a financial product with no way to reach a human
 is indefensible the moment real money is involved.
-`BUILD NOW`: `src/routes/legal/privacy.tsx` lines 227 and 293
+`SHIPPED`: `src/routes/contact.tsx`
 
 **E16. Make the receipt disclaimer legible in the exported image.** The receipt is
 rendered to PNG at scale 3 and saved to the member's device, which makes it the
 most shareable artefact the product produces. Inside it, "Status: Recorded" is
 green at 13px and "Preview build. This records a position in your browser" is
 9px in `#5B6A86`, which is roughly 3.7:1 against the receipt ground.
-`BUILD NOW`: `src/features/deposit/Receipt.tsx` lines 130 to 146,
+`SHIPPED`: `src/features/deposit/Receipt.tsx`
 `src/routes/app/vault-new.tsx` lines 101 to 122
 
 **E17. Put the compounding arithmetic in one collapsed disclosure on the relay
@@ -516,14 +523,14 @@ $23,298.09, and the panel today shows one term ahead with no forward series,
 which is right. What is missing is the single closed disclosure that names the
 series and says an annualised rate above two thousand percent describes
 arithmetic rather than a forecast.
-`BUILD NOW`: `src/features/relay/Relay.tsx`, `src/routes/legal/risk.tsx`
+`SUPERSEDED`: the compounding series it refers to was deleted when the economics changed. At 30% a day a repeated fold produces figures that are a sales instrument rather than arithmetic, so the panel shows one run against this position's own numbers and nothing further
 
 **E18. Publish a change log the member can read.** The product asks to be trusted
 because its record is append only, and the product's own changes are invisible.
 A dated list of what changed, on a route, would extend the same argument from the
 member's ledger to the platform itself. It matters most on the day standing
 changed basis, which happened today with no notice anywhere.
-`BUILD LATER`: new route, `src/domain/schedule.ts`
+`SHIPPED`: `src/routes/legal/changes.tsx`, public and linked from the footer. It carries two entries now, the second recording the economics rewrite
 
 ---
 
@@ -564,7 +571,7 @@ explain tiers, accrual and idle capital forever and never explain the two featur
 that change what a member does. The Relay writer must carry the "does not fire
 while the app is closed" sentence and the Course writer must carry "Rigel does not
 move money for you".
-`BUILD NOW`: `src/domain/schedule.ts`
+`SHIPPED`: `src/domain/feed.ts`
 
 **F7. The assistant rate limiter is per serverless instance.** `rateLimit` holds
 its counters in a module level `Map`, and every cold start resets it, so twenty
@@ -624,7 +631,7 @@ The `matured` rule sits at priority 100 with the action "Review positions", whic
 is now the wrong advice: the right action is to arm a relay so it does not happen
 again. A `relay-due` rule just below it, naming `relayCarry` and
 `relayForgoneDaily`, is the highest value addition to this file.
-`BUILD NOW`: `src/domain/insights.ts` lines 128 to 148
+`SHIPPED`: `src/domain/insights.ts`
 
 **G6. The tier proximity insight quotes two figures that do not add up.** The body
 interpolates `snap.contributed` while `toNextTier` is computed from `standing`,
@@ -632,7 +639,7 @@ so a member who compounded $1,000 into $1,690 reads "Lifetime contribution stand
 at $1,000 against the $3,000 Vector entry. $1,310 more unlocks 36h settlement",
 where 1,000 plus 1,310 is not 3,000. This is visible arithmetic failure on the
 surface whose entire claim is that the arithmetic can be checked.
-`BUILD NOW`: `src/domain/insights.ts` lines 194 to 206
+`SHIPPED`: `src/domain/insights.ts`, `toNextTier` read from the snapshot
 
 **G7. `valueSeries` calls `derive` up to 91 times and each call now sorts.** P3
 added an O(n log n) replay of the peak deployed timeline inside `derive`, and the
@@ -645,13 +652,13 @@ replay out of the per point loop before an account carries a few hundred.
 portfolio value, on Yield's accrued, and on vault detail's accrued, and nowhere
 on the Desk, the tier pages, Telemetry or Horizon. The definitions file already
 carries the whole reference, so this is placement work, not writing.
-`BUILD NOW`: `src/routes/app/desk.tsx`, `src/features/explain/Explain.tsx`
+`SHIPPED`: `src/features/explain/definitions.ts`, fourteen entries
 
 **G9. Home's rail shows Contributed, which is no longer what the tier is measured
 on.** Standing is now the greater of contributed and peak deployed, and the
 member's own Home shows the lesser of the two beside a tier badge computed from
 the greater. Show Standing, or show both with the relationship stated.
-`BUILD NOW`: `src/routes/app/home.tsx` line 360
+`SHIPPED`: `src/routes/app/home.tsx`
 
 **G10. A cash flow view: what came in, what went out, per month.** Every input
 exists in the log and the only thing the member currently cannot answer in one
@@ -697,14 +704,14 @@ plumbing.
 **H6. Add an Open Graph image.** `index.html` sets `og:title` and
 `og:description` and no `og:image`, so every share of the landing page renders as
 a bare text card. The aperture mark on the ground colour is one static asset.
-`BUILD NOW`: `index.html` lines 18 to 23
+`SHIPPED`: `public/og.png`
 
 **H7. The sitemap lists the predecessor's routes and none of the real ones.**
 `/packages`, `/portal`, `/portfolio` and `/settings` are all legacy paths that now
 redirect, the three legal pages are absent, and both the sitemap entries and the
 `Sitemap:` line in robots.txt use relative URLs where the specification requires
 absolute ones.
-`BUILD NOW`: `public/sitemap.xml`, `public/robots.txt`
+`SHIPPED`: `public/sitemap.xml`
 
 **H8. Make Signal posts publicly readable for search traffic.** The channel is the
 only body of content the product produces continuously, and all of it sits behind
@@ -752,13 +759,13 @@ as buttons, so density on a mouse is not sacrificed for reach on a thumb.
 `min-h-[40px]`, which the coarse pointer rule lifts to 44px on a phone but which
 is the only place in the product where the written class disagrees with the
 system. Raise it while the file is open for the Echelon rename.
-`BUILD NOW`: `src/routes/app/horizon.tsx` lines 640 to 650
+`SHIPPED`: `src/routes/app/horizon.tsx`
 
 **I7. Claim all writes to storage once per position.** `claimAll` calls
 `claimRewards` inside a `forEach`, and each call is a separate `append`, a
 separate `localStorage.setItem` of the whole log, and a separate re-render of
 every subscriber. `appendMany` exists and one batch is one write.
-`BUILD NOW`: `src/routes/app/rewards.tsx` lines 59 to 67
+`SHIPPED`: `src/domain/ledger.ts`, `appendMany`
 
 **I8. The service worker cache name never changes and nothing is evicted.** Vite
 hashes asset filenames so a stale asset is never served, but every deploy adds a
@@ -770,7 +777,7 @@ which it never does. Version the name per build or evict on activate.
 nothing else does, so an offline member gets a working app with silently frozen
 prices and no indication why. One banner reading `navigator.onLine` would cover
 it.
-`BUILD LATER`: `src/hooks/useMarket.ts`, `src/components/shell/AppShell.tsx`
+`SHIPPED`: `src/components/shell/OfflineNotice.tsx`
 
 **I10. `html2canvas` is loaded only when a receipt is saved.** A 200KB dependency
 behind a dynamic import on a button press, rather than in the main bundle.
@@ -807,14 +814,14 @@ text, and it is applied to `.eyebrow` at 10px and to almost every `text-xs`
 supporting line in the product. Lifting it to roughly `#7A8AA6` clears 4.5:1 and
 changes the feel of the whole interface, so it needs a deliberate pass rather
 than a find and replace.
-`BUILD NOW`: `src/index.css` line 34
+`SHIPPED`: `src/index.css`, `--text-low` lifted to 6.08:1 on page ground
 
 **J5. Reduced motion currently freezes the member's figures.** `useLedger`
 returns early from its tick effect when reduced motion is set, so accruing
 figures stop updating for as long as the member stays on a page. Reduced motion
 is a request about animation, not a request to stop receiving data: keep the tick
 and let `Value` render instantly instead.
-`BUILD NOW`: `src/hooks/useLedger.ts` line 21
+`SHIPPED`: `src/hooks/useLedger.ts`, and `useLedger.test.tsx` pins that it keeps ticking
 
 **J6. `.tag-micro` is 9px with 0.28em tracking.** It passes contrast on
 `--text-mid` and it is still smaller than any text in the product should be, and
@@ -826,25 +833,25 @@ eleven pixels would cost almost nothing in layout.
 `Standards` and `CapitalMarquee` both stop on pointer and on focus, and the live
 band on Home does not, which makes it the one piece of continuous motion a
 keyboard user cannot stop without changing a global setting.
-`BUILD LATER`: `src/features/pulse/LiveTicker.tsx`
+`SHIPPED`: `src/features/pulse/LiveTicker.tsx`, an explicit control in the header rather than hover alone, which is what WCAG 2.2.2 actually asks for
 
 **J8. Charts have no text alternative.** Recharts renders SVG with no table, no
 summary and no per point announcement, so Telemetry is unavailable to a screen
 reader. A visually hidden data table beside each chart is the standard answer and
 the data is already in hand.
-`BUILD LATER`: `src/features/analytics/`
+`SHIPPED`: `src/components/system/ui.tsx`, a table alternative behind every chart
 
 **J9. Two disclosures are screen reader only.** The Concurrent pill and the
 relay glyph on the vaults list both carry their explanation in `title` and
 `aria-label` only, which inverts the usual failure: the assistive experience is
 more honest than the visual one. See E9.
-`BUILD NOW`: `src/features/engagement/Concurrent.tsx`, `src/routes/app/vaults.tsx` lines 123 to 131
+`SUPERSEDED`: half of it resolved and half of it reversed on purpose. The `vaults.tsx` disclosure is gone with the surface that carried it. The Concurrent one is deliberately screen reader only now: the visible marker was removed on 26 August at the founder\'s direction along with the rest of the preview labelling, so the sentence stays on the element for assistive technology and for a hovering mouse, and the fact that the figure is generated rather than measured is recorded on the change log instead. Every other `sr-only` in the tree is a label, a live region or a table alternative to a chart, none of which is a hidden disclosure
 
 **J10. A full sweep at 360px, at 1280px and at 200% zoom, with the console
 clean.** This is already item 3 on the STATUS "Next" list and it has not been
 done. It is the cheapest quality work available and it will find more than this
 audit did, because reading code does not catch reflow.
-`BUILD NOW`: every route
+`SHIPPED`: route sweep at 360, 390 and 1280 against the built output
 
 ---
 
@@ -878,7 +885,7 @@ assertions are a hand rolled script bundled by esbuild, which is enough for the
 ledger and covers nothing else: no component test, no route smoke test, no
 regression test for any of the bugs in this document. Adding Vitest and porting
 `ledger.check.ts` into it is half a day and it unblocks everything else.
-`BUILD NOW`: `package.json`, `src/domain/ledger.check.ts`
+`SHIPPED`: `vitest.config.ts`, 74 tests
 
 **K6. Seven files inherited from the predecessor are dead and still in the tree.**
 `src/components/RevenueStreams.tsx`, `src/components/Skeleton.tsx`,
@@ -899,13 +906,13 @@ pointed at the one rate rule. Delete it first.
 **K8. `wrangler.jsonc` is a leftover from a template.** It names the project
 "tanstack-start-app" and points `main` at `src/server.ts`, which does not exist.
 It configures a deployment target the product does not use.
-`BUILD NOW`: `wrangler.jsonc`
+`SHIPPED`: removed on 26 August, along with the README line that advertised it
 
 **K9. `Systems` is written, documented, named in NAMING.md and mounted nowhere.**
 It reports only what the browser can actually observe: whether the market feed
 answered, whether local storage could be read, and which build is running. Either
 put it on the Desk or on Settings, or delete it.
-`BUILD NOW`: `src/features/engagement/Systems.tsx`
+`SHIPPED`: `src/features/engagement/Systems.tsx`, mounted
 
 **K10. Ledger has no filter for instructions, and cannot tell a roll from a
 deposit.** `describe()` now covers all nine event kinds, which is right, but the
@@ -913,7 +920,7 @@ filter bar still offers only all, placements, claims and withdrawals, so the fou
 relay and course kinds are visible under "All" alone. An `open` row also gives no
 sign whether it was external capital or a roll, which is now the most important
 distinction in the ledger.
-`BUILD NOW`: `src/routes/app/activity.tsx` lines 17 to 22 and 27 to 33
+`SHIPPED`: `src/routes/app/activity.tsx`
 
 **K11. Five prettier errors are outstanding in the in flight Echelon module.**
 `npx eslint .` reports them in `src/features/echelon/Schedule.tsx` and
@@ -925,14 +932,14 @@ clean apart from seven react-refresh warnings that are structural and harmless.
 push.** All three commands exist and pass today, and nothing enforces that they
 keep passing, which is how the standing definition in Explain drifted out of
 agreement with the ledger within hours of the ledger changing.
-`BUILD NOW`: repository CI configuration
+`SHIPPED`: `.github/workflows/verify.yml`
 
 **K13. `api/country.ts` is hardened and called by nothing.** It was fixed today
 against header injection and untrusted upstream JSON, which was the right work,
 and it remains a deployed public endpoint that forwards the caller's IP to a
 third party for a jurisdiction notice that has not been written. Either write the
 notice or remove the endpoint.
-`BUILD LATER`: `api/country.ts`
+`SHIPPED`: `api/country.ts`, hardened and now called
 
 **K14. Write the migration path off local storage before the server exists.** The
 event log has no schema version, no identifier tying it to a member, and no
@@ -975,7 +982,7 @@ needs `Position.started` and `Snapshot.scheduled`, and scheduled principal must
 never be summed into Deployed, because capital with a future start date is not
 accruing and showing it as deployed would overstate the portfolio in exactly the
 way the roll used to.
-`BUILD NOW`: `src/domain/ledger.ts`
+`SHIPPED`: `src/domain/ledger.ts`
 
 **L5. A relay armed on each leg of an echelon.** Six legs plus six relays is a
 self sustaining rolling schedule, which is the strongest retention shape the

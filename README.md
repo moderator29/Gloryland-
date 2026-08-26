@@ -85,4 +85,4 @@ Updating `BTC_WALLET` automatically regenerates the QR.
 
 ## Deployment
 
-`vercel.json` and `wrangler.jsonc` are included for Vercel and Cloudflare deployments.
+`vercel.json` configures the Vercel deployment. There was a `wrangler.jsonc` beside it, which named a Cloudflare worker called `tanstack-start-app` with an entry point at `src/server.ts` that has never existed in this repository. It was a template leftover describing a deployment nobody could run, and it is gone.
