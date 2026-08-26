@@ -59,7 +59,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const kind = body.kind === "support" ? "support" : "copilot";
   const style: Style =
     typeof body.style === "string" && body.style in STYLES ? (body.style as Style) : "balanced";
-  const snapshot = typeof body.snapshot === "string" ? body.snapshot.slice(0, 2000) : undefined;
+  const snapshot = typeof body.snapshot === "string" ? body.snapshot.slice(0, 2600) : undefined;
+
+  // The latest turn narrows the product briefing to the sections it needs, so
+  // a one line question does not carry the whole reference into the prompt.
+  const question = checked.messages[checked.messages.length - 1].content.slice(0, 600);
 
   try {
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -73,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         model: MODEL,
         max_tokens: MAX_TOKENS,
         stream: true,
-        system: systemPrompt(kind, style, snapshot),
+        system: systemPrompt(kind, style, snapshot, question),
         messages: checked.messages,
       }),
     });

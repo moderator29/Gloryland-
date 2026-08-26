@@ -35,9 +35,13 @@ import {
   type Thread,
 } from "./store";
 import { useLedger } from "@/hooks/useLedger";
+import { useApproach } from "@/context/UserContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { money, pct, relative } from "@/components/system/format";
+import { relative } from "@/components/system/format";
 import { Mark } from "@/components/brand/Mark";
+import { referenceAnswer } from "@/domain/knowledge";
+import { CLAIM_FLOOR, positionBriefing } from "./grounding";
+import { suggestedQuestions } from "./suggestions";
 
 export type AiConfig = {
   surface: Surface;
@@ -46,7 +50,6 @@ export type AiConfig = {
   icon: LucideIcon;
   welcome: string;
   blurb: string;
-  prompts: string[];
   disclaimer: string;
 };
 
@@ -130,6 +133,7 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
   const { surface, icon: Icon } = config;
   const reduce = useReducedMotion();
   const snap = useLedger();
+  const approach = useApproach();
 
   const [threads, setThreads] = useState<Thread[]>(() => load(surface));
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -175,24 +179,61 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
     );
   }, [threads, query]);
 
-  /** A compact, factual summary of the member's own position. */
+  /**
+   * The member's derived figures, sent with each message so replies can quote
+   * them. Withheld entirely when the member has turned sharing off.
+   */
   const positionSummary = () =>
-    prefs.sharePosition
-      ? [
-          `Portfolio value: ${money(snap.portfolioValue, 2)}`,
-          `Contributed from outside: ${money(snap.contributed)}`,
-          `Tier standing: ${money(snap.standing)}`,
-          `Deployed in vaults: ${money(snap.deployed)}`,
-          `Unclaimed rewards: ${money(snap.rewardsPending, 2)}`,
-          `Available balance: ${money(snap.available, 2)}`,
-          `Return to date: ${pct(snap.returnPct)}`,
-          `Tier: ${snap.tier?.name ?? "none yet"}`,
-          snap.nextTier
-            ? `Next tier: ${snap.nextTier.name}, ${money(snap.toNextTier)} away`
-            : "At the top tier",
-          `Open vaults: ${snap.activePositions.length}`,
-        ].join("\n")
-      : undefined;
+    prefs.sharePosition ? positionBriefing(snap, approach) : undefined;
+
+  /**
+   * Starter questions read off the member's actual state, so an account with a
+   * matured position is not offered the same four lines as an empty one.
+   *
+   * Keyed on the figures the questions actually interpolate rather than on the
+   * snapshot itself. `useLedger` re-derives every few seconds so accrual can
+   * visibly move, and rebuilding the list on each of those ticks would
+   * reshuffle the questions under the member's cursor.
+   */
+  const hasClaimable = snap.rewardsPending >= CLAIM_FLOOR;
+  const idleCash = Math.round(snap.available);
+  const standing = Math.round(snap.standing);
+  const portfolio = Math.round(snap.portfolioValue);
+  const starters = useMemo(
+    () => suggestedQuestions(surface, snap),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      surface,
+      snap.positions.length,
+      snap.activePositions.length,
+      hasClaimable,
+      idleCash,
+      standing,
+      portfolio,
+      snap.nextTier?.id,
+      snap.relaysArmed.length,
+      snap.relaysDue.length,
+    ],
+  );
+
+  /**
+   * What to write when the assistant is not connected.
+   *
+   * A real answer out of the product reference, clearly marked as such, or a
+   * plain statement that this question is not one it covers. Never anything
+   * shaped like a reply the model did not produce.
+   */
+  const fromReference = (
+    question: string,
+  ): { content: string; source?: "reference"; error?: string } => {
+    const found = referenceAnswer(question);
+    return found
+      ? { content: `${found.heading}\n\n${found.body}`, source: "reference" }
+      : {
+          content: "",
+          error: `${config.name} is not connected, and this question is not one the product reference covers. Glossary defines every figure and Atlas indexes every surface.`,
+        };
+  };
 
   const send = (text: string) => {
     const body = text.trim();
@@ -208,10 +249,19 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
     appendMessage(surface, threadId, { role: "user", content: body });
     setInput("");
 
-    const history = (load(surface).find((t) => t.id === threadId)?.messages ?? []).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // No key on the server. Rather than failing, or worse inventing a reply,
+    // answer out of the product reference and label it as such.
+    if (ready === false) {
+      appendMessage(surface, threadId, { role: "assistant", ...fromReference(body) });
+      return;
+    }
+
+    // Earlier turns that carry no text of their own would be rejected by the
+    // server, and a reference answer is the product reference rather than
+    // something this assistant said, so neither belongs in the history.
+    const history = (load(surface).find((t) => t.id === threadId)?.messages ?? [])
+      .filter((m) => m.content.trim() && m.source !== "reference")
+      .map((m) => ({ role: m.role, content: m.content }));
 
     const reply = appendMessage(surface, threadId, { role: "assistant", content: "" });
     setStreaming(true);
@@ -226,14 +276,28 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
         acc += d;
         patchMessage(surface, threadId!, reply.id, { content: acc });
       },
-      onDone: () => {
+      onDone: (stopped) => {
         setStreaming(false);
         handle.current = null;
-        if (!acc) patchMessage(surface, threadId!, reply.id, { error: "No reply was returned." });
+        // A member who pressed stop before any text arrived did not hit a
+        // failure, so it must not read as one.
+        if (!acc) {
+          patchMessage(surface, threadId!, reply.id, {
+            error: stopped ? "Stopped before the reply started." : "No reply was returned.",
+          });
+        }
       },
-      onError: (msg) => {
+      onError: (msg, code) => {
         setStreaming(false);
         handle.current = null;
+        // The status check said the server had a key and the server disagrees.
+        // Record that and answer from the reference, so a key pulled between
+        // the two calls degrades the same way as one that was never set.
+        if (code === "not_configured") {
+          setReady(false);
+          patchMessage(surface, threadId!, reply.id, fromReference(body));
+          return;
+        }
         patchMessage(surface, threadId!, reply.id, { error: msg });
       },
     });
@@ -478,36 +542,45 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
           )}
         </AnimatePresence>
 
-        {/* Messages */}
-        <div className="no-bar min-h-0 flex-1 overflow-y-auto px-4 py-5">
+        {/* Messages. Focusable so the transcript can be scrolled from the
+            keyboard, and a live region so a streaming reply is announced. */}
+        <div
+          tabIndex={0}
+          role="log"
+          aria-live="polite"
+          aria-label={`${config.name} conversation`}
+          className="no-bar min-h-0 flex-1 overflow-y-auto px-4 py-5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]"
+        >
           {!active || active.messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-2 text-center">
               <Mark size={44} />
-              <h1 className="display mt-4 text-xl">{config.welcome}</h1>
+              <h2 className="display mt-4 text-xl">{config.welcome}</h2>
               <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-low)]">
                 {config.blurb}
               </p>
 
               {ready === false && (
                 <p className="chip chip-warn mt-4 max-w-sm !whitespace-normal !py-2 text-left leading-relaxed">
-                  The assistant is not connected yet. Set ANTHROPIC_API_KEY in the server
-                  environment to enable it.
+                  {config.name} is not connected. Questions are answered from the product reference
+                  instead, which covers the mechanics, the ladder and how to use every surface.
+                  Anything outside it will say so rather than guess.
                 </p>
               )}
 
               <div className="mt-6 w-full max-w-md space-y-2">
-                {config.prompts.map((p, i) => (
+                {starters.map((p, i) => (
                   <motion.button
                     key={p}
                     initial={reduce ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: reduce ? 0 : 0.34, delay: reduce ? 0 : 0.06 * i }}
                     onClick={() => send(p)}
-                    disabled={ready === false}
-                    className="flex w-full items-center gap-2.5 rounded-full border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-4 py-2.5 text-left text-[13px] text-[var(--text)] transition-colors hover:border-[rgba(46,139,255,0.4)] hover:bg-[rgba(46,139,255,0.07)] disabled:opacity-50"
+                    // A derived question can run to two lines at 360px, so the
+                    // shape wraps rather than staying a single line pill.
+                    className="flex w-full items-start gap-2.5 rounded-2xl border border-[var(--line)] bg-[rgba(5,7,15,0.5)] px-4 py-2.5 text-left text-[13px] leading-snug text-[var(--text)] transition-colors hover:border-[rgba(46,139,255,0.4)] hover:bg-[rgba(46,139,255,0.07)]"
                   >
-                    <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]" />
-                    {p}
+                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]" />
+                    <span className="min-w-0 break-words">{p}</span>
                   </motion.button>
                 ))}
               </div>
@@ -523,8 +596,8 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
                   className={m.role === "user" ? "flex justify-end" : ""}
                 >
                   {m.role === "user" ? (
-                    <div className="max-w-[85%] rounded-2xl rounded-br-md border border-[rgba(46,139,255,0.3)] bg-[rgba(46,139,255,0.12)] px-4 py-2.5">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">
+                    <div className="min-w-0 max-w-[85%] rounded-2xl rounded-br-md border border-[rgba(46,139,255,0.3)] bg-[rgba(46,139,255,0.12)] px-4 py-2.5">
+                      <p className="[overflow-wrap:anywhere] whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--text-hi)]">
                         {m.content}
                       </p>
                     </div>
@@ -534,12 +607,18 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
                         <Icon className="h-3.5 w-3.5 text-[var(--accent-hi)]" />
                       </span>
                       <div className="min-w-0 flex-1">
+                        {m.source === "reference" && m.content && (
+                          <p className="chip chip-warn mb-2 !whitespace-normal !py-1.5 leading-relaxed">
+                            Read from the product reference. {config.name} is not connected, so no
+                            model produced this.
+                          </p>
+                        )}
                         {m.error ? (
                           <p className="chip chip-warn !whitespace-normal !py-2 leading-relaxed">
                             {m.error}
                           </p>
                         ) : (
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]">
+                          <p className="[overflow-wrap:anywhere] whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--text)]">
                             {m.content}
                             {streaming && !m.content && (
                               <span className="inline-flex gap-1 align-middle">
@@ -611,23 +690,19 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
                     send(input);
                   }
                 }}
-                placeholder={ready === false ? "Assistant not connected" : `Ask ${config.name}`}
+                placeholder={ready === false ? "Ask the product reference" : `Ask ${config.name}`}
                 aria-label={`Message ${config.name}`}
-                disabled={ready === false}
-                className="max-h-40 min-h-[38px] w-full resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[var(--text-low)] disabled:opacity-60"
+                className="max-h-40 min-h-[38px] w-full resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[var(--text-low)]"
               />
               {streaming ? (
-                <button
-                  onClick={stop}
-                  className="btn btn-outline !px-3"
-                  aria-label="Stop generating"
-                >
+                <button onClick={stop} className="btn btn-outline !px-3" aria-label="Stop">
                   <Square className="h-3.5 w-3.5 fill-current" />
+                  <span className="sr-only">Stop generating the reply</span>
                 </button>
               ) : (
                 <button
                   onClick={() => send(input)}
-                  disabled={!input.trim() || ready === false}
+                  disabled={!input.trim()}
                   className="btn btn-primary !px-3"
                   aria-label="Send message"
                 >
@@ -635,8 +710,10 @@ export function AiWorkspace({ config }: { config: AiConfig }) {
                 </button>
               )}
             </div>
-            <p className="mt-2 text-center text-[11px] text-[var(--text-low)]">
-              {config.disclaimer}
+            <p className="mt-2 text-center text-[11px] leading-relaxed text-[var(--text-low)]">
+              {ready === false
+                ? `${config.name} is not connected. Answers come from the product reference, and nothing here is generated.`
+                : config.disclaimer}
             </p>
           </div>
         </div>

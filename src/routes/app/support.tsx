@@ -2,9 +2,12 @@ import { LifeBuoy } from "lucide-react";
 import { AiWorkspace, type AiConfig } from "@/features/ai/AiWorkspace";
 
 /**
- * Support: practical help with using the product. Deliberately separate from
- * the Copilot, with its own history, a different system prompt and a narrower
- * remit. It answers how-to questions and refuses anything advisory.
+ * Support: practical help with using the product.
+ *
+ * A full route, and deliberately separate from Copilot: its own history, its
+ * own system prompt and a narrower remit. It answers how to do something,
+ * where a surface is and what a word means, and hands anything advisory back.
+ * Starter questions come from the member's state, not from a list here.
  */
 const CONFIG: AiConfig = {
   surface: "support",
@@ -13,14 +16,9 @@ const CONFIG: AiConfig = {
   icon: LifeBuoy,
   welcome: "How can we help?",
   blurb:
-    "Questions about using the platform, where something lives, or what a term means. Answers come from the product documentation.",
-  prompts: [
-    "How do I open a vault?",
-    "When can I withdraw?",
-    "What does the settlement target mean?",
-    "How do I claim my rewards?",
-  ],
-  disclaimer: "Support answers from platform documentation. It will say so when it does not know.",
+    "Questions about using the platform: how to do something, where a surface lives, what a term means. Answers come from the product reference.",
+  disclaimer:
+    "Support answers from the product reference. It will say plainly when a question falls outside what it can answer.",
 };
 
 export default function Support() {

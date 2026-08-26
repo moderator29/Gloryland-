@@ -1,0 +1,23 @@
+{
+  // The serverless handlers only. Imported modules come in transitively, which
+  // is why `src/domain` is not listed: including it wholesale would drag in
+  // browser only files the API never touches.
+  //
+  // DOM is in `lib` because the domain modules shared with the client guard
+  // their own storage access at runtime, so they still reference `window` and
+  // `localStorage` in code paths the server never reaches.
+  "include": ["api/**/*.ts"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": { "@/*": ["./src/*"] }
+  }
+}

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "check": "esbuild src/domain/ledger.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ledger-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/ledger-check.mjs"
+    "check": "esbuild src/domain/ledger.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ledger-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/ledger-check.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -28,6 +29,7 @@
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@vercel/node": "^5.1.0",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.5.0",
     "esbuild": "^0.27.7",

@@ -17,6 +17,15 @@ export type Message = {
   at: number;
   /** Set when the reply failed, so the UI can offer a retry. */
   error?: string;
+  /**
+   * Where an assistant message came from.
+   *
+   * Absent means the model produced it. "reference" means the assistant was
+   * not connected and the answer was read out of the product knowledge module
+   * instead. The two are never allowed to look alike on screen: a fabricated
+   * model reply would be worse than no reply at all.
+   */
+  source?: "reference";
 };
 
 export type Thread = {
@@ -172,8 +181,14 @@ export function streamReply(opts: {
   style: Style;
   snapshot?: string;
   onDelta: (text: string) => void;
-  onDone: () => void;
-  onError: (message: string) => void;
+  /** `stopped` is true when the caller aborted, so a half reply is not an error. */
+  onDone: (stopped: boolean) => void;
+  /**
+   * `code` is the machine readable reason from the endpoint, when it sent one.
+   * The caller needs it to tell an unconfigured server apart from a broken
+   * one, because only the first has a useful answer to fall back to.
+   */
+  onError: (message: string, code?: string) => void;
 }): StreamHandle {
   const controller = new AbortController();
 
@@ -193,13 +208,15 @@ export function streamReply(opts: {
 
       if (!res.ok) {
         let message = "The assistant could not be reached.";
+        let code: string | undefined;
         try {
           const body = await res.json();
           if (body?.message) message = body.message;
+          if (typeof body?.error === "string") code = body.error;
         } catch {
           /* non-json error body */
         }
-        opts.onError(message);
+        opts.onError(message, code);
         return;
       }
       if (!res.body) {
@@ -214,10 +231,10 @@ export function streamReply(opts: {
         if (done) break;
         opts.onDelta(decoder.decode(value, { stream: true }));
       }
-      opts.onDone();
+      opts.onDone(false);
     } catch (e) {
       if ((e as Error)?.name === "AbortError") {
-        opts.onDone();
+        opts.onDone(true);
         return;
       }
       opts.onError("The assistant is unavailable right now.");
