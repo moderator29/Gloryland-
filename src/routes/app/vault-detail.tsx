@@ -10,6 +10,7 @@ import { Value } from "@/components/system/Value";
 import { Metric, Progress, Status } from "@/components/system/ui";
 import { money, fullDate, days, relative } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { RelayPanel } from "@/features/relay";
 
 /** The four moments in a term, rendered as a vertical timeline. */
 function Timeline({
@@ -74,6 +75,7 @@ export default function VaultDetail() {
   const nav = useNavigate();
   const snap = useLedger();
   const p = snap.positions.find((x) => x.id === id);
+  const relay = snap.relays.find((r) => r.positionId === id);
 
   if (!p) {
     return (
@@ -153,7 +155,7 @@ export default function VaultDetail() {
                     <Download className="h-4 w-4" /> Settle to cash
                   </button>
                   <button onClick={onRoll} className="btn btn-primary">
-                    <RefreshCw className="h-4 w-4" /> Roll into a new term
+                    <RefreshCw className="h-4 w-4" /> Roll now
                   </button>
                 </>
               )}
@@ -166,8 +168,8 @@ export default function VaultDetail() {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--text-hi)]">Term complete</p>
               <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-low)]">
-                {money(p.principal + p.accrued)} is ready. Rolling it starts a new {CYCLE_DAYS} day
-                term and counts toward your standing.
+                {money(p.principal + p.accrued)} is ready and is not accruing while it waits.
+                Rolling it starts a new {CYCLE_DAYS} day term.
               </p>
             </div>
           </div>
@@ -199,6 +201,11 @@ export default function VaultDetail() {
           </Metric>
         </div>
       </section>
+
+      {/* Arming is the alternative to performing the actions above by hand
+          every month, so it sits directly beneath them. Hidden once a term is
+          settled, when there is nothing left to carry. */}
+      {!p.closed && <RelayPanel position={p} relay={relay} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="panel p-5">

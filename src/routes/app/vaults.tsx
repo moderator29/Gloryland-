@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Vault as VaultIcon } from "lucide-react";
+import { Plus, Vault as VaultIcon, Repeat } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Value } from "@/components/system/Value";
 import { Progress, Status, Empty } from "@/components/system/ui";
@@ -120,6 +120,15 @@ export default function Vaults() {
                           </p>
                         </div>
                         <Status kind={p.matured ? "matured" : "accruing"} />
+                        {snap.relaysArmed.some((r) => r.positionId === p.id) && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-hi)]"
+                            title="A relay is armed on this vault"
+                          >
+                            <Repeat className="h-3 w-3" strokeWidth={2.2} aria-hidden="true" />
+                            Relay
+                          </span>
+                        )}
                       </div>
 
                       <div className="mt-auto pt-6">

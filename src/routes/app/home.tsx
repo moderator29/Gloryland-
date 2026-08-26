@@ -11,6 +11,7 @@ import { CYCLE_RETURN } from "@/domain/tiers";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { LiveTicker, Trajectory } from "@/features/pulse";
 import { Orientation } from "@/features/onboarding";
+import { RelayDue } from "@/features/relay";
 import { Arrange, type ArrangeItem } from "@/features/utility";
 import {
   Cadence,
@@ -362,6 +363,10 @@ export default function Home() {
           account never sees an introduction it has outgrown. */}
       <Orientation />
       <FirstLight snap={snap} />
+
+      {/* A relay that has come due but not run, which only happens when a
+          member turned automatic firing off. Names what the wait costs. */}
+      <RelayDue snap={snap} />
 
       {/* Idle cash prompt. Absent below the first tier entry, where there is
           nothing that could be opened with it. */}

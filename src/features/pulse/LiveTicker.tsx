@@ -13,6 +13,7 @@ import {
   Vault,
   Zap,
   type LucideIcon,
+  Repeat,
 } from "lucide-react";
 import type { LedgerEvent, Snapshot } from "@/domain/ledger";
 import { sampleActivity, describeSample } from "./sampleActivity";
@@ -77,6 +78,10 @@ function describe(e: LedgerEvent): { icon: LucideIcon; label: string; value: str
       return { icon: Gift, label: "Rewards claimed", value: `+${money(e.amount, 2)}` };
     case "withdraw":
       return { icon: ArrowUpRight, label: "Withdrawal recorded", value: money(e.amount, 2) };
+    case "relay.set":
+      return { icon: Repeat, label: "Relay armed", value: "" };
+    case "relay.clear":
+      return { icon: Repeat, label: "Relay disarmed", value: "" };
     case "close":
       return { icon: Check, label: "Vault settled", value: "principal returned" };
   }

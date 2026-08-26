@@ -26,7 +26,7 @@ import {
 export const DAY_MS = 86_400_000;
 const EVENTS_KEY = "rgl_ledger_v1";
 
-export type EventKind = "open" | "claim" | "withdraw" | "close";
+export type EventKind = "open" | "claim" | "withdraw" | "close" | "relay.set" | "relay.clear";
 
 export type LedgerEvent =
   /** Capital placed into a vault. Starts a term. */
@@ -57,7 +57,18 @@ export type LedgerEvent =
   /** Cash sent out to an external address. */
   | { id: string; kind: "withdraw"; at: number; amount: number; address: string }
   /** A matured position returned its principal to available cash. */
-  | { id: string; kind: "close"; at: number; positionId: string };
+  | { id: string; kind: "close"; at: number; positionId: string }
+  /**
+   * A standing instruction on a position: at maturity, carry it into a new
+   * term rather than letting it sit still. The latest relay event for a
+   * position wins, so arming, changing mode and disarming are one mechanism
+   * and the whole history stays readable in Ledger.
+   */
+  | { id: string; kind: "relay.set"; at: number; positionId: string; mode: RelayMode }
+  | { id: string; kind: "relay.clear"; at: number; positionId: string };
+
+/** What a relay carries forward. */
+export type RelayMode = "full" | "principal";
 
 export type Position = {
   id: string;
@@ -84,6 +95,31 @@ export type Position = {
   dailyReward: number;
   matured: boolean;
   closed: boolean;
+};
+
+/**
+ * A relay as the product sees it, derived rather than stored.
+ *
+ * `carries` reads the position's own `claimable`, not principal times the
+ * term rate, so a member who claimed mid term carries principal plus whatever
+ * is actually left. Anything else would quote a figure the ledger cannot pay.
+ */
+export type Relay = {
+  positionId: string;
+  mode: RelayMode;
+  setAt: number;
+  /** The instruction stands: latest event is a set, and the term is still open. */
+  armed: boolean;
+  /** When it will fire, which is the position's maturity. */
+  firesAt: number;
+  /** Armed, matured and not yet settled, so it is waiting to run. */
+  due: boolean;
+  /** What the new term would open with. */
+  carries: number;
+  /** How long it has been sitting matured and earning nothing. */
+  overdueDays: number;
+  /** What that idleness costs per day, at the rate the carry would earn. */
+  forgoneDaily: number;
 };
 
 export type Snapshot = {
@@ -126,6 +162,15 @@ export type Snapshot = {
   tierProgress: number;
   /** Capital still required to reach the next tier. */
   toNextTier: number;
+  /** Every position that has ever had a relay instruction, armed or not. */
+  relays: Relay[];
+  relaysArmed: Relay[];
+  /** Armed relays whose term has matured and which are waiting to run. */
+  relaysDue: Relay[];
+  /** Total capital those due relays would put back to work. */
+  relayCarry: number;
+  /** What leaving them unfired costs per day. */
+  relayForgoneDaily: number;
   events: LedgerEvent[];
 };
 
@@ -184,11 +229,26 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 export type NewEvent = DistributiveOmit<LedgerEvent, "id" | "at"> & { at?: number };
 
 export function append(event: NewEvent): LedgerEvent {
-  const full = { ...event, id: newId(), at: event.at ?? Date.now() } as LedgerEvent;
-  const next = [...loadEvents(), full];
-  saveEvents(next);
+  return appendMany([event])[0];
+}
+
+/**
+ * Write several events as one.
+ *
+ * A relay firing is a claim, a close and an open that only make sense
+ * together: persisting them one at a time would leave a log where the term
+ * closed and nothing reopened if the write failed halfway. One read, one
+ * write, one notification.
+ */
+export function appendMany(events: NewEvent[]): LedgerEvent[] {
+  if (events.length === 0) return [];
+  const now = Date.now();
+  const written = events.map(
+    (e) => ({ ...e, id: (e as { id?: string }).id ?? newId(), at: e.at ?? now }) as LedgerEvent,
+  );
+  saveEvents([...loadEvents(), ...written]);
   emit();
-  return full;
+  return written;
 }
 
 /** Wipe the ledger. Used by account reset in settings. */
@@ -307,6 +367,41 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     if (running > peakDeployed) peakDeployed = running;
   }
 
+  // Relays. The latest instruction per position wins, so a member can arm,
+  // change mode and disarm without the log needing anything removed from it.
+  const byPosition = new Map<string, Extract<LedgerEvent, { kind: "relay.set" | "relay.clear" }>>();
+  for (const e of events) {
+    if (e.kind !== "relay.set" && e.kind !== "relay.clear") continue;
+    const prev = byPosition.get(e.positionId);
+    if (prev === undefined || e.at >= prev.at) byPosition.set(e.positionId, e);
+  }
+
+  const positionById = new Map(positions.map((p) => [p.id, p]));
+  const relays: Relay[] = [];
+  for (const [positionId, e] of byPosition) {
+    const p = positionById.get(positionId);
+    if (!p) continue;
+    const mode: RelayMode = e.kind === "relay.set" ? e.mode : "full";
+    const armed = e.kind === "relay.set" && !p.closed;
+    const due = armed && p.matured;
+    const carries = mode === "full" ? p.principal + p.claimable : p.principal;
+    relays.push({
+      positionId,
+      mode,
+      setAt: e.at,
+      armed,
+      firesAt: p.maturesAt,
+      due,
+      carries,
+      overdueDays: due ? Math.max(0, (now - p.maturesAt) / DAY_MS) : 0,
+      forgoneDaily: due ? carries * DAILY_RATE : 0,
+    });
+  }
+  relays.sort((a, b) => a.firesAt - b.firesAt);
+
+  const relaysArmed = relays.filter((r) => r.armed);
+  const relaysDue = relays.filter((r) => r.due);
+
   const standing = Math.max(contributed, peakDeployed);
   const portfolioValue = deployed + rewardsPending + available;
   const netGain = portfolioValue + withdrawn - contributed;
@@ -336,6 +431,11 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     nextTier: next,
     tierProgress,
     toNextTier: next ? Math.max(0, next.entry - standing) : 0,
+    relays,
+    relaysArmed,
+    relaysDue,
+    relayCarry: relaysDue.reduce((sum, r) => sum + r.carries, 0),
+    relayForgoneDaily: relaysDue.reduce((sum, r) => sum + r.forgoneDaily, 0),
     events: [...events].sort((a, b) => b.at - a.at),
   };
 }
@@ -360,6 +460,53 @@ export function claimRewards(positionId: string, amount: number) {
 
 export function recordWithdrawal(amount: number, address: string) {
   return append({ kind: "withdraw", amount, address });
+}
+
+/** Arm a relay, or change the mode on one that is already armed. */
+export function armRelay(positionId: string, mode: RelayMode) {
+  return append({ kind: "relay.set", positionId, mode });
+}
+
+export function disarmRelay(positionId: string) {
+  return append({ kind: "relay.clear", positionId });
+}
+
+/**
+ * Run one due relay: settle the matured term and open the next with what it
+ * carried, as a single write.
+ *
+ * Two rules hold this honest. Every event is stamped now rather than at the
+ * maturity date, because backdating would fabricate accrual for the days the
+ * capital actually sat still. And the new position is marked as funded from
+ * the balance, because the money was already counted when it first arrived,
+ * so counting it again would inflate the portfolio and buy tier standing that
+ * was never paid for.
+ */
+export function fireRelay(relay: Relay, position: Position): LedgerEvent[] {
+  if (!relay.due) return [];
+
+  const claiming = relay.mode === "full" ? position.claimable : 0;
+  const carry = Math.round((position.principal + claiming) * 100) / 100;
+  const tier = tierForAmount(carry) ?? position.tier;
+  const nextId = newId();
+
+  return appendMany([
+    ...(position.claimable >= 0.01
+      ? [{ kind: "claim" as const, positionId: position.id, amount: position.claimable }]
+      : []),
+    { kind: "close" as const, positionId: position.id },
+    {
+      id: nextId,
+      kind: "open" as const,
+      amount: carry,
+      tierId: tier.id,
+      asset: position.asset,
+      network: position.network,
+      fromAvailable: true,
+    } as NewEvent,
+    // The chain continues, so a member arms once rather than every month.
+    { kind: "relay.set" as const, positionId: nextId, mode: relay.mode },
+  ]);
 }
 
 export function closePosition(positionId: string) {

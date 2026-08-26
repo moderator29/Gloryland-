@@ -32,9 +32,9 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
 
         <nav className="no-bar fade-y flex-1 overflow-y-auto pb-2" aria-label="Main">
           {NAV.map((group) => (
-            <div key={group.heading} className="mb-4">
+            <div key={group.heading} className="mb-3">
               {!collapsed && <p className="eyebrow mb-1.5 px-3">{group.heading}</p>}
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {group.items.map(({ to, label, icon: Icon, end }) => (
                   <li key={to}>
                     <NavLink

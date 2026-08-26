@@ -11,6 +11,7 @@ import { LocalLedgerNotice } from "./LocalLedgerNotice";
 import { Aperture } from "@/features/onboarding";
 import { InstallPrompt, ScrollRail, Wayfinder } from "@/features/utility";
 import { Palette } from "@/features/atlas";
+import { useRelays } from "@/features/relay";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const COLLAPSE_KEY = "rgl_sidebar_collapsed";
@@ -32,6 +33,11 @@ function Page({ children }: { children: React.ReactNode }) {
 
 export function AppShell() {
   const { pathname, hash } = useLocation();
+
+  // Mounted here rather than on a route, because a relay must fire wherever
+  // the member lands, not only if they open the vault it belongs to.
+  useRelays();
+
   const mainRef = useRef<HTMLElement>(null);
 
   // Navigating used to leave focus where the link had been and carry the old

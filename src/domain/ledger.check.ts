@@ -146,5 +146,76 @@ console.log("\n7. Accrual still stops at settlement and at maturity");
   is("capped at the term", late.rewardsAccrued, 1000 * DAILY_RATE * CYCLE_DAYS);
 }
 
+console.log("\n8. Relays");
+{
+  const armed: LedgerEvent[] = [
+    open("p1", T0, 1000, "signal"),
+    { id: "r1", kind: "relay.set", at: day(1), positionId: "p1", mode: "full" } as LedgerEvent,
+  ];
+
+  const midTerm = derive(armed, day(10));
+  is("armed", midTerm.relaysArmed.length, 1);
+  is("not due mid term", midTerm.relaysDue.length, 0);
+  is("fires at maturity", midTerm.relays[0].firesAt, day(CYCLE_DAYS));
+
+  const matured = derive(armed, day(CYCLE_DAYS + 2));
+  is("due once matured", matured.relaysDue.length, 1);
+  is("carries principal plus reward", matured.relaysDue[0].carries, 1300);
+  is("overdue by two days", matured.relaysDue[0].overdueDays, 2);
+  is("forgone per day", matured.relayForgoneDaily, 13);
+  is("relayCarry", matured.relayCarry, 1300);
+
+  // Principal only mode leaves the reward behind.
+  const principalOnly = derive(
+    [
+      open("p1", T0, 1000, "signal"),
+      {
+        id: "r1",
+        kind: "relay.set",
+        at: day(1),
+        positionId: "p1",
+        mode: "principal",
+      } as LedgerEvent,
+    ],
+    day(CYCLE_DAYS),
+  );
+  is("principal only carries principal", principalOnly.relaysDue[0].carries, 1000);
+
+  // A later clear wins over an earlier set.
+  const cleared = derive(
+    [...armed, { id: "r2", kind: "relay.clear", at: day(5), positionId: "p1" } as LedgerEvent],
+    day(CYCLE_DAYS),
+  );
+  is("disarmed", cleared.relaysArmed.length, 0);
+  is("nothing due", cleared.relaysDue.length, 0);
+
+  // A claim mid term lowers what the relay can carry, because it carries what
+  // is actually left rather than the full term reward.
+  const partlyClaimed = derive([...armed, claim("c1", day(15), "p1", 150)], day(CYCLE_DAYS));
+  is("carries principal plus what remains", partlyClaimed.relaysDue[0].carries, 1150);
+
+  // Firing writes the batch, and the result must not double count.
+  const fired: LedgerEvent[] = [
+    open("p1", T0, 1000, "signal"),
+    { id: "r1", kind: "relay.set", at: day(1), positionId: "p1", mode: "full" } as LedgerEvent,
+    claim("c1", day(CYCLE_DAYS), "p1", 300),
+    close("x1", day(CYCLE_DAYS), "p1"),
+    open("p2", day(CYCLE_DAYS), 1300, "signal", true),
+    {
+      id: "r2",
+      kind: "relay.set",
+      at: day(CYCLE_DAYS),
+      positionId: "p2",
+      mode: "full",
+    } as LedgerEvent,
+  ];
+  const after = derive(fired, day(CYCLE_DAYS));
+  is("portfolio is the real carry", after.portfolioValue, 1300);
+  is("balance is empty", after.available, 0);
+  is("contribution unchanged", after.contributed, 1000);
+  is("the chain rearmed itself", after.relaysArmed.length, 1);
+  is("rearmed on the new position", after.relaysArmed[0].positionId, "p2");
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Receipt, ArrowDownLeft, ArrowUpRight, Gift, Check } from "lucide-react";
+import { Receipt, ArrowDownLeft, ArrowUpRight, Gift, Check, Repeat } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Empty } from "@/components/system/ui";
 import { money, fullDate, relative } from "@/components/system/format";
@@ -48,6 +48,24 @@ function describe(e: LedgerEvent) {
         icon: Check,
         title: "Vault settled",
         detail: "Principal returned",
+        amount: null,
+        tone: "text-[var(--text-mid)]",
+        sign: "",
+      };
+    case "relay.set":
+      return {
+        icon: Repeat,
+        title: e.mode === "full" ? "Relay armed" : "Relay armed, principal only",
+        detail: "Carries into a new term at maturity",
+        amount: null,
+        tone: "text-[var(--accent-hi)]",
+        sign: "",
+      };
+    case "relay.clear":
+      return {
+        icon: Repeat,
+        title: "Relay disarmed",
+        detail: "This term will settle to your balance",
         amount: null,
         tone: "text-[var(--text-mid)]",
         sign: "",

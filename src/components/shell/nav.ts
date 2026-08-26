@@ -14,7 +14,6 @@ import {
   UsersRound,
   CalendarRange,
   Compass,
-  BookMarked,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,7 +59,6 @@ export const NAV: NavGroup[] = [
     items: [
       { to: "/app/circle", label: "Circle", icon: UsersRound },
       { to: "/app/atlas", label: "Atlas", icon: Compass },
-      { to: "/app/glossary", label: "Glossary", icon: BookMarked },
       { to: "/app/settings", label: "Settings", icon: Settings },
     ],
   },
