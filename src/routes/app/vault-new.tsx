@@ -483,8 +483,8 @@ export default function VaultNew() {
 
               <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--text-low)]">
                 <Info className="mt-px h-3 w-3 shrink-0" />
-                Send the exact amount to the address above. Your position is credited once the
-                transfer is reviewed.
+                Send to the address above, then paste the transaction hash on the Desk. It is
+                checked against the chain and credited to your balance.
               </p>
             </section>
           </motion.div>

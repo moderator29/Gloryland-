@@ -178,6 +178,7 @@ export type InspectResult = {
 };
 
 const EMPTY_COUNTS: Record<EventKind, number> = {
+  deposit: 0,
   open: 0,
   claim: 0,
   withdraw: 0,

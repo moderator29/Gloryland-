@@ -1025,7 +1025,15 @@ pricing a door that does not open.
 Ten things, ranked. Not features that would be nice, but the absences that
 currently decide what Rigel can and cannot be.
 
-**1. Anywhere for a dollar to actually go.** There is no custody, no settlement,
+**1. PARTLY CLOSED, 26 August.** A dollar now has somewhere to go and a way to
+be recognised when it gets there: five real addresses, and a verifier that
+checks a member's own transaction hash against the chain before crediting
+anything. What is still open is the other direction and the reconciliation.
+Money can arrive and be proved; nothing sends it back out, and the rule that a
+hash cannot be spent twice is enforced per browser rather than globally,
+because that needs the account server in item 2. Original entry follows.
+
+**1a. Anywhere for a dollar to actually go.** There is no custody, no settlement,
 no chain watcher and no payment path. The addresses that used to be printed on
 screen are gone, so the interface no longer invites anyone to send funds into
 nothing, but until this exists every other number in the product is a rehearsal

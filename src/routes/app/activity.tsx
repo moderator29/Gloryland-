@@ -46,6 +46,18 @@ const FILTERS = [
 /** One row's presentation, derived from the event kind. */
 function describe(e: LedgerEvent) {
   switch (e.kind) {
+    case "deposit":
+      return {
+        icon: ArrowDownLeft,
+        // The rate is on the row rather than only on the event, because the
+        // dollars credited are a multiplication a member should be able to
+        // check without opening a file.
+        title: "Transfer credited",
+        detail: `${e.units} ${e.asset} at ${money(e.unitPrice, e.unitPrice < 10 ? 4 : 0)} · ${e.txid.slice(0, 10)}...`,
+        amount: e.amount,
+        tone: "text-[var(--gain)]",
+        sign: "+",
+      };
     case "open": {
       const name = tierById(e.tierId)?.name ?? "Vault";
       // A roll and a deposit are the same event kind and the opposite fact: one

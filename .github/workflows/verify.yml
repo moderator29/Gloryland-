@@ -77,15 +77,24 @@ jobs:
             exit 1
           fi
 
-      # Deposit addresses are real now, and they live in exactly two files:
-      # the one that declares them and the one that asserts what they are.
-      # Anywhere else is a second place a member could be sent, so it fails
-      # here. `npm run check` above pins the values themselves.
+      # Deposit addresses are real, and they live in exactly one file. Anywhere
+      # else is a second place a member could be sent, and a stale second place
+      # is the original defect wearing different clothes.
+      #
+      # Matched on the values themselves rather than on the shape of an
+      # address. The shape catches the USDT contract and every test fixture,
+      # which are not deposit addresses and never were, and a check that cries
+      # wolf is a check people learn to skip. `npm run check` and
+      # `assets.test.ts` pin the values from the other two directions.
       - name: Deposit addresses live in one place
         run: |
-          stray=$(grep -rlE '(bc1[a-z0-9]{20,}|0x[a-fA-F0-9]{40}|EHwKKS[A-Za-z0-9]{20,})' src/ api/ \
-              --exclude='*.test.ts' --exclude='*.test.tsx' \
+          stray=$(grep -rlF \
+              -e 'bc1qn9wf60cha6a4h4dfsslutksvv04amlz6hwmch0' \
+              -e '0xa6594edf7415f5dcf599c3249fbf2ab948978799' \
+              -e 'EHwKKSQcJQSbTxKKdbzzbMQUVZQZGiiD1GcUVYdCPsCc' \
+              src/ api/ \
               | grep -v '^src/features/market/assets.ts$' \
+              | grep -v '^src/features/market/assets.test.ts$' \
               | grep -v '^src/lib/qr.check.ts$' || true)
           if [ -n "$stray" ]; then
             echo "::error::A deposit address literal reached $stray. They belong in src/features/market/assets.ts only."

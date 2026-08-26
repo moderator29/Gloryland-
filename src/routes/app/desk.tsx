@@ -19,6 +19,7 @@ import { useLedger } from "@/hooks/useLedger";
 import { recordWithdrawal } from "@/domain/ledger";
 import { MarketPanel, ASSETS, CoinLogo } from "@/features/market";
 import { AddressQr } from "@/features/deposit/AddressQr";
+import { ConfirmTransfer } from "@/features/deposit/ConfirmTransfer";
 import { useMarket } from "@/hooks/useMarket";
 import { Value } from "@/components/system/Value";
 import { Metric, SectionHeader, NavRow } from "@/components/system/ui";
@@ -141,6 +142,8 @@ export default function Desk() {
           <div className="inset mt-3 p-4">
             <AddressQr asset={funding} />
           </div>
+
+          <ConfirmTransfer asset={funding} />
 
           <Link to="/app/vaults/new" className="btn btn-primary mt-3 w-full">
             <Plus className="h-4 w-4" /> Open a vault

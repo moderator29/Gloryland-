@@ -78,6 +78,12 @@ function countdown(ms: number): string {
 /** Event presentation, matching the language used on the Activity record. */
 function describe(e: LedgerEvent): { icon: LucideIcon; label: string; value: string } {
   switch (e.kind) {
+    case "deposit":
+      return {
+        icon: ArrowDownLeft,
+        label: `${e.asset} transfer credited`,
+        value: `+${money(e.amount, 2)}`,
+      };
     case "open":
       return {
         icon: ArrowDownLeft,

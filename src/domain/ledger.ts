@@ -62,6 +62,7 @@ export const DAY_MS = 86_400_000;
 const EVENTS_KEY = "rgl_ledger_v1";
 
 export type EventKind =
+  | "deposit"
   | "open"
   | "claim"
   | "withdraw"
@@ -114,6 +115,36 @@ export type LedgerEvent =
   | { id: string; kind: "claim"; at: number; amount: number; positionId: string }
   /** Cash sent out to an external address. */
   | { id: string; kind: "withdraw"; at: number; amount: number; address: string }
+  /**
+   * Cash brought in by a transfer that was verified against the chain.
+   *
+   * The only way money enters the balance from outside. It is written when a
+   * member's transaction hash has been fetched from a public explorer and
+   * satisfied every rule in `src/domain/deposits.ts`: it exists, it paid one
+   * of the platform's own addresses, it has enough confirmations, and the hash
+   * has not been credited here before.
+   *
+   * Everything needed to re-check the arithmetic is on the event. `amount` is
+   * the dollars credited, `units` is what actually moved on the chain and
+   * `unitPrice` is the rate applied, so a member reading this a month later
+   * can multiply the two and get the first. Recording only the product would
+   * be a figure nobody could check, and this product does not print those.
+   */
+  | {
+      id: string;
+      kind: "deposit";
+      at: number;
+      /** Dollars credited to the balance. `units` times `unitPrice`. */
+      amount: number;
+      asset: string;
+      network: string;
+      /** The chain's own transaction hash. Unique across the whole ledger. */
+      txid: string;
+      /** What moved on the chain, in the asset's own units. */
+      units: number;
+      /** Dollars per unit at the moment it was credited. */
+      unitPrice: number;
+    }
   /** A position was closed and returned its principal to available cash. */
   | { id: string; kind: "close"; at: number; positionId: string }
   /**
@@ -780,6 +811,9 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const withdraws = events.filter(
     (e): e is Extract<LedgerEvent, { kind: "withdraw" }> => e.kind === "withdraw",
   );
+  const deposits = events.filter(
+    (e): e is Extract<LedgerEvent, { kind: "deposit" }> => e.kind === "deposit",
+  );
 
   // When a position was settled, so accrual can be stopped at that instant.
   const closedAtById = new Map<string, number>();
@@ -843,7 +877,11 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   // `overdrawn` says how far a log went past its own cash instead of a clamp
   // quietly absorbing it. Only an import can produce one: `openPosition`
   // refuses the write.
-  const cash = rewardsClaimed + returnedPrincipal - withdrawn - recycled;
+  // Verified transfers are the only capital that enters the balance from
+  // outside. A duplicate hash can never reach here: `recordDeposit` refuses
+  // the write, and the import path rejects a batch carrying one.
+  const deposited = deposits.reduce((s, d) => s + d.amount, 0);
+  const cash = deposited + rewardsClaimed + returnedPrincipal - withdrawn - recycled;
   const available = Math.max(0, cash);
   const overdrawn = Math.max(0, -cash);
 
@@ -1003,12 +1041,58 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
  * be able to put them aside.
  */
 export type EventClass =
+  | "deposit"
   | "placement"
   | "roll"
   | "claim"
   | "withdrawal"
   | "settlement"
   | "instruction";
+
+/**
+ * Record a verified transfer, or refuse.
+ *
+ * The refusal is the point. A hash that is already in the log is money that
+ * has already been credited, and crediting it twice would invent capital out
+ * of a transfer that happened once. That is the same class of defect as the
+ * roll double count, and it is refused at the write for the same reason: a
+ * guard on a surface is a guard one caller can forget.
+ */
+export function recordDeposit(input: {
+  asset: string;
+  network: string;
+  txid: string;
+  units: number;
+  unitPrice: number;
+  amount: number;
+  at?: number;
+}): { ok: true; event: LedgerEvent } | { ok: false; reason: string } {
+  const txid = input.txid.trim();
+  if (!txid) return { ok: false, reason: "No transaction hash." };
+  if (!(input.amount > 0)) return { ok: false, reason: "That transfer credits nothing." };
+
+  const events = loadEvents();
+  const clash = events.find(
+    (e) => e.kind === "deposit" && e.txid.toLowerCase() === txid.toLowerCase(),
+  );
+  if (clash) {
+    return { ok: false, reason: "That transaction has already been credited to this account." };
+  }
+
+  const event: LedgerEvent = {
+    id: `d-${txid.slice(-12)}`,
+    kind: "deposit",
+    at: input.at ?? Date.now(),
+    amount: input.amount,
+    asset: input.asset,
+    network: input.network,
+    txid,
+    units: input.units,
+    unitPrice: input.unitPrice,
+  };
+  appendMany([event]);
+  return { ok: true, event };
+}
 
 /** True when this placement was funded from capital already in the account. */
 export function isRoll(e: LedgerEvent): boolean {
@@ -1021,6 +1105,8 @@ export function classify(e: LedgerEvent): EventClass {
       return isRoll(e) ? "roll" : "placement";
     case "claim":
       return "claim";
+    case "deposit":
+      return "deposit";
     case "withdraw":
       return "withdrawal";
     case "close":

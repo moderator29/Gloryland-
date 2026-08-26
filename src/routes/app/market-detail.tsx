@@ -7,6 +7,7 @@ import { useMarket, useMarketHistory, WINDOWS, type Window } from "@/hooks/useMa
 import { assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
 import { AddressQr } from "@/features/deposit/AddressQr";
+import { ConfirmTransfer } from "@/features/deposit/ConfirmTransfer";
 import { Crumbs, Skeleton } from "@/components/system/ui";
 import { money, moneyCompact } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -212,6 +213,8 @@ export default function MarketDetail() {
         <div className="inset mt-3 p-4">
           <AddressQr asset={meta} size={168} />
         </div>
+
+        <ConfirmTransfer asset={meta} />
         <Link to="/app/vaults/new" className="btn btn-primary mt-3 w-full">
           Open a vault
         </Link>

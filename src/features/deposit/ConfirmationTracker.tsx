@@ -6,7 +6,12 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 /**
  * Network confirmation progress for a recorded deposit.
  *
- * Confirmations advance on a timer because this build has no chain watcher.
+ * An illustration of how a chain confirms, shown while a member waits.
+ *
+ * It advances on a timer and is not a reading of the network. The real reading
+ * is in `ConfirmTransfer`, which fetches the member's own transaction and
+ * reports its actual confirmation count, and this exists only to show the
+ * shape of the wait. The line underneath says which is which.
  * That is stated on the surface rather than implied, so the animation is
  * never mistaken for a live reading of a network.
  */
@@ -85,8 +90,8 @@ export function ConfirmationTracker({
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
-        Network times are typical, not guaranteed. Your position is credited once the transfer is
-        reviewed.
+        Typical times for this network, drawn rather than read. Your own transfer's real
+        confirmation count is on the Desk, where the hash is checked against the chain.
       </p>
     </div>
   );

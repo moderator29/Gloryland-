@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "check": "npm run check:ledger && npm run check:qr && npm run check:credentials",
+    "check": "npm run check:ledger && npm run check:qr && npm run check:credentials && npm run check:deposits",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -19,7 +19,8 @@
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "check:ledger": "esbuild src/domain/ledger.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ledger-check.mjs --alias:@=./src --loader:.webp=dataurl --log-level=error && node node_modules/.cache/ledger-check.mjs",
     "check:qr": "esbuild src/lib/qr.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/qr-check.mjs --alias:@=./src --loader:.webp=dataurl --log-level=error && node node_modules/.cache/qr-check.mjs",
-    "check:credentials": "esbuild src/domain/credentials.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/credentials-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/credentials-check.mjs"
+    "check:credentials": "esbuild src/domain/credentials.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/credentials-check.mjs --alias:@=./src --log-level=error && node node_modules/.cache/credentials-check.mjs",
+    "check:deposits": "esbuild src/domain/deposits.check.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/deposits-check.mjs --alias:@=./src --loader:.webp=dataurl --log-level=error && node node_modules/.cache/deposits-check.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

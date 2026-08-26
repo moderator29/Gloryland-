@@ -24,12 +24,13 @@ reads the `pnpm` field in `package.json` at all.
 | ------------------- | ------------------------ |
 | `npm run build`     | passes                   |
 | `npm run typecheck` | passes, app and API      |
-| `npm run check`     | 503 assertions, all pass |
+| `npm run check`     | 564 assertions, all pass |
 | `npx eslint src/`   | clean, warnings only     |
 
-`npm run check` is three suites: the derivation in `src/domain/ledger.check.ts`,
-the QR encoder in `src/lib/qr.check.ts`, and the portal lock in
-`src/domain/credentials.check.ts`.
+`npm run check` is four suites: the derivation in `src/domain/ledger.check.ts`,
+the QR encoder in `src/lib/qr.check.ts`, the portal lock in
+`src/domain/credentials.check.ts`, and the chain watcher in
+`src/domain/deposits.check.ts`.
 
 ## What shipped
 
@@ -140,17 +141,50 @@ disclosure.
 5. Where the product cannot do something yet, the interface says so.
 6. A deposit address exists in exactly one file, and a check pins its value.
 
+### Deposits, verified against the chain
+
+A member sends to one of the five addresses, then pastes the transaction hash
+their wallet gave them. `api/chain/verify` fetches that transaction from a
+public explorer and the balance is credited only if all four hold: the
+transaction exists and did not fail, it paid one of our own addresses, it has
+enough confirmations for its chain, and that hash has never been credited in
+this ledger before.
+
+The attribution is the point. Every member sends to the same five addresses,
+so watching those addresses says money arrived and nothing about whose it was.
+A hash is a fact about the chain rather than a claim about a person, which is
+what makes it sound: nobody can invent one.
+
+No API key is required, and that is a constraint rather than an accident. A key
+is one more thing that expires and one more reason funding stops working on a
+Sunday. Bitcoin reads Blockstream's Esplora API, the two EVM chains and Solana
+read plain JSON RPC on public endpoints.
+
+Confirmations: two on Bitcoin, twelve on Ethereum and on USDT over ERC-20,
+fifteen on BNB Smart Chain, thirty two slots on Solana.
+
+Every decision about the bytes a chain returns is a pure function in
+`src/domain/chainParse.ts`, kept out of the handler so it can be asserted
+without a network. That matters here more than usual: the hosts are unreachable
+from the build environment, so the 61 assertions run against the documented
+response shapes rather than against live traffic. They cover what actually goes
+wrong in code like this, which is a base unit, a decimal place, which log is
+the one that matters, an off by one in a confirmation count, and an address
+comparison that lets somebody else's transfer through. What they do not prove
+is that the live hosts answer in that shape.
+
 ## Known gaps
 
 Stated plainly because they are the difference between the product and the
-interface, and the first one is now a money question rather than a build note.
+interface.
 
-1. **There is no chain watcher.** The addresses on screen are real and a
-   transfer to them is real, but nothing on the platform observes the chain.
-   A member who sends funds has their position recorded only when someone acts
-   on it. The deposit surfaces say a transfer is credited after review rather
-   than implying an automatic confirmation, and the confirmation tracker
-   advances on a timer.
-2. **The ledger is per browser.** There is no server and no account. Clearing
-   site data clears the record.
-3. **The portal lock is a device lock.** See above.
+1. **Deposits are verified, not reconciled.** The rule that a hash cannot be
+   credited twice is enforced against the ledger in one browser. There is no
+   server holding the set of hashes already spent, so two browsers could each
+   claim the same transfer. The check becomes global the day an account server
+   exists, without the verifier changing.
+2. **Nothing settles outward.** Money can arrive and be verified. A withdrawal
+   is a recorded request and nothing sends it.
+3. **The ledger is per browser.** There is no account. Clearing site data
+   clears the record.
+4. **The portal lock is a device lock.** See above.

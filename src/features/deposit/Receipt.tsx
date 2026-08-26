@@ -183,8 +183,8 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
           <strong style={{ color: "#FBBF24", fontWeight: 700 }}>
             This records your placement, not a payment.
           </strong>{" "}
-          A transfer is credited after it is reviewed. Keep this reference and the transaction hash
-          from your wallet.
+          Credit your transfer by pasting its transaction hash on the Desk. It is checked against
+          the chain before a cent moves.
         </p>
       </div>
 

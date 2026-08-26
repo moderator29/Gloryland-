@@ -39,6 +39,51 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "d-2026-08-26-watcher",
+    heading: "26 August 2026, the chain watcher",
+    body: (
+      <>
+        <h3>Added</h3>
+        <ul>
+          <li>
+            <strong>Transfers are now verified against the chain.</strong> Send to one of the
+            addresses, then paste the transaction hash your wallet gave you into the panel under the
+            address on the Desk. The platform fetches that transaction from a public explorer and
+            credits your balance only if all four of these hold: the transaction exists and did not
+            fail, it paid one of our own addresses, it has enough confirmations for its chain, and
+            that hash has never been credited here before.
+          </li>
+          <li>
+            <strong>Confirmations required.</strong> Two on Bitcoin, twelve on Ethereum and on USDT
+            over ERC-20, fifteen on BNB Smart Chain, and thirty two slots on Solana. Below that a
+            transfer reads as pending with the number of confirmations still to come, and nothing is
+            lost while you wait.
+          </li>
+          <li>
+            <strong>The rate is recorded beside the amount.</strong> A credit writes what moved on
+            the chain, the dollars per unit applied, and the product of the two. Reading it back a
+            month later, you can do the multiplication yourself.
+          </li>
+        </ul>
+
+        <h3>Why it works this way, and what it does not do</h3>
+        <p>
+          Every member sends to the same five addresses, so watching those addresses would say that
+          money arrived and nothing about whose it was. The transaction hash is the attribution and
+          the chain is what checks it, which is sound in a way a self declared amount is not: nobody
+          can invent a hash.
+        </p>
+        <p>
+          What it does not do is reconcile across devices. The rule that a hash cannot be credited
+          twice is enforced against the ledger in the browser you are using, and there is no server
+          holding the set of hashes already spent, so two browsers could each claim the same
+          transfer. That is the same missing account server everything else here is waiting on, and
+          the check becomes global the day it exists.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "d-2026-08-26-economics",
     heading: "26 August 2026, later the same day",
     body: (
@@ -112,10 +157,10 @@ const SECTIONS: LegalSection[] = [
 
         <h3>Still true, and worth being direct about</h3>
         <p>
-          There is no chain watcher. The addresses are real and a transfer to them is real, but
-          nothing on the platform observes the chain: a transfer is credited when someone acts on
-          it, not automatically. The confirmation tracker advances on a timer and the deposit
-          surfaces say a transfer is credited after review rather than implying otherwise.
+          Nothing watches the addresses on its own. A transfer is credited when you tell the
+          platform about it, by pasting the transaction hash your wallet gave you, and the platform
+          then checks that hash against the chain before anything moves. See the entry above for
+          what that check does and does not cover.
         </p>
       </>
     ),

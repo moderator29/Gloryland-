@@ -71,9 +71,9 @@ export const PLATFORM: PlatformFacts = {
   what: "A private digital asset vault platform. Capital is placed into a vault, accrues at a published daily rate for as long as it is left in place, and can be closed or withdrawn on a fixed liquidity window.",
   buildState: [
     "This is a preview build. A member's ledger is held in their own browser, not on a server.",
-    "There is no account server, no custody, no settlement network and no chain watcher connected yet.",
+    "There is no account server, no custody and no settlement network. There IS a chain watcher: a member pastes the transaction hash from their wallet and the platform fetches it from a public explorer, checks it paid one of our own addresses, checks it has enough confirmations, and refuses a hash that has already been credited. What it cannot do is reconcile across devices, because there is no server holding the set of hashes already spent.",
     "Clearing site data clears the ledger, and opening the product on another device shows an empty account.",
-    "The deposit form shows a funding address to copy, but this build has no chain watcher and takes no custody. Confirming a deposit records a position in the browser, it does not receive or move funds.",
+    "The deposit surfaces show a real address and a scannable code. A member who has sent funds pastes the transaction hash and it is verified against the chain before anything is credited. The platform still takes no custody in the sense of an account server: the credit lands in the member\u2019s own browser ledger.",
     "Every figure on every surface is derived from the member's own recorded events plus the clock. Nothing is stored as a number someone typed.",
   ],
 };
@@ -496,7 +496,7 @@ export const FLOWS: Flow[] = [
       },
     ],
     notes: [
-      "The confirmation tracker advances on a timer because this build has no chain watcher. The surface says so in place rather than implying a live network reading.",
+      "The confirmation tracker on the deposit flow advances on a timer and is an illustration of the wait, not a network reading. The real confirmation count comes from the hash check on the Desk, and the surface says which is which.",
       "A compound arrives at the same form with the capital carried across, and is recorded as funded from the account balance so it is not counted twice as new contribution.",
       "This build records the position in the browser. Custody and settlement require the production backend.",
     ],
