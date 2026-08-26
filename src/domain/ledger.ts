@@ -8,9 +8,43 @@
  * animate against a live-but-deterministic source.
  *
  * Persistence is browser-local. That is a deliberate constraint of the
- * current build, not a design goal: `loadEvents`/`saveEvents` are the only
+ * current build, not a design goal: `readStore`/`writeStore` are the only
  * storage-aware functions, so moving to a server means replacing those two
- * and nothing else.
+ * and nothing else. Everything above them, the envelope parse, the merge and
+ * the derivation, is pure and moves unchanged.
+ *
+ * ── What is stored, and which log wins ──────────────────────────────────────
+ *
+ * The log is persisted inside an envelope: a schema version, the member the
+ * log belongs to, the moment of the last write and the count at that moment.
+ * A bare array is the shape this product wrote before the envelope existed and
+ * is still read, unchanged, as an unowned log at version 1. None of this is
+ * retrofittable: the first day two devices hold a log each, a record with no
+ * version and no owner has no defined answer to which one is real, and by then
+ * the logs are the member's money.
+ *
+ * The conflict rule, decided here rather than left to the first sync bug:
+ *
+ * 1. Two logs for the same member merge as the union of their event ids,
+ *    ordered by `at` and then by id so both devices land on the same sequence.
+ *    An append-only log never edits and never deletes, so every id on either
+ *    side is a real event and a union is the only merge that cannot lose a
+ *    member's capital. Last-write-wins would discard a whole device's history.
+ * 2. An id held on both sides keeps the copy already stored. Bodies are never
+ *    merged field by field: with no edits in the model, a differing body means
+ *    two devices issued the same random id, not that an event changed.
+ * 3. Logs with different owners never merge. A log is one member's record, and
+ *    joining two would credit tier standing to someone who never contributed.
+ * 4. A log with no owner adopts the first owner it is offered. That is the log
+ *    this build writes today, before any account server exists.
+ * 5. A schema version this build does not know refuses to merge, because
+ *    joining logs it cannot fully read could drop what a newer build wrote. A
+ *    log already stored at a newer version is still read and still replayed:
+ *    showing a member an empty ledger would be worse than showing them one
+ *    this build renders incompletely. Its version stamp is never lowered.
+ *
+ * The storage key keeps its old name on purpose. The version now lives inside
+ * the envelope, so renaming the key would orphan every log already written.
  */
 
 import {
@@ -60,6 +94,19 @@ export type LedgerEvent =
        * was treated.
        */
       fromAvailable?: boolean;
+      /**
+       * When the term begins, if that is not the moment the capital was
+       * committed. Absent means it began on `at`, which is every event written
+       * before this field existed and every ordinary placement since.
+       *
+       * The write still happens now. Nothing here schedules a future write and
+       * nothing moves a member's money for them: the capital is committed at
+       * `at` and the clock on it starts at `startsAt`. Until then the principal
+       * is scheduled rather than deployed, because it is not accruing, and
+       * counting it as deployed would overstate the portfolio in exactly the
+       * way a re-placed roll used to.
+       */
+      startsAt?: number;
     }
   /** Accrued rewards moved from a position into available cash. */
   | { id: string; kind: "claim"; at: number; amount: number; positionId: string }
@@ -151,10 +198,24 @@ export type Position = {
   tierId: TierId;
   tier: Tier;
   principal: number;
+  /** When the capital was committed, which is when the event was written. */
   openedAt: number;
+  /** When the term begins. The same as `openedAt` unless a start was set. */
+  startsAt: number;
+  /** The term has begun, so this principal is accruing. */
+  started: boolean;
+  /** Time until the term begins. Zero once it has. */
+  startsIn: number;
   maturesAt: number;
   asset: string;
   network: string;
+  /**
+   * Funded from capital already in the account rather than from a transfer.
+   * Carried onto the position because it is the difference between a deposit
+   * and a roll, and every surface that names where a position came from needs
+   * to read it from somewhere other than the event.
+   */
+  fromAvailable: boolean;
   /** 0..1 through the 30-day term. */
   progress: number;
   /** Days elapsed, fractional, clamped to the term. */
@@ -201,8 +262,16 @@ export type Relay = {
 export type Snapshot = {
   positions: Position[];
   activePositions: Position[];
-  /** Principal currently sitting in open vaults. */
+  /** Principal at work right now: open, started, accruing. */
   deployed: number;
+  /**
+   * Principal committed to a term that has not begun yet.
+   *
+   * Held apart from `deployed` because it is not accruing. It is still the
+   * member's money, so it counts in `portfolioValue`, and if it was funded
+   * from the balance it has already left `available`.
+   */
+  scheduled: number;
   /** Lifetime rewards generated across every position. */
   rewardsAccrued: number;
   /** Rewards claimed into cash. */
@@ -211,8 +280,15 @@ export type Snapshot = {
   rewardsPending: number;
   /** Cash available to withdraw: claims plus returned principal, less withdrawals. */
   available: number;
+  /**
+   * How far the log spends past the cash it holds. Zero for every log this
+   * build can write, because the balance-funded placement is refused at the
+   * call site. It is not zero for an imported file that overdrew, and naming
+   * it is the difference between reporting that and hiding it behind a clamp.
+   */
+  overdrawn: number;
   withdrawn: number;
-  /** Everything the member owns right now. */
+  /** Everything the member owns right now, scheduled principal included. */
   portfolioValue: number;
   /** External capital ever brought in. Excludes anything re-placed from the
    *  account balance, which is money that was already counted once. */
@@ -258,16 +334,159 @@ export type Snapshot = {
 
 /* ── persistence ────────────────────────────────────────────────────────── */
 
-export function loadEvents(): LedgerEvent[] {
-  if (typeof window === "undefined") return [];
+/** The envelope shape this build writes and understands. See the file header. */
+export const LEDGER_SCHEMA = 1;
+
+export type LedgerStore = {
+  /** Schema version of the envelope, not of the events inside it. */
+  v: number;
+  /** The member this log belongs to. Null until something issues an identity. */
+  owner: string | null;
+  /** When this log was last written. */
+  updatedAt: number;
+  /**
+   * Events held at the last write. Kept as stored rather than recomputed on
+   * read, so a count that disagrees with the events actually parsed is the
+   * signal that a write was truncated rather than a fact quietly corrected.
+   */
+  count: number;
+  events: LedgerEvent[];
+};
+
+function emptyStore(): LedgerStore {
+  return { v: LEDGER_SCHEMA, owner: null, updatedAt: 0, count: 0, events: [] };
+}
+
+function isEvent(v: unknown): v is LedgerEvent {
+  if (typeof v !== "object" || v === null) return false;
+  const e = v as { id?: unknown; kind?: unknown; at?: unknown };
+  return typeof e.id === "string" && typeof e.kind === "string" && typeof e.at === "number";
+}
+
+/**
+ * Read the persisted shape, whichever of the two it is.
+ *
+ * Pure and separate from storage so the legacy path can be proved rather than
+ * assumed. A bare array is what this product wrote before the envelope, and it
+ * is read exactly as it stands: same events, same order, no owner, no rewrite.
+ */
+export function parseStore(raw: string | null): LedgerStore {
+  if (!raw) return emptyStore();
+  let parsed: unknown;
   try {
-    const raw = localStorage.getItem(EVENTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as LedgerEvent[]) : [];
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    return emptyStore();
   }
+
+  if (Array.isArray(parsed)) {
+    const events = parsed.filter(isEvent);
+    return {
+      v: LEDGER_SCHEMA,
+      owner: null,
+      // A legacy log records no write time, so the newest event it holds is
+      // the closest thing to one that is actually evidenced.
+      updatedAt: events.reduce((max, e) => (e.at > max ? e.at : max), 0),
+      count: events.length,
+      events,
+    };
+  }
+
+  if (typeof parsed !== "object" || parsed === null) return emptyStore();
+  const env = parsed as Partial<LedgerStore>;
+  if (!Array.isArray(env.events)) return emptyStore();
+
+  const events = env.events.filter(isEvent);
+  return {
+    v: typeof env.v === "number" ? env.v : LEDGER_SCHEMA,
+    owner: typeof env.owner === "string" && env.owner.length > 0 ? env.owner : null,
+    updatedAt: typeof env.updatedAt === "number" ? env.updatedAt : 0,
+    count: typeof env.count === "number" ? env.count : events.length,
+    events,
+  };
+}
+
+export function serialiseStore(store: LedgerStore): string {
+  return JSON.stringify({ ...store, count: store.events.length });
+}
+
+export type MergeRefusal = "owner" | "schema";
+
+export type MergeResult =
+  | { ok: true; store: LedgerStore; added: number }
+  | { ok: false; reason: MergeRefusal };
+
+/**
+ * Merge a log arriving from somewhere else into the one held here.
+ *
+ * Rules 1 to 3 and 5 of the file header live in this function, which is the
+ * whole point of writing it before the server exists: the day two devices
+ * disagree, the answer is here and it is testable, rather than being whatever
+ * the sync code happened to do first.
+ */
+export function mergeStores(mine: LedgerStore, theirs: LedgerStore): MergeResult {
+  if (mine.v > LEDGER_SCHEMA || theirs.v > LEDGER_SCHEMA) return { ok: false, reason: "schema" };
+  if (mine.owner !== null && theirs.owner !== null && mine.owner !== theirs.owner) {
+    return { ok: false, reason: "owner" };
+  }
+
+  const byId = new Map<string, LedgerEvent>();
+  // Held first, so an id present on both sides keeps the copy already stored.
+  for (const e of mine.events) byId.set(e.id, e);
+  let added = 0;
+  for (const e of theirs.events) {
+    if (byId.has(e.id)) continue;
+    byId.set(e.id, e);
+    added += 1;
+  }
+
+  const events = [...byId.values()].sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+  return {
+    ok: true,
+    store: {
+      v: LEDGER_SCHEMA,
+      owner: mine.owner ?? theirs.owner,
+      updatedAt: Math.max(mine.updatedAt, theirs.updatedAt),
+      count: events.length,
+      events,
+    },
+    added,
+  };
+}
+
+function readStore(): LedgerStore {
+  if (typeof window === "undefined") return emptyStore();
+  try {
+    return parseStore(localStorage.getItem(EVENTS_KEY));
+  } catch {
+    return emptyStore();
+  }
+}
+
+export function loadEvents(): LedgerEvent[] {
+  return readStore().events;
+}
+
+/** Who the stored log says it belongs to, or null while it is unowned. */
+export function ledgerOwner(): string | null {
+  return readStore().owner;
+}
+
+/**
+ * Stamp an owner onto the log.
+ *
+ * An unowned log adopts the id, which is rule 4: every log written by this
+ * build predates any identity being issued. A log that already names a
+ * different member is left exactly as it is and the caller is told, because
+ * relabelling one member's record as another's is how standing gets credited
+ * to capital nobody placed.
+ */
+export function setLedgerOwner(owner: string): boolean {
+  const store = readStore();
+  if (store.owner === owner) return true;
+  if (store.owner !== null) return false;
+  writeStore({ ...store, owner });
+  return true;
 }
 
 /** Raised when the log cannot be written, so callers can tell the member. */
@@ -277,13 +496,13 @@ export function setPersistFailureHandler(fn: (reason: PersistFailure) => void) {
   onPersistFailure = fn;
 }
 
-function saveEvents(events: LedgerEvent[]) {
+function writeStore(store: LedgerStore) {
   // The log is append-only and every figure is replayed from it, so events are
   // never dropped to make room. Losing the oldest `open` would erase the
   // position it created along with the contribution history behind the member's
   // tier. If the write fails we surface it instead of silently discarding.
   try {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    localStorage.setItem(EVENTS_KEY, serialiseStore({ ...store, updatedAt: Date.now() }));
   } catch (e) {
     const quota = e instanceof DOMException && (e.name === "QuotaExceededError" || e.code === 22);
     onPersistFailure?.(quota ? "quota" : "blocked");
@@ -328,7 +547,8 @@ export function appendMany(events: NewEvent[]): LedgerEvent[] {
   const written = events.map(
     (e) => ({ ...e, id: (e as { id?: string }).id ?? newId(), at: e.at ?? now }) as LedgerEvent,
   );
-  saveEvents([...loadEvents(), ...written]);
+  const store = readStore();
+  writeStore({ ...store, events: [...store.events, ...written] });
   emit();
   return written;
 }
@@ -349,16 +569,23 @@ function clamp(n: number, lo: number, hi: number) {
   return n < lo ? lo : n > hi ? hi : n;
 }
 
+/** Money, to the cent. Anything the ledger writes as an amount goes through it. */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 /**
  * Rewards a position has generated by `now`. Accrual is continuous across the
  * term and stops at maturity, so a matured position holds at exactly 30%.
  */
-function accruedAt(principal: number, openedAt: number, now: number, closedAt?: number): number {
+function accruedAt(principal: number, startsAt: number, now: number, closedAt?: number): number {
   // Accrual stops at whichever comes first: maturity, settlement, or now. Without
   // the settlement bound a position closed early would keep earning to a full
   // term, inflating rewards that can never be claimed against anything.
   const end = closedAt !== undefined ? Math.min(now, closedAt) : now;
-  const days = clamp((end - openedAt) / DAY_MS, 0, CYCLE_DAYS);
+  // The clamp at zero is what keeps a term that has not started yet at nothing
+  // earned, rather than running the clock backwards from its start date.
+  const days = clamp((end - startsAt) / DAY_MS, 0, CYCLE_DAYS);
   return principal * DAILY_RATE * days;
 }
 
@@ -473,9 +700,13 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const positions: Position[] = opens.map((o) => {
     const tier = tierById(o.tierId) ?? TIERS[0];
     const closedAt = closedAtById.get(o.id);
+    // A term runs from its start date, which is the moment the capital was
+    // committed unless the placement named a later one.
+    const startsAt = o.startsAt !== undefined && o.startsAt > o.at ? o.startsAt : o.at;
+    const maturesAt = startsAt + CYCLE_DAYS * DAY_MS;
     const effectiveNow = closedAt !== undefined ? Math.min(now, closedAt) : now;
-    const daysElapsed = clamp((effectiveNow - o.at) / DAY_MS, 0, CYCLE_DAYS);
-    const accrued = accruedAt(o.amount, o.at, now, closedAt);
+    const daysElapsed = clamp((effectiveNow - startsAt) / DAY_MS, 0, CYCLE_DAYS);
+    const accrued = accruedAt(o.amount, startsAt, now, closedAt);
     const claimed = claims.filter((c) => c.positionId === o.id).reduce((s, c) => s + c.amount, 0);
     return {
       id: o.id,
@@ -483,9 +714,13 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
       tier,
       principal: o.amount,
       openedAt: o.at,
-      maturesAt: o.at + CYCLE_DAYS * DAY_MS,
+      startsAt,
+      started: now >= startsAt,
+      startsIn: Math.max(0, startsAt - now),
+      maturesAt,
       asset: o.asset,
       network: o.network,
+      fromAvailable: o.fromAvailable === true,
       progress: daysElapsed / CYCLE_DAYS,
       daysElapsed,
       daysRemaining: Math.max(0, CYCLE_DAYS - daysElapsed),
@@ -494,14 +729,18 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
       claimable: Math.max(0, accrued - claimed),
       termReward: o.amount * DAILY_RATE * CYCLE_DAYS,
       dailyReward: o.amount * DAILY_RATE,
-      matured: now >= o.at + CYCLE_DAYS * DAY_MS,
+      matured: now >= maturesAt,
       closed: closedAt !== undefined,
     };
   });
 
   const active = positions.filter((p) => !p.closed);
 
-  const deployed = active.reduce((s, p) => s + p.principal, 0);
+  // Deployed is principal actually at work. Capital committed to a term that
+  // has not begun is held apart, because it is not accruing and showing it as
+  // deployed would overstate what the portfolio is earning.
+  const deployed = active.filter((p) => p.started).reduce((s, p) => s + p.principal, 0);
+  const scheduled = active.filter((p) => !p.started).reduce((s, p) => s + p.principal, 0);
   const rewardsAccrued = positions.reduce((s, p) => s + p.accrued, 0);
   const rewardsClaimed = claims.reduce((s, c) => s + c.amount, 0);
   const rewardsPending = Math.max(0, rewardsAccrued - rewardsClaimed);
@@ -509,9 +748,18 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const withdrawn = withdraws.reduce((s, w) => s + w.amount, 0);
 
   // Capital re-placed from the balance leaves the balance. Capital brought in
-  // from outside never touched it, so it must not be debited here.
+  // from outside never touched it, so it must not be debited here. It leaves
+  // when the placement is committed, not when the term starts, because that is
+  // when the member parted with it.
   const recycled = opens.filter((o) => o.fromAvailable).reduce((s, o) => s + o.amount, 0);
-  const available = Math.max(0, rewardsClaimed + returnedPrincipal - withdrawn - recycled);
+  // Held in two figures rather than one clamped one. `available` can never be
+  // negative, because a balance is not a debt this product can create, and
+  // `overdrawn` says how far a log went past its own cash instead of a clamp
+  // quietly absorbing it. Only an import can produce one: `openPosition`
+  // refuses the write.
+  const cash = rewardsClaimed + returnedPrincipal - withdrawn - recycled;
+  const available = Math.max(0, cash);
+  const overdrawn = Math.max(0, -cash);
 
   const contributed = opens.filter((o) => !o.fromAvailable).reduce((s, o) => s + o.amount, 0);
 
@@ -520,12 +768,18 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   // total before the next open raises it again.
   // A position that never closed is still running, so its span ends at the
   // far future rather than at a date that would lower the peak early.
+  // The span opens at the term's start, not at the commitment, and a term that
+  // has not started yet is left out entirely: capital that has not begun
+  // accruing has never been deployed, so it cannot raise a peak today. It
+  // enters the reading on the day it starts, like any other placement.
   const peakDeployed = peakDeployedOf(
-    opens.map((o) => ({
-      at: o.at,
-      amount: o.amount,
-      endsAt: closedAtById.get(o.id) ?? Number.MAX_SAFE_INTEGER,
-    })),
+    positions
+      .filter((p) => p.started)
+      .map((p) => ({
+        at: p.startsAt,
+        amount: p.principal,
+        endsAt: closedAtById.get(p.id) ?? Number.MAX_SAFE_INTEGER,
+      })),
   );
 
   // Relays. The latest instruction per position wins, so a member can arm,
@@ -545,7 +799,9 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     const mode: RelayMode = e.kind === "relay.set" ? e.mode : "full";
     const armed = e.kind === "relay.set" && !p.closed;
     const due = armed && p.matured;
-    const carries = mode === "full" ? p.principal + p.claimable : p.principal;
+    // The same function the firing uses, so the figure quoted on the panel is
+    // the figure the batch writes, to the cent.
+    const carries = carryOf(p, mode);
     relays.push({
       positionId,
       mode,
@@ -588,7 +844,10 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   const relaysDue = relays.filter((r) => r.due);
 
   const standing = Math.max(contributed, peakDeployed);
-  const portfolioValue = deployed + rewardsPending + available;
+  // Scheduled principal is counted here and nowhere near `deployed`. It is the
+  // member's money either way: if it came from the balance it has already been
+  // debited, so leaving it out would make the portfolio drop on placement.
+  const portfolioValue = deployed + scheduled + rewardsPending + available;
   const netGain = portfolioValue + withdrawn - contributed;
 
   const tier = tierForAmount(standing);
@@ -600,10 +859,12 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     positions,
     activePositions: active,
     deployed,
+    scheduled,
     rewardsAccrued,
     rewardsClaimed,
     rewardsPending,
     available,
+    overdrawn,
     withdrawn,
     portfolioValue,
     contributed,
@@ -611,7 +872,8 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     standing,
     netGain,
     returnPct: contributed > 0 ? netGain / contributed : 0,
-    dailyRate: active.filter((p) => !p.matured).reduce((s, p) => s + p.dailyReward, 0),
+    // What is accruing right now: open, started, still inside its term.
+    dailyRate: active.filter((p) => p.started && !p.matured).reduce((s, p) => s + p.dailyReward, 0),
     tier,
     nextTier: next,
     tierProgress,
@@ -628,8 +890,109 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   };
 }
 
+/* ── reading an event ───────────────────────────────────────────────────── */
+
+/**
+ * What a row in the ledger is, as opposed to which kind it was written as.
+ *
+ * Two distinctions the kinds alone do not carry. A roll is an `open` funded
+ * from the balance: the same event kind as a deposit, but no capital arrived,
+ * so reading them as one thing is what the double count looked like from the
+ * outside. And relay and course events are instructions the member gave, not
+ * money that moved, so a member auditing what came in and what went out should
+ * be able to put them aside.
+ */
+export type EventClass =
+  | "placement"
+  | "roll"
+  | "claim"
+  | "withdrawal"
+  | "settlement"
+  | "instruction";
+
+/** True when this placement was funded from capital already in the account. */
+export function isRoll(e: LedgerEvent): boolean {
+  return e.kind === "open" && e.fromAvailable === true;
+}
+
+export function classify(e: LedgerEvent): EventClass {
+  switch (e.kind) {
+    case "open":
+      return isRoll(e) ? "roll" : "placement";
+    case "claim":
+      return "claim";
+    case "withdraw":
+      return "withdrawal";
+    case "close":
+      return "settlement";
+    default:
+      return "instruction";
+  }
+}
+
+/** Instructions stand apart from movements: nothing about them moves capital. */
+export function isInstruction(e: LedgerEvent): boolean {
+  return classify(e) === "instruction";
+}
+
 /* ── actions ────────────────────────────────────────────────────────────── */
 
+/**
+ * Placements funded from the balance are allowed a cent of slack.
+ *
+ * Accrual is continuous, so `available` carries a fraction of a cent that the
+ * amount on screen has already been rounded away from. Without the tolerance a
+ * member placing exactly the balance they can see would be refused for a
+ * rounding artefact they have no way to observe.
+ */
+export const FUNDING_TOLERANCE = 0.01;
+
+/**
+ * What a balance-funded placement records as its origin.
+ *
+ * No asset arrived and no chain carried it, so naming one would describe a
+ * transfer that never happened. A rolled term is the one exception: it keeps
+ * the asset the capital originally came in as, because that trail is real.
+ */
+export const BALANCE_ASSET = "USD";
+export const BALANCE_NETWORK = "Account balance";
+
+export type Placement =
+  | { ok: true; event: LedgerEvent }
+  | {
+      ok: false;
+      reason: "insufficient-balance";
+      /** Cash the log actually holds at the moment of the write. */
+      available: number;
+      /** How far past it the placement reached. */
+      shortfall: number;
+    };
+
+/**
+ * How far a balance-funded placement of `amount` exceeds `available`. Zero when
+ * it fits. Pure, so the form can show the same figure the write would refuse on.
+ */
+export function fundingShortfall(amount: number, available: number): number {
+  const gap = amount - available;
+  // The tolerance decides whether there is a shortfall, and never how large it
+  // is: a member told they are short should read the real gap, not the gap less
+  // a cent of slack they were never shown.
+  return gap > FUNDING_TOLERANCE ? round2(gap) : 0;
+}
+
+/**
+ * Open a position.
+ *
+ * A placement funded from the account balance cannot exceed the balance. The
+ * check is here, at the write, and not in `derive`, because `derive` is a pure
+ * replay of what happened: clamping a negative balance there hides an overdraw
+ * rather than preventing one, and the event would still be in the log. Refusing
+ * the write is the only place the invariant actually holds, and it is the
+ * reason a hand-typed amount on the placement URL cannot open a term funded by
+ * cash that does not exist.
+ *
+ * Returns a result rather than throwing, because every caller is a click.
+ */
 export function openPosition(input: {
   amount: number;
   tierId: TierId;
@@ -638,8 +1001,18 @@ export function openPosition(input: {
   at?: number;
   /** Set when the placement is funded from the account balance. */
   fromAvailable?: boolean;
-}) {
-  return append({ kind: "open", ...input });
+  /** Set when the term begins later than the moment it is committed. */
+  startsAt?: number;
+}): Placement {
+  if (input.fromAvailable) {
+    const now = input.at ?? Date.now();
+    const available = derive(loadEvents(), now).available;
+    const shortfall = fundingShortfall(input.amount, available);
+    if (shortfall > 0) {
+      return { ok: false, reason: "insufficient-balance", available, shortfall };
+    }
+  }
+  return { ok: true, event: append({ kind: "open", ...input }) };
 }
 
 export function claimRewards(positionId: string, amount: number) {
@@ -691,27 +1064,38 @@ export function disarmRelay(positionId: string) {
 }
 
 /**
- * Run one due relay: settle the matured term and open the next with what it
- * carried, as a single write.
+ * What a term carries into the next one.
  *
- * Two rules hold this honest. Every event is stamped now rather than at the
- * maturity date, because backdating would fabricate accrual for the days the
- * capital actually sat still. And the new position is marked as funded from
- * the balance, because the money was already counted when it first arrived,
- * so counting it again would inflate the portfolio and buy tier standing that
- * was never paid for.
+ * `claimable`, never `accrued`. Accrued is everything the position has ever
+ * generated, including rewards the member has already claimed and may well
+ * have withdrawn. Carrying that figure would open a term on money the ledger
+ * cannot pay out twice. One function, so the panel, the insight and the write
+ * cannot quote three different amounts.
  */
-export function fireRelay(relay: Relay, position: Position): LedgerEvent[] {
-  if (!relay.due) return [];
+export function carryOf(position: Position, mode: RelayMode = "full"): number {
+  const claiming = mode === "full" ? position.claimable : 0;
+  return round2(position.principal + claiming);
+}
 
-  const claiming = relay.mode === "full" ? position.claimable : 0;
-  const carry = Math.round((position.principal + claiming) * 100) / 100;
+/**
+ * The events that settle a matured term and re-place what it carried.
+ *
+ * Built here and written by one `appendMany`, so a roll can never be half
+ * recorded. Two rules hold it honest. Every event is stamped now rather than at
+ * the maturity date, because backdating would fabricate accrual for the days
+ * the capital actually sat still. And the new position is marked as funded from
+ * the balance, because the money was already counted when it first arrived, so
+ * counting it again would inflate the portfolio and buy tier standing that was
+ * never paid for.
+ */
+function carryBatch(position: Position, mode: RelayMode, rearm: RelayMode | null, nextId: string) {
+  const carry = carryOf(position, mode);
   const tier = tierForAmount(carry) ?? position.tier;
-  const nextId = newId();
+  const claiming = mode === "full" ? position.claimable : 0;
 
-  return appendMany([
-    ...(position.claimable >= 0.01
-      ? [{ kind: "claim" as const, positionId: position.id, amount: position.claimable }]
+  return [
+    ...(claiming >= 0.01
+      ? [{ kind: "claim" as const, positionId: position.id, amount: claiming }]
       : []),
     { kind: "close" as const, positionId: position.id },
     {
@@ -723,9 +1107,92 @@ export function fireRelay(relay: Relay, position: Position): LedgerEvent[] {
       network: position.network,
       fromAvailable: true,
     } as NewEvent,
-    // The chain continues, so a member arms once rather than every month.
-    { kind: "relay.set" as const, positionId: nextId, mode: relay.mode },
+    ...(rearm ? [{ kind: "relay.set" as const, positionId: nextId, mode: rearm }] : []),
+  ];
+}
+
+/**
+ * Run one due relay: settle the matured term and open the next with what it
+ * carried, as a single write.
+ */
+export function fireRelay(relay: Relay, position: Position): LedgerEvent[] {
+  if (!relay.due) return [];
+  // The chain continues, so a member arms once rather than every month.
+  return appendMany(carryBatch(position, relay.mode, relay.mode, newId()));
+}
+
+/**
+ * Settle a matured term to cash: claim what is left, then close, as one write.
+ *
+ * Same reason as the roll. A claim that persists without its close leaves a
+ * position that looks open and has nothing left in it.
+ */
+export function settlePosition(position: Position): LedgerEvent[] {
+  if (position.closed) return [];
+  return appendMany([
+    ...(position.claimable >= 0.01
+      ? [{ kind: "claim" as const, positionId: position.id, amount: position.claimable }]
+      : []),
+    { kind: "close" as const, positionId: position.id },
   ]);
+}
+
+export type Roll = {
+  events: LedgerEvent[];
+  /** The term that opened, so the caller can take the member to it. */
+  positionId: string;
+  /** What it opened with. */
+  carry: number;
+};
+
+/**
+ * Roll a matured term by hand: claim, settle and re-place, as one write.
+ *
+ * The same batch a relay fires, minus the re-arming, because a member who
+ * rolled once has not asked for it to happen again. Written together rather
+ * than as a claim, then a close, then an open on another screen: that sequence
+ * can be abandoned halfway, which leaves a settled position and no new one,
+ * and is the exact failure `appendMany` exists to stop.
+ *
+ * Refused before maturity. A term that has not finished has nothing to carry,
+ * and an early exit is not a thing this product grants.
+ */
+export function rollPosition(position: Position): Roll | null {
+  if (!position.matured || position.closed) return null;
+  const nextId = newId();
+  const events = appendMany(carryBatch(position, "full", null, nextId));
+  return { events, positionId: nextId, carry: carryOf(position, "full") };
+}
+
+/**
+ * What ending a term before maturity would mean, in dollars.
+ *
+ * Stated, not offered. An early exit is an exception the desk may refuse, not
+ * a right and not a button, and this build has no desk. What the ledger can
+ * answer honestly is what such an exit would cost, from this position's own
+ * figures: the principal that comes back, the accrual sitting unclaimed in the
+ * term that would be given up, and the rest of the term's reward that would
+ * never be earned. Rewards already claimed are already cash and are not
+ * counted here, because nothing in this product can take them back.
+ */
+export type EarlyExit = {
+  /** Principal the position holds. */
+  principal: number;
+  /** Unclaimed accrual on the unfinished term, which the exit forfeits. */
+  forfeited: number;
+  /** Reward the remaining days would have added, which is never earned. */
+  foregone: number;
+  /** Days still to run. */
+  daysRemaining: number;
+};
+
+export function earlyExit(position: Position): EarlyExit {
+  return {
+    principal: position.principal,
+    forfeited: round2(position.claimable),
+    foregone: round2(Math.max(0, position.termReward - position.accrued)),
+    daysRemaining: position.daysRemaining,
+  };
 }
 
 export function closePosition(positionId: string) {

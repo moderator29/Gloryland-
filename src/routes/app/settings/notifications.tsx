@@ -185,6 +185,26 @@ export default function SettingsNotifications() {
             }
           />
         ))}
+        {/* The two events worth being told about both happen while nobody is
+            looking, and this build cannot tell anyone. Saying so here is more
+            use than a switch that stores an intention. */}
+        <SettingsBlock>
+          <p className="text-xs leading-relaxed text-[var(--text-low)]">
+            Two of these matter more than the rest and neither can reach you today. A term matures
+            on a date fixed when it opened, and it earns nothing from that moment until you act. A
+            relay does not run in the background either: it fires the next time you open Rigel after
+            its term matures, never while the app is closed and never backdated, so a relay armed on
+            a term that matured last week has been sitting still since then. Until delivery exists,
+            the maturity calendar on{" "}
+            <Link
+              to="/app/horizon"
+              className="text-[var(--accent-hi)] underline underline-offset-2"
+            >
+              Horizon
+            </Link>{" "}
+            is the only thing that will tell you a date is coming.
+          </p>
+        </SettingsBlock>
       </SettingsGroup>
 
       {/* ── Delivery ────────────────────────────────────────────────────── */}

@@ -139,10 +139,10 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
           >
             {money(data.amount)}
           </p>
+          {/* An equivalent at the day's price, not an amount anybody sent. */}
           {data.units !== undefined && meta && (
             <p style={{ color: "#8494B0", fontSize: 12, marginTop: 2 }}>
-              {/* An equivalent at the day's price, not an amount anybody sent. */}
-              ≈ {data.units.toFixed(6)} {meta.symbol} at the price on this date
+              {`≈ ${data.units.toFixed(6)} ${meta.symbol} at the price on this date`}
             </p>
           )}
         </div>

@@ -58,9 +58,9 @@ export function Standing({ snap, className = "" }: StandingProps) {
   };
 
   return (
-    <section className={className} aria-labelledby="standing-title">
+    <section className={className} aria-labelledby="standing-due-title">
       <BandHead
-        id="standing-title"
+        id="standing-due-title"
         title="Standing"
         hint="Instructions you set that have come due"
       />
@@ -74,7 +74,7 @@ export function Standing({ snap, className = "" }: StandingProps) {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(251,191,36,0.1)]">
                 <Zap className="h-4 w-4 text-[var(--warn)]" strokeWidth={1.9} aria-hidden="true" />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-[10rem] flex-1">
                 <span className="block text-sm font-medium text-[var(--text-hi)]">
                   {position.tier.name} relay is due
                 </span>
@@ -86,7 +86,7 @@ export function Standing({ snap, className = "" }: StandingProps) {
               <button
                 type="button"
                 onClick={() => runOne(relay.positionId)}
-                className="btn btn-primary min-h-[44px] shrink-0 !py-2 !text-[13px]"
+                className="btn btn-primary ml-auto min-h-[44px] shrink-0 !py-2 !text-[13px]"
               >
                 Run relay
               </button>
@@ -104,7 +104,7 @@ export function Standing({ snap, className = "" }: StandingProps) {
                   aria-hidden="true"
                 />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-[10rem] flex-1">
                 <span className="block text-sm font-medium text-[var(--text-hi)]">
                   Course leg {leg.index} is due
                 </span>
@@ -116,7 +116,7 @@ export function Standing({ snap, className = "" }: StandingProps) {
                 to={`/app/vaults/new?amount=${Math.round(leg.amount)}&course=${encodeURIComponent(
                   course.id,
                 )}&leg=${leg.index}`}
-                className="btn btn-secondary min-h-[44px] shrink-0 !py-2 !text-[13px]"
+                className="btn btn-secondary ml-auto min-h-[44px] shrink-0 !py-2 !text-[13px]"
               >
                 Place {money(leg.amount)}
               </Link>

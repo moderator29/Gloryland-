@@ -1,10 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Check, Copy, Download, Info, Send } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download, Info, Send, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { playTierChord } from "@/lib/sound";
-import { openPosition, fillCourseLeg } from "@/domain/ledger";
+import {
+  openPosition,
+  fillCourseLeg,
+  fundingShortfall,
+  BALANCE_ASSET,
+  BALANCE_NETWORK,
+} from "@/domain/ledger";
 import {
   CYCLE_DAYS,
   CYCLE_RETURN,
@@ -16,6 +22,7 @@ import {
 import { ASSETS, assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
 import { useMarket } from "@/hooks/useMarket";
+import { useLedger } from "@/hooks/useLedger";
 import { Receipt, ConfirmationTracker, reference, type ReceiptData } from "@/features/deposit";
 import { Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
@@ -27,6 +34,7 @@ export default function VaultNew() {
   const nav = useNavigate();
   const reduce = useReducedMotion();
   const [params] = useSearchParams();
+  const snap = useLedger();
   // A link carrying an amount wins. Failing that, the band picked during sign
   // up prefills the form once, then clears itself so it never surprises the
   // member on a later visit.
@@ -41,13 +49,12 @@ export default function VaultNew() {
         return 0;
       }
     })();
-  const rolledFrom = params.get("from");
-  // Two paths place capital that is already in the account: a roll, which
-  // settles a term and re-places it, and redeploying idle cash. Both must be
-  // marked, otherwise the same capital is counted twice and tier standing
-  // climbs on money that was only ever deposited once. Anything else is money
-  // arriving from outside and does raise contribution.
-  const fromBalance = rolledFrom !== null || params.get("source") === "balance";
+  // Two links arrive asking for capital that is already in the account: the
+  // Redeploy prompt, and a roll from an older build that handed the amount to
+  // this form. Both only preselect the funding source now: it is a choice on
+  // the form, so it can be changed here and no longer depends on a member
+  // reaching this screen through the right link.
+  const presetBalance = params.get("source") === "balance" || params.get("from") !== null;
   // A leg is only marked filled by the placement that fills it, written in the
   // same commit, so the schedule can never claim a leg that has no position.
   const courseId = params.get("course");
@@ -56,6 +63,7 @@ export default function VaultNew() {
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState(preset ? String(preset) : "");
   const [assetId, setAssetId] = useState<AssetId>("btc");
+  const [fromBalance, setFromBalance] = useState(presetBalance);
   const [confirmed, setConfirmed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
@@ -69,7 +77,23 @@ export default function VaultNew() {
   const coin = coins.find((c) => c.id === assetId);
   const units = coin && coin.price > 0 ? value / coin.price : undefined;
   const minimum = TIERS[0].entry;
-  const valid = value >= minimum && tier !== null;
+
+  // Available cash is a funding source like any other, and the only one this
+  // build can actually verify: the ledger knows to the cent what the balance
+  // holds. A placement that reaches past it is refused here and at the write.
+  const available = snap.available;
+  const shortfall = fromBalance ? fundingShortfall(value, available) : 0;
+  const balanceCovers = shortfall === 0;
+  // Whole dollars, rounded down, so pressing it can never ask for a cent the
+  // balance does not have.
+  const placeableFromBalance = Math.floor(available);
+  // Two separate questions. The amount is valid or it is not, and that governs
+  // the step; whether the balance covers it governs only the write. Folding
+  // them together would strand a member who arrived on a balance funded link
+  // with too large an amount: the step that lets them pick an asset instead is
+  // the one the block would have closed.
+  const amountValid = value >= minimum && tier !== null;
+  const valid = amountValid && balanceCovers;
 
   const copyAddress = async () => {
     if (!meta.address) return;
@@ -83,15 +107,35 @@ export default function VaultNew() {
     }
   };
 
+  const useBalance = () => {
+    setFromBalance(true);
+    if (placeableFromBalance >= minimum) setAmount(String(placeableFromBalance));
+  };
+
   const commit = () => {
     if (!valid || !tier || !confirmed) return;
-    const evt = openPosition({
+    const placed = openPosition({
       amount: value,
       tierId: tier.id,
-      asset: meta.symbol,
-      network: meta.network,
+      // A balance funded placement records no asset and no chain, because
+      // nothing arrived on one.
+      asset: fromBalance ? BALANCE_ASSET : meta.symbol,
+      network: fromBalance ? BALANCE_NETWORK : meta.network,
       fromAvailable: fromBalance,
     });
+    // The ledger refuses a balance funded placement larger than the balance.
+    // The form has already checked, so this is the second line: it catches the
+    // case where the cash moved between the render and the click.
+    if (!placed.ok) {
+      toast.error("That is more than your balance holds", {
+        description: `Available is ${money(placed.available, 2)}, which is ${money(
+          placed.shortfall,
+          2,
+        )} short of this placement.`,
+      });
+      return;
+    }
+    const evt = placed.event;
     setReceipt({
       reference: reference(evt.id),
       amount: value,
@@ -147,14 +191,12 @@ export default function VaultNew() {
       </Link>
 
       <div>
-        <p className="eyebrow">{rolledFrom ? "Rolling over" : "New position"}</p>
-        <h1 className="display mt-1 text-2xl sm:text-3xl">
-          {rolledFrom ? "Carry into a new term" : "Open a vault"}
-        </h1>
-        {rolledFrom && (
+        <p className="eyebrow">New position</p>
+        <h1 className="display mt-1 text-2xl sm:text-3xl">Open a vault</h1>
+        {fromBalance && (
           <p className="chip chip-accent mt-3 !whitespace-normal !py-2 leading-relaxed">
-            Principal and rewards from your matured vault are carried across. The new term starts
-            when you confirm.
+            Funded from the {money(available, 2)} already in your account. Capital that was already
+            counted does not raise your contribution a second time.
           </p>
         )}
       </div>
@@ -211,13 +253,35 @@ export default function VaultNew() {
               </div>
 
               <p className="mt-3 text-xs text-[var(--text-low)]">
-                {value > 0 && !valid
+                {value > 0 && (value < minimum || tier === null)
                   ? `Minimum entry is ${money(minimum)} (${TIERS[0].name}).`
                   : `Minimum ${money(minimum)}. Larger placements unlock higher tiers.`}
               </p>
             </section>
 
-            {valid && tier && (
+            {/* Cash the account already holds, named on the step where the
+                amount is decided rather than left to be discovered later. It is
+                the one funding source whose size the product actually knows. */}
+            {available > 0 && (
+              <section className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="eyebrow">Available cash</p>
+                  <p className="metric mt-1 text-lg">{money(available, 2)}</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-low)]">
+                    {placeableFromBalance >= minimum
+                      ? "Sitting in your balance and not accruing. It can fund this placement."
+                      : `Under the ${money(minimum)} minimum, so it cannot open a term on its own.`}
+                  </p>
+                </div>
+                {placeableFromBalance >= minimum && (
+                  <button onClick={useBalance} className="btn btn-secondary shrink-0">
+                    <Wallet className="h-4 w-4" /> Use {money(placeableFromBalance)}
+                  </button>
+                )}
+              </section>
+            )}
+
+            {value >= minimum && tier && (
               <motion.section
                 className="panel-hi edge-light p-5"
                 initial={reduce ? false : { opacity: 0, y: 10 }}
@@ -259,9 +323,17 @@ export default function VaultNew() {
               </motion.section>
             )}
 
+            {fromBalance && !balanceCovers && (
+              <p className="inset p-3.5 text-xs leading-relaxed text-[var(--warn)]">
+                Your balance holds {money(available, 2)}, which is {money(shortfall, 2)} short of
+                this placement. Lower the amount, or choose an asset to fund it with on the next
+                step.
+              </p>
+            )}
+
             <button
               onClick={() => setStep("fund")}
-              disabled={!valid}
+              disabled={!amountValid}
               className="btn btn-primary w-full"
             >
               Continue
@@ -273,15 +345,45 @@ export default function VaultNew() {
         {step === "fund" && tier && (
           <motion.div key="fund" {...fade} className="space-y-4">
             <section className="panel p-5">
-              <p className="eyebrow">Funding asset</p>
+              <p className="eyebrow">Funding source</p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {/* The balance sits in the same grid as the assets, because it
+                    is the same decision: where this capital comes from. It was
+                    a query parameter before, which meant every deliberate
+                    redeployment through the form was recorded as new money. */}
+                <button
+                  onClick={() => setFromBalance(true)}
+                  aria-pressed={fromBalance}
+                  disabled={fundingShortfall(value, available) > 0}
+                  className={`flex min-h-[56px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                    fromBalance
+                      ? "border-[rgba(46,139,255,0.5)] bg-[rgba(46,139,255,0.12)]"
+                      : "border-[var(--line)] hover:border-[var(--line-hi)]"
+                  }`}
+                >
+                  <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full border border-[var(--line-hi)] bg-[rgba(46,139,255,0.12)]">
+                    <Wallet className="h-3.5 w-3.5 text-[var(--accent-hi)]" strokeWidth={1.9} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-[var(--text-hi)]">
+                      Balance
+                    </span>
+                    <span className="block truncate text-[10px] text-[var(--text-low)]">
+                      {money(available, 2)} available
+                    </span>
+                  </span>
+                </button>
+
                 {ASSETS.map((a) => (
                   <button
                     key={a.id}
-                    onClick={() => setAssetId(a.id)}
-                    aria-pressed={assetId === a.id}
+                    onClick={() => {
+                      setAssetId(a.id);
+                      setFromBalance(false);
+                    }}
+                    aria-pressed={!fromBalance && assetId === a.id}
                     className={`flex min-h-[56px] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                      assetId === a.id
+                      !fromBalance && assetId === a.id
                         ? "border-[rgba(46,139,255,0.5)] bg-[rgba(46,139,255,0.12)]"
                         : "border-[var(--line)] hover:border-[var(--line-hi)]"
                     }`}
@@ -299,45 +401,80 @@ export default function VaultNew() {
                 ))}
               </div>
 
-              {/* live exchange rate */}
-              <div className="inset mt-4 flex items-center justify-between gap-3 p-3.5">
-                <div className="min-w-0">
-                  <p className="eyebrow">You send</p>
-                  <p className="metric mt-1 text-lg">
-                    {units !== undefined
-                      ? `${units.toFixed(6)} ${meta.symbol}`
-                      : `${meta.symbol} rate unavailable`}
+              {fromBalance ? (
+                /* No rate, no address, no transfer. The capital is already
+                   here, so the only arithmetic worth showing is what leaves
+                   the balance and what stays in it. */
+                <div className="inset mt-4 p-3.5">
+                  <dl className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[var(--text-low)]">Available now</dt>
+                      <dd className="metric tabular text-[var(--text-hi)]">
+                        {money(available, 2)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[var(--text-low)]">This placement</dt>
+                      <dd className="metric tabular text-[var(--text-hi)]">−{money(value, 2)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2">
+                      <dt className="text-[var(--text-low)]">Balance after</dt>
+                      <dd className="metric tabular text-[var(--text-hi)]">
+                        {money(Math.max(0, available - value), 2)}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
+                    Nothing is transferred and no address is needed. This capital has already been
+                    counted once, so the placement does not raise your contribution or buy tier
+                    standing a second time.
                   </p>
                 </div>
-                <div className="shrink-0 text-right">
-                  <p className="eyebrow">Rate</p>
-                  <p className="tabular mt-1 text-xs text-[var(--text-mid)]">
-                    {coin ? `1 ${meta.symbol} = ${money(coin.price, meta.priceDecimals)}` : "--"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Absent unless a real address is configured. There is no custody
-                  behind this build, so a string here would be a destination
-                  nobody owns, and the step below still records the placement
-                  against the member's own ledger. */}
-              {meta.address ? (
-                <>
-                  <p className="eyebrow mt-4">{meta.network} address</p>
-                  <p className="machine inset mt-2 p-3 text-[11px] leading-relaxed text-[var(--text)]">
-                    {meta.address}
-                  </p>
-                  <button onClick={copyAddress} className="btn btn-secondary mt-2.5 w-full">
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? "Copied" : "Copy address"}
-                  </button>
-                </>
               ) : (
-                <p className="inset mt-4 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
-                  Funding is not open in this build. There is no wallet behind the product yet and
-                  no address that could receive a transfer, so none is shown. Continuing still opens
-                  the term against your own ledger so you can watch it run.
-                </p>
+                <>
+                  {/* live exchange rate */}
+                  <div className="inset mt-4 flex items-center justify-between gap-3 p-3.5">
+                    <div className="min-w-0">
+                      <p className="eyebrow">You send</p>
+                      <p className="metric mt-1 text-lg">
+                        {units !== undefined
+                          ? `${units.toFixed(6)} ${meta.symbol}`
+                          : `${meta.symbol} rate unavailable`}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="eyebrow">Rate</p>
+                      <p className="tabular mt-1 text-xs text-[var(--text-mid)]">
+                        {coin
+                          ? `1 ${meta.symbol} = ${money(coin.price, meta.priceDecimals)}`
+                          : "--"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Absent unless a real address is configured. There is no custody
+                      behind this build, so a string here would be a destination
+                      nobody owns, and the step below still records the placement
+                      against the member's own ledger. */}
+                  {meta.address ? (
+                    <>
+                      <p className="eyebrow mt-4">{meta.network} address</p>
+                      <p className="machine inset mt-2 p-3 text-[11px] leading-relaxed text-[var(--text)]">
+                        {meta.address}
+                      </p>
+                      <button onClick={copyAddress} className="btn btn-secondary mt-2.5 w-full">
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copied ? "Copied" : "Copy address"}
+                      </button>
+                    </>
+                  ) : (
+                    <p className="inset mt-4 p-3.5 text-xs leading-relaxed text-[var(--text-low)]">
+                      Funding is not open in this build. There is no wallet behind the product yet
+                      and no address that could receive a transfer, so none is shown. Continuing
+                      still opens the term against your own ledger so you can watch it run.
+                    </p>
+                  )}
+                </>
               )}
             </section>
 
@@ -356,12 +493,24 @@ export default function VaultNew() {
                 </span>
               </label>
 
+              {fromBalance && !balanceCovers && (
+                <p className="mt-3 text-xs leading-relaxed text-[var(--warn)]">
+                  Your balance holds {money(available, 2)}, which is {money(shortfall, 2)} short of
+                  this placement.
+                </p>
+              )}
+
               <div className="mt-4 flex gap-2">
                 <button onClick={() => setStep("amount")} className="btn btn-outline flex-1">
                   Back
                 </button>
-                <button onClick={commit} disabled={!confirmed} className="btn btn-primary flex-[2]">
-                  <Send className="h-4 w-4" /> Confirm deposit
+                <button
+                  onClick={commit}
+                  disabled={!confirmed || !valid}
+                  className="btn btn-primary flex-[2]"
+                >
+                  <Send className="h-4 w-4" />
+                  {fromBalance ? "Place from balance" : "Confirm deposit"}
                 </button>
               </div>
 
@@ -377,16 +526,42 @@ export default function VaultNew() {
         {/* ── Step 3: confirmations + receipt ── */}
         {step === "done" && receipt && (
           <motion.div key="done" {...fade} className="space-y-4">
-            <ConfirmationTracker />
+            {/* A balance funded placement has no transfer to confirm and no
+                deposit to receipt, so it gets neither. Showing a confirmation
+                tracker for capital that never left the account would be an
+                animation of something that did not happen. */}
+            {fromBalance ? (
+              <section className="panel-hi edge-light p-5">
+                <p className="eyebrow">Placed</p>
+                <p className="metric mt-2 text-3xl">{money(receipt.amount)}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-low)]">
+                  Moved from your balance into a {CYCLE_DAYS} day term. Accrual starts now, and the
+                  balance now reads {money(snap.available, 2)}.
+                </p>
+                <p className="machine mt-3 text-[11px] text-[var(--text-low)]">
+                  {receipt.reference}
+                </p>
+              </section>
+            ) : (
+              <>
+                <ConfirmationTracker />
 
-            <div className="min-h-[36px] flex justify-center overflow-x-auto py-1">
-              <Receipt ref={receiptRef} data={receipt} />
-            </div>
+                <div className="min-h-[36px] flex justify-center overflow-x-auto py-1">
+                  <Receipt ref={receiptRef} data={receipt} />
+                </div>
+              </>
+            )}
 
             <div className="flex flex-wrap gap-2">
-              <button onClick={saveReceipt} disabled={saving} className="btn btn-secondary flex-1">
-                <Download className="h-4 w-4" /> {saving ? "Saving" : "Save receipt"}
-              </button>
+              {!fromBalance && (
+                <button
+                  onClick={saveReceipt}
+                  disabled={saving}
+                  className="btn btn-secondary flex-1"
+                >
+                  <Download className="h-4 w-4" /> {saving ? "Saving" : "Save receipt"}
+                </button>
+              )}
               <button onClick={() => nav("/app/vaults")} className="btn btn-primary flex-1">
                 View vaults
               </button>

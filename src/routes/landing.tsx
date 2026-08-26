@@ -344,7 +344,7 @@ export default function Landing() {
             label="The instrument"
             index="02"
             title="Six surfaces, one record underneath all of them."
-            lead="Every screen in the portal derives from the same append only ledger of your own events. Nothing is averaged across members, nothing is illustrative, and nothing appears before there is a record to produce it."
+            lead="Every screen in the portal derives from the same append only ledger of your own events. No figure is averaged across members and none appears before there is a record to produce it. Two things on Home are generated rather than observed, the activity band and the members viewing count, and both carry the word Sample where you read them."
           />
 
           <Stagger className="bento mt-10 sm:mt-14">

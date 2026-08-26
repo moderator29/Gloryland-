@@ -342,22 +342,22 @@ function EmptyMark({ art, icon: Icon }: { art: EmptyArt; icon: LucideIcon }) {
 
         {art === "ledger" && (
           <>
-            <rect x="16" y="24" width="2" height="52" rx="1" fill="var(--accent)" opacity="0.55" />
-            {[32, 48, 64].map((y, i) => (
+            <rect x="10" y="20" width="2" height="60" rx="1" fill="var(--accent)" opacity="0.55" />
+            {[26, 42, 58, 74].map((y, i) => (
               <g key={y}>
                 <rect
-                  x="24"
+                  x="18"
                   y={y - 3}
-                  width={44 - i * 10}
+                  width={52 - i * 10}
                   height="6"
                   rx="3"
                   fill="var(--accent)"
-                  opacity={0.16 - i * 0.04}
+                  opacity={0.2 - i * 0.04}
                 />
                 <line
-                  x1="24"
+                  x1="18"
                   y1={y + 8}
-                  x2="84"
+                  x2="92"
                   y2={y + 8}
                   stroke="var(--line-hi)"
                   strokeWidth="0.8"
@@ -369,30 +369,42 @@ function EmptyMark({ art, icon: Icon }: { art: EmptyArt; icon: LucideIcon }) {
 
         {art === "horizon" && (
           <>
-            <line x1="12" y1="62" x2="88" y2="62" stroke="var(--line-hi)" strokeWidth="1" />
+            <line x1="8" y1="78" x2="92" y2="78" stroke="var(--line-hi)" strokeWidth="1" />
             {[
-              [24, 8],
-              [46, 12],
-              [70, 6],
+              [20, 7],
+              [48, 11],
+              [76, 5],
             ].map(([x, r]) => (
               <circle
                 key={x}
                 cx={x}
-                cy="62"
+                cy="78"
                 r={r}
                 fill="var(--accent)"
-                opacity="0.14"
+                opacity="0.16"
                 stroke="var(--line-hi)"
                 strokeWidth="0.8"
               />
             ))}
-            {[12, 34, 58, 88].map((x) => (
-              <line key={x} x1={x} y1="62" x2={x} y2="70" stroke="var(--line)" strokeWidth="0.8" />
+            {[8, 36, 64, 92].map((x) => (
+              <line key={x} x1={x} y1="78" x2={x} y2="86" stroke="var(--line)" strokeWidth="0.8" />
             ))}
           </>
         )}
+
+        {/* The centre is cut back to the .inset recipe so the mark reads as
+            one object rather than as an icon dropped on top of a drawing.
+            Every mark passes behind this, so none of them fights the glyph. */}
+        <circle
+          cx="50"
+          cy="50"
+          r="19"
+          fill="rgba(5,7,15,0.82)"
+          stroke="var(--line-hi)"
+          strokeWidth="0.9"
+        />
       </svg>
-      <Icon className="relative h-6 w-6 text-[var(--accent-hi)]" strokeWidth={1.6} />
+      <Icon className="relative h-[22px] w-[22px] text-[var(--accent-hi)]" strokeWidth={1.6} />
     </span>
   );
 }

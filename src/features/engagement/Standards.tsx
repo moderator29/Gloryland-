@@ -104,7 +104,7 @@ export function Standards({ duration = 44, className = "" }: StandardsProps) {
       onBlur={() => setFocused(false)}
     >
       <div className="mb-2 flex items-center gap-3 px-4">
-        <p className="eyebrow whitespace-nowrap">What we hold ourselves to</p>
+        <p className="eyebrow min-w-0 truncate">What we hold ourselves to</p>
         <span aria-hidden="true" className="hairline" />
         <button
           type="button"

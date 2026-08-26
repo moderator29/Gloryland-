@@ -60,7 +60,7 @@ const STAGES: Stage[] = [
   {
     marker: `Day ${CYCLE_DAYS}`,
     title: "Maturity, and a decision",
-    body: `The term closes at ${TERM_RATE} of principal. Nothing rolls on its own: settle to an allow listed address, or open a new term with the whole balance. Both are instructions you give.`,
+    body: `The term closes at ${TERM_RATE} of principal and stops accruing there. Claim the reward, settle to an address you own, or open a new term with the whole balance. Each is an instruction you give, and so is the fourth path: a relay armed earlier does the roll for you the next time you open Rigel after this date.`,
     figureLabel: "Principal and reward",
     figure: (p) => money(p + termReward(p)),
   },

@@ -10,7 +10,7 @@
  */
 
 import { fullDate, money, pct, days as fmtDays } from "@/components/system/format";
-import { DAY_MS, type Position, type Snapshot } from "./ledger";
+import { DAY_MS, type Position, type Relay, type Snapshot } from "./ledger";
 import { CYCLE_DAYS, DAILY_RATE, TIERS, termReward } from "./tiers";
 
 export type Insight = {
@@ -66,6 +66,13 @@ const IDLE_CASH_FLOOR = TIERS[0].entry;
 /** Highest priority first; every rule's weight is visible in one block. */
 const P = {
   matured: 100,
+  /**
+   * Just under `matured`, because a due relay is a matured term with the
+   * decision already made: the member said carry it, and it is sitting still
+   * anyway. It is one action away from being fixed, which is why it outranks
+   * everything below it.
+   */
+  relayDue: 96,
   onboarding: 92,
   maturing: 88,
   claim: 74,
@@ -75,6 +82,20 @@ const P = {
 } as const;
 
 const MAX_INSIGHTS = 5;
+
+/**
+ * The two figures in the tier proximity line, rounded once so they add up.
+ *
+ * The surface's whole claim is that its arithmetic can be checked, so a member
+ * who reads "standing is $1,690 against the $3,000 entry, $1,310 more" must be
+ * able to add the first and the last and get the middle. Rounding standing and
+ * the gap separately breaks that on any half cent, so the gap is measured from
+ * the standing as it will be printed rather than from the raw figure.
+ */
+export function tierProximity(standing: number, entry: number): { shown: number; gap: number } {
+  const shown = Math.round(standing);
+  return { shown, gap: Math.max(0, entry - shown) };
+}
 
 /** Defensive read: a malformed or partial snapshot must never throw. */
 function num(v: unknown): number {
@@ -125,9 +146,40 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
     ];
   }
 
+  /* A relay that has come due is a matured term the member already decided
+     about. It is reported before the general matured rule and its positions
+     are taken out of that rule, so the same idle capital is never counted in
+     two insights at once. */
+  const relaysDue = list<Relay>(snap.relaysDue);
+  const relayed = new Set(relaysDue.map((r) => r.positionId));
+  if (relaysDue.length > 0) {
+    const carry = num(snap.relayCarry);
+    const forgone = num(snap.relayForgoneDaily);
+    const worst = relaysDue.reduce((a, b) => (num(a.overdueDays) > num(b.overdueDays) ? a : b));
+    out.push({
+      id: "relay-due",
+      kind: "attention",
+      title:
+        relaysDue.length === 1
+          ? "A relay is waiting to run"
+          : `${relaysDue.length} relays are waiting to run`,
+      // The carry and the daily cost, and nothing beyond them. Multiplying the
+      // idle rate out across a term would quote a figure for a month of
+      // inaction nobody has taken, which is a projection rather than a fact.
+      body: `${money(carry)} has been sitting matured for ${fmtDays(
+        num(worst.overdueDays),
+      )} days and is not accruing, which is ${money(
+        forgone,
+        2,
+      )} a day. Firing it carries the whole amount straight into a new ${CYCLE_DAYS}-day term.`,
+      action: { label: "Fire it now", to: "/app" },
+      priority: P.relayDue,
+    });
+  }
+
   /* Principal that finished its term and is still sitting in the vault earns
      nothing, accrual stops at maturity, so this outranks everything else. */
-  const matured = active.filter((p) => daysLeft(p, now) <= 0);
+  const matured = active.filter((p) => daysLeft(p, now) <= 0 && !relayed.has(p.id));
   if (matured.length > 0) {
     const principal = matured.reduce((s, p) => s + num(p.principal), 0);
     const claimable = matured.reduce((s, p) => s + num(p.claimable), 0);
@@ -139,10 +191,16 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
         matured.length === 1
           ? `${one.tier?.name ?? "Vault"} position has matured`
           : `${matured.length} positions have matured`,
+      // The advice is the relay, not a review. Settling and re-placing by hand
+      // is the chore that leaves capital idle in the first place, and a relay
+      // is the standing instruction that removes it.
       body: `${money(principal)} finished its ${CYCLE_DAYS}-day term and stopped accruing${
         claimable > 0 ? `, with ${money(claimable)} in rewards still unclaimed` : ""
-      }. Close it to move the principal into available cash.`,
-      action: { label: "Review positions", to: "/app/vaults" },
+      }. Roll it into a new term, settle it to cash, or arm a relay so the next one carries itself.`,
+      action:
+        matured.length === 1
+          ? { label: "Arm a relay", to: `/app/vaults/${one.id}` }
+          : { label: "Review positions", to: "/app/vaults" },
       priority: P.matured,
     });
   }
@@ -191,14 +249,28 @@ export function buildInsights(snap: Snapshot, now: number = Date.now()): Insight
   /* Close enough to the next rung that the remaining capital is a decision. */
   const next = snap.nextTier;
   const toNext = num(snap.toNextTier);
-  if (next && toNext > 0 && num(snap.tierProgress) >= TIER_PROXIMITY) {
+  const { shown, gap } = tierProximity(num(snap.standing), next?.entry ?? 0);
+  // `gap > 0` drops the sub-dollar case, where standing rounds to the entry it
+  // has not actually crossed. A "$0 away" line would be the same arithmetic
+  // failure in the other direction, and the tier itself lands within the day.
+  if (next && toNext > 0 && gap > 0 && num(snap.tierProgress) >= TIER_PROXIMITY) {
+    // Standing is the greater of what came in and the most ever at work, so a
+    // member who compounded reads a figure larger than anything they deposited.
+    // Naming which of the two it is here is the difference between a number
+    // that checks out and a number that looks wrong.
+    const basis =
+      shown > Math.round(num(snap.contributed))
+        ? "the most you have had at work at one time"
+        : "everything you have brought in";
     out.push({
       id: "tier-proximity",
       kind: "milestone",
-      title: `${money(toNext)} from ${next.name}`,
-      body: `Your standing is ${money(num(snap.standing))} against the ${money(
-        next.entry,
-      )} ${next.name} entry. ${money(toNext)} more unlocks ${next.settlementHours}h settlement.`,
+      title: `${money(gap)} from ${next.name}`,
+      body: `Standing is ${money(shown)}, ${basis}, against the ${money(next.entry)} ${
+        next.name
+      } entry. ${money(gap)} more reaches it, and ${next.name} settles in ${
+        next.settlementHours
+      }h.`,
       action: { label: "See the ladder", to: "/app/tiers" },
       priority: P.tier,
     });

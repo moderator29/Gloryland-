@@ -6,33 +6,68 @@ import {
   Gift,
   Check,
   Repeat,
+  RefreshCw,
   CalendarClock,
 } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Empty } from "@/components/system/ui";
 import { money, fullDate, relative } from "@/components/system/format";
 import { tierById } from "@/domain/tiers";
-import type { LedgerEvent } from "@/domain/ledger";
+import { classify, isInstruction, isRoll, type LedgerEvent } from "@/domain/ledger";
 
+/**
+ * The filters, defined by what an event is rather than by which kind it was
+ * written as.
+ *
+ * Two distinctions the kinds alone cannot make, and both matter to a member
+ * reading their own record. A roll and a deposit are the same `open` event, so
+ * "Placements" holds both and each row says which it was. And relay and course
+ * events are instructions rather than movements: nothing about them moves
+ * capital, so they get a filter of their own instead of appearing only under
+ * All. Every one of the nine kinds is now reachable from this bar.
+ */
 const FILTERS = [
-  { id: "all", label: "All" },
-  { id: "open", label: "Placements" },
-  { id: "claim", label: "Claims" },
-  { id: "withdraw", label: "Withdrawals" },
+  { id: "all", label: "All", match: () => true },
+  { id: "placements", label: "Placements", match: (e: LedgerEvent) => e.kind === "open" },
+  { id: "claims", label: "Claims", match: (e: LedgerEvent) => classify(e) === "claim" },
+  {
+    id: "withdrawals",
+    label: "Withdrawals",
+    match: (e: LedgerEvent) => classify(e) === "withdrawal",
+  },
+  {
+    id: "settlements",
+    label: "Settlements",
+    match: (e: LedgerEvent) => classify(e) === "settlement",
+  },
+  { id: "instructions", label: "Instructions", match: isInstruction },
 ] as const;
 
 /** One row's presentation, derived from the event kind. */
 function describe(e: LedgerEvent) {
   switch (e.kind) {
-    case "open":
+    case "open": {
+      const name = tierById(e.tierId)?.name ?? "Vault";
+      // A roll and a deposit are the same event kind and the opposite fact: one
+      // brought capital in, the other re-placed capital that was already here.
+      // Reading them as one thing is what the double count looked like from the
+      // ledger, so the row says which it was rather than leaving it derivable.
+      const rolled = isRoll(e);
+      const begins =
+        e.startsAt !== undefined && e.startsAt > e.at
+          ? `, term begins ${fullDate(e.startsAt)}`
+          : "";
       return {
-        icon: ArrowDownLeft,
-        title: `${tierById(e.tierId)?.name ?? "Vault"} vault opened`,
-        detail: `${e.asset} on ${e.network}`,
+        icon: rolled ? RefreshCw : ArrowDownLeft,
+        title: rolled ? `${name} vault rolled` : `${name} vault opened`,
+        detail: rolled
+          ? `From your account balance${begins}`
+          : `${e.asset} on ${e.network}${begins}`,
         amount: e.amount,
         tone: "text-[var(--accent-hi)]",
         sign: "",
       };
+    }
     case "claim":
       return {
         icon: Gift,
@@ -112,10 +147,10 @@ export default function Activity() {
   const snap = useLedger();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
 
-  const rows = useMemo(
-    () => (filter === "all" ? snap.events : snap.events.filter((e) => e.kind === filter)),
-    [snap.events, filter],
-  );
+  const rows = useMemo(() => {
+    const match = FILTERS.find((f) => f.id === filter)?.match ?? (() => true);
+    return snap.events.filter(match);
+  }, [snap.events, filter]);
 
   // Group by calendar day so a long history stays scannable.
   const groups = useMemo(() => {
@@ -133,14 +168,11 @@ export default function Activity() {
     <div className="space-y-6">
       <div>
         <p className="eyebrow">Record</p>
-        <h1 className="display mt-1 text-2xl sm:text-3xl">Activity</h1>
+        {/* Ledger, the name this surface has in the nav and in NAMING.md. */}
+        <h1 className="display mt-1 text-2xl sm:text-3xl">Ledger</h1>
       </div>
 
-      <div
-        className="flex gap-2 overflow-x-auto no-bar"
-        role="tablist"
-        aria-label="Filter activity"
-      >
+      <div className="flex gap-2 overflow-x-auto no-bar" role="tablist" aria-label="Filter ledger">
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -158,8 +190,8 @@ export default function Activity() {
         <div className="panel">
           <Empty
             icon={Receipt}
-            title="No activity yet"
-            body="Placements, claims, settlements and withdrawals all appear here as they happen."
+            title={filter === "all" ? "No activity yet" : "Nothing under this filter"}
+            body="Placements, claims, settlements, withdrawals and the instructions you set all appear here as they happen."
             action={{ label: "Open a vault", to: "/app/vaults/new" }}
           />
         </div>

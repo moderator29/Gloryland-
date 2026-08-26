@@ -1,10 +1,26 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Download, Lock, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  Hourglass,
+  Lock,
+  RefreshCw,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { playTing } from "@/lib/sound";
 import { useLedger } from "@/hooks/useLedger";
-import { claimRewards, closePosition, DAY_MS } from "@/domain/ledger";
+import {
+  carryOf,
+  claimRewards,
+  earlyExit,
+  rollPosition,
+  settlePosition,
+  DAY_MS,
+} from "@/domain/ledger";
 import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
 import { Value } from "@/components/system/Value";
 import { Metric, Progress, Status } from "@/components/system/ui";
@@ -13,25 +29,34 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { RelayPanel } from "@/features/relay";
 import { Explain } from "@/features/explain";
 
-/** The four moments in a term, rendered as a vertical timeline. */
+/** The moments in a term, rendered as a vertical timeline. */
 function Timeline({
   openedAt,
+  startsAt,
+  started,
   maturesAt,
   progress,
   matured,
   closed,
 }: {
   openedAt: number;
+  startsAt: number;
+  started: boolean;
   maturesAt: number;
   progress: number;
   matured: boolean;
   closed: boolean;
 }) {
   const reduce = useReducedMotion();
-  const halfway = openedAt + (maturesAt - openedAt) / 2;
+  const halfway = startsAt + (maturesAt - startsAt) / 2;
   const steps = [
     { icon: Lock, label: "Capital placed", at: openedAt, done: true },
-    { icon: TrendingUp, label: "Accrual running", at: openedAt + DAY_MS, done: progress > 0.03 },
+    // Only shown when the term begins later than it was committed, because a
+    // step that always reads the same date as the one above it is noise.
+    ...(startsAt > openedAt
+      ? [{ icon: Hourglass, label: "Term begins", at: startsAt, done: started }]
+      : []),
+    { icon: TrendingUp, label: "Accrual running", at: startsAt + DAY_MS, done: progress > 0.03 },
     { icon: Sparkles, label: "Halfway", at: halfway, done: progress >= 0.5 },
     { icon: Check, label: "Term complete", at: maturesAt, done: matured },
   ];
@@ -96,25 +121,30 @@ export default function VaultDetail() {
   };
 
   const onSettle = () => {
-    if (p.claimable > 0) claimRewards(p.id, p.claimable);
-    closePosition(p.id);
+    settlePosition(p);
     toast.success("Vault settled. Principal returned to available balance.");
     nav("/app/vaults");
   };
 
   /**
-   * Settle and immediately carry principal plus the full term reward into a
-   * fresh term. This is the compounding path: rolling a matured position is
-   * often what crosses a member into the next tier, so the amount is handed
-   * straight to the placement flow rather than left sitting as idle cash.
+   * Settle and carry straight into a fresh term, as one write.
+   *
+   * It carries `claimable`, not `accrued`: rewards already claimed are already
+   * cash and may already have been withdrawn, so carrying the accrued figure
+   * would open a term on money the ledger cannot pay. And the claim, the close
+   * and the open are one batch rather than two writes and a form on another
+   * route, because that sequence can be abandoned halfway, which leaves a
+   * settled position and no new one.
    */
   const onRoll = () => {
-    if (p.claimable > 0) claimRewards(p.id, p.claimable);
-    closePosition(p.id);
-    const carried = Math.round(p.principal + p.accrued);
-    toast.success(`Carrying ${money(carried)} into a new term`);
-    nav(`/app/vaults/new?amount=${carried}&from=${p.id}`);
+    const rolled = rollPosition(p);
+    if (!rolled) return;
+    toast.success(`Carrying ${money(rolled.carry)} into a new ${CYCLE_DAYS} day term`);
+    nav(`/app/vaults/${rolled.positionId}`);
   };
+
+  const carry = carryOf(p);
+  const exit = earlyExit(p);
 
   return (
     <div className="space-y-6">
@@ -126,11 +156,22 @@ export default function VaultDetail() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="display text-2xl sm:text-3xl">{p.tier.name} vault</h1>
-            <Status kind={p.closed ? "closed" : p.matured ? "matured" : "accruing"} />
+            {/* A term that has not begun is committed capital, not accruing
+                capital, and the badge says which. */}
+            <Status
+              kind={
+                p.closed ? "closed" : p.matured ? "matured" : p.started ? "accruing" : "pending"
+              }
+            />
           </div>
           <p className="mt-1.5 text-sm text-[var(--text-low)]">
             {money(p.principal)} placed {fullDate(p.openedAt)} · {p.asset} on {p.network}
           </p>
+          {!p.started && (
+            <p className="mt-1 text-sm text-[var(--text-low)]">
+              The term begins {fullDate(p.startsAt)}. Nothing accrues until it does.
+            </p>
+          )}
         </div>
       </div>
 
@@ -144,9 +185,12 @@ export default function VaultDetail() {
             <p className="mt-1.5 text-xs text-[var(--text-low)]">
               of {money(p.termReward)} across the full term
             </p>
+            {/* The clock the explanation runs is the term's, which is the
+                start date rather than the commitment. They differ only on a
+                term that was placed to begin later. */}
             <Explain
               id="accrued"
-              ctx={{ principal: p.principal, openedAt: p.openedAt }}
+              ctx={{ principal: p.principal, openedAt: p.startsAt }}
               className="mt-2"
             />
           </div>
@@ -161,7 +205,7 @@ export default function VaultDetail() {
                     <Download className="h-4 w-4" /> Settle to cash
                   </button>
                   <button onClick={onRoll} className="btn btn-primary">
-                    <RefreshCw className="h-4 w-4" /> Roll now
+                    <RefreshCw className="h-4 w-4" /> Roll {money(carry)}
                   </button>
                 </>
               )}
@@ -173,9 +217,15 @@ export default function VaultDetail() {
           <div className="inset mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--text-hi)]">Term complete</p>
+              {/* The carry is principal plus what is still unclaimed, which is
+                  what the roll actually writes. Adding the accrued figure here
+                  would quote rewards that have already been claimed out. */}
               <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-low)]">
-                {money(p.principal + p.accrued)} is ready and is not accruing while it waits.
-                Rolling it starts a new {CYCLE_DAYS} day term.
+                {money(carry)} is ready and is not accruing while it waits. Rolling it starts a new{" "}
+                {CYCLE_DAYS} day term.
+                {p.claimed > 0
+                  ? ` The ${money(p.claimed, 2)} you have already claimed stays in your balance.`
+                  : ""}
               </p>
             </div>
           </div>
@@ -213,11 +263,60 @@ export default function VaultDetail() {
           settled, when there is nothing left to carry. */}
       {!p.closed && <RelayPanel position={p} relay={relay} />}
 
+      {/* What an early exit would cost, stated rather than offered.
+          The terms, the risk page and the FAQ all describe an early exit as an
+          exception the desk may refuse, so there is no button here: a control
+          would turn an exception into a right the product does not grant. What
+          the ledger can answer is the price, from this position's own figures,
+          and a member deciding whether to commit for thirty days deserves to
+          read it in dollars rather than in a clause. */}
+      {!p.closed && !p.matured && p.started && (
+        <section className="panel p-5">
+          <h2 className="text-[15px] font-semibold text-[var(--text-hi)]">Before maturity</h2>
+          <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-low)]">
+            Capital in an open term is not available on demand. An early exit is handled as an
+            exception, forfeits accrual on the unfinished term, and may not be granted at all. There
+            is no way to request one in this build. If ending this term early were granted today, it
+            would read like this.
+          </p>
+          <dl className="ledger mt-4">
+            <div className="rail-row">
+              <dt className="min-w-0 flex-1 text-xs text-[var(--text-low)]">Principal returned</dt>
+              <dd className="metric tabular shrink-0 text-sm">{money(exit.principal)}</dd>
+            </div>
+            <div className="rail-row">
+              <dt className="min-w-0 flex-1 text-xs text-[var(--text-low)]">
+                Accrual forfeited, unclaimed on this term
+              </dt>
+              <dd className="metric tabular shrink-0 text-sm text-[var(--warn)]">
+                {money(exit.forfeited, 2)}
+              </dd>
+            </div>
+            <div className="rail-row">
+              <dt className="min-w-0 flex-1 text-xs text-[var(--text-low)]">
+                Reward the remaining {days(exit.daysRemaining)} days would have added
+              </dt>
+              <dd className="metric tabular shrink-0 text-sm text-[var(--warn)]">
+                {money(exit.foregone, 2)}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
+            {p.claimed > 0
+              ? `The ${money(p.claimed, 2)} already claimed from this term is cash and stays in your balance. `
+              : ""}
+            Both figures move every day the term runs, and reach zero at maturity.
+          </p>
+        </section>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="panel p-5">
           <h2 className="mb-4 text-[15px] font-semibold text-[var(--text-hi)]">Term timeline</h2>
           <Timeline
             openedAt={p.openedAt}
+            startsAt={p.startsAt}
+            started={p.started}
             maturesAt={p.maturesAt}
             progress={p.progress}
             matured={p.matured}

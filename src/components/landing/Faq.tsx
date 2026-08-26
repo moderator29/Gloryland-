@@ -87,12 +87,13 @@ const GROUPS: Group[] = [
         a: (
           <>
             A term is a commitment, so capital inside an open vault is not available on demand, and
-            accrual is calculated for completed terms. <strong>This build offers no early exit at
-            all</strong>: settling is available once a position has matured and not before, so there
-            is no button to press and no request to file. If an early exit is ever built, it will
-            forfeit accrual on the unfinished term, it will be an exception rather than a right, and
-            it will appear on the change log the day it ships. Until then, if there is a realistic
-            chance you will need the money inside {CYCLE_DAYS} days, do not place it.
+            accrual is calculated for completed terms.{" "}
+            <strong>This build offers no early exit at all</strong>: settling is available once a
+            position has matured and not before, so there is no button to press and no request to
+            file. If an early exit is ever built, it will forfeit accrual on the unfinished term, it
+            will be an exception rather than a right, and it will appear on the change log the day
+            it ships. Until then, if there is a realistic chance you will need the money inside{" "}
+            {CYCLE_DAYS} days, do not place it.
           </>
         ),
       },

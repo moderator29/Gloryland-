@@ -77,8 +77,10 @@ const SECTIONS: LegalSection[] = [
             money from you, so a leg you do not fill visibly slips rather than being collected.
           </li>
           <li>
-            <strong>Echelon.</strong> One sum planned as several terms that start days apart, so
-            maturities land in sequence instead of together.
+            <strong>Echelon.</strong> One sum planned as several terms opened days apart, so
+            maturities land in sequence instead of together. It is a planner, not a schedule: the
+            ledger cannot yet record a position with a future start date, so you open each leg on
+            its day.
           </li>
           <li>
             <strong>A way to reach a person.</strong> <Link to="/contact">Contact</Link> is a public

@@ -335,11 +335,11 @@ const SECTIONS: LegalSection[] = [
           <li>Complain to your local data protection authority.</li>
         </ul>
         <p>
-          Most of these you can exercise yourself, immediately, without asking us. Access, portability
-          and erasure all live in{" "}
-          <Link to="/app/settings/data">Settings, under Data</Link>: export the complete event log as
-          JSON or CSV, import it into another browser, or erase it. We could not perform any of those
-          on your behalf today, because we do not hold the data.
+          Most of these you can exercise yourself, immediately, without asking us. Access,
+          portability and erasure all live in{" "}
+          <Link to="/app/settings/data">Settings, under Data</Link>: export the complete event log
+          as JSON or CSV, import it into another browser, or erase it. We could not perform any of
+          those on your behalf today, because we do not hold the data.
         </p>
         <p>
           For anything else, including a question about this policy or about the aggregate analytics
@@ -362,9 +362,9 @@ const SECTIONS: LegalSection[] = [
           and is not transmitted with requests the way a cookie is.
         </p>
         <p>
-          The one measurement script is Vercel Web Analytics, described in the third parties section.
-          It is cookieless and storage-free by design, it records a page view rather than a person,
-          and it runs only on the deployed production site.{" "}
+          The one measurement script is Vercel Web Analytics, described in the third parties
+          section. It is cookieless and storage-free by design, it records a page view rather than a
+          person, and it runs only on the deployed production site.{" "}
           <strong>
             It is not currently gated behind a consent prompt, and this policy does not claim
             otherwise.

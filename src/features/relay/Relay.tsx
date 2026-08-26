@@ -67,8 +67,12 @@ function remember() {
 /* ── The compounding series, derived rather than written ──────────────── */
 
 const GROWTH = 1 + CYCLE_RETURN;
-/** Terms shown in the disclosure: the first three, then half a year, then a year. */
-const SERIES_TERMS = [1, 3, 6, Math.round(365 / CYCLE_DAYS)];
+/**
+ * Terms shown in the disclosure: the first, the third, the sixth, and however
+ * many fit in a calendar year. Deduplicated, because a longer published term
+ * would make the last of those collide with one of the others.
+ */
+const SERIES_TERMS = [...new Set([1, 3, 6, Math.round(365 / CYCLE_DAYS)])].sort((a, b) => a - b);
 /** What repeating the published term for a calendar year implies as an annual rate. */
 const ANNUALISED = GROWTH ** (365 / CYCLE_DAYS) - 1;
 const ANNUALISED_TEXT = `${Math.round(ANNUALISED * 100).toLocaleString("en-US")}%`;
@@ -255,6 +259,7 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
       <div className="mt-2">
         <button
           type="button"
+          id={`${seriesId}-toggle`}
           aria-expanded={showSeries}
           aria-controls={seriesId}
           onClick={() => setShowSeries((v) => !v)}
@@ -268,7 +273,7 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
           <span className="min-w-0">If you keep rolling, what does that compound to?</span>
         </button>
 
-        <div id={seriesId} role="region">
+        <div id={seriesId} role="region" aria-labelledby={`${seriesId}-toggle`}>
           <AnimatePresence initial={false}>
             {showSeries && (
               <motion.div
@@ -352,9 +357,9 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
               />
               <p className="text-xs leading-relaxed text-[var(--text)]">
                 This is your first relay. Confirm that you want {money(carry)} placed into a new{" "}
-                {CYCLE_DAYS} day term automatically when this one matures, without a further
-                prompt. You will not be asked again on later relays, and this panel will keep
-                stating what a relay does.
+                {CYCLE_DAYS} day term automatically when this one matures, without a further prompt.
+                You will not be asked again on later relays, and this panel will keep stating what a
+                relay does.
               </p>
             </div>
           </motion.div>

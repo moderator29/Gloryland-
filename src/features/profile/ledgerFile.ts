@@ -12,12 +12,20 @@
  * records. So an import writes the openings first, keeps a map from each old id
  * to the new one, and rewrites the references as it goes. Without that the
  * imported claims would point at nothing and the figures would come back wrong.
+ *
+ * That re-issuing is what separates this path from `mergeStores` in the ledger.
+ * A merge joins two copies of one member's own log and keeps ids as they are,
+ * because the same id on both sides is the same event. An import can be handed
+ * anyone's file, so it treats every opening as new and never lets a foreign id
+ * land on a position this browser already holds.
  */
 
 import {
   append,
   clearLedger,
+  ledgerOwner,
   loadEvents,
+  LEDGER_SCHEMA,
   type EventKind,
   type LedgerEvent,
   type RelayMode,
@@ -34,7 +42,19 @@ export const LEDGER_FILE_VERSION = 1;
 
 export type LedgerFile = {
   product: "Rigel";
+  /** Version of this file format. */
   version: number;
+  /**
+   * Version of the event schema inside it, and the member the log belongs to.
+   *
+   * The file is the only copy of a log that outlives the browser that wrote it,
+   * so it carries the same two facts the stored envelope does. A reader that
+   * knows neither which schema wrote the events nor whose they are has no way
+   * to merge two files safely, and by the time that matters the files are a
+   * member's whole history.
+   */
+  schema: number;
+  owner: string | null;
   exportedAt: string;
   eventCount: number;
   summary: {
@@ -54,6 +74,8 @@ export function buildLedgerFile(snap: Snapshot, events: LedgerEvent[]): LedgerFi
   return {
     product: "Rigel",
     version: LEDGER_FILE_VERSION,
+    schema: LEDGER_SCHEMA,
+    owner: ledgerOwner(),
     exportedAt: new Date().toISOString(),
     eventCount: events.length,
     summary: {
@@ -80,6 +102,7 @@ const COLUMNS = [
   "asset",
   "network",
   "from_available",
+  "starts_at",
   "position_id",
   "relay_mode",
   "address",
@@ -103,6 +126,7 @@ function row(e: LedgerEvent): (string | number)[] {
     e.kind === "open" ? e.asset : "",
     e.kind === "open" ? e.network : "",
     e.kind === "open" ? String(e.fromAvailable === true) : "",
+    e.kind === "open" && e.startsAt !== undefined ? new Date(e.startsAt).toISOString() : "",
     "positionId" in e ? e.positionId : "",
     e.kind === "relay.set" ? e.mode : "",
     e.kind === "withdraw" ? e.address : "",
@@ -249,6 +273,11 @@ export function inspectLedgerFile(text: string): InspectResult {
           rejected += 1;
           return;
         }
+        // Carried through rather than defaulted. A start date this reader
+        // dropped would turn a term that has not begun into one that started
+        // the moment it was committed, and thirty days of accrual would be
+        // credited to capital that was not working.
+        const startsAt = Number(candidate.startsAt);
         accepted.push({
           id: id || `imported-${line}`,
           kind: "open",
@@ -257,9 +286,10 @@ export function inspectLedgerFile(text: string): InspectResult {
           tierId: candidate.tierId as TierId,
           asset: typeof candidate.asset === "string" ? candidate.asset : "USDT",
           network: typeof candidate.network === "string" ? candidate.network : "TRC20",
-          // Carried through rather than defaulted. Dropping it would turn every
-          // re-placed position back into fresh capital and inflate standing.
+          // Dropping this one would turn every re-placed position back into
+          // fresh capital and inflate standing.
           fromAvailable: candidate.fromAvailable === true,
+          ...(Number.isFinite(startsAt) && startsAt > at ? { startsAt } : {}),
         });
         return;
       }
@@ -486,6 +516,7 @@ export function applyLedgerFile(events: LedgerEvent[], mode: ImportMode): number
       asset: e.asset,
       network: e.network,
       fromAvailable: e.fromAvailable === true,
+      ...(e.startsAt !== undefined ? { startsAt: e.startsAt } : {}),
     });
     idMap.set(e.id, created.id);
     written += 1;

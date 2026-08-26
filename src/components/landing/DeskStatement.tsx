@@ -17,7 +17,7 @@ import { Reveal } from "./Reveal";
 const PARAGRAPHS = [
   {
     heading: "One rate, and no negotiation",
-    body: `We were asked early to pay more on larger positions. We did not. A rate that moves with the size of a balance is a negotiation, and a negotiation is a thing you can lose without ever being told you were in one. So the rate is written into the product as a constant: ${DAY_RATE} of principal a day for ${CYCLE_DAYS} days, ${TERM_RATE} at maturity, identical at ${FIRST_TIER.name} and at ${TOP_TIER.name}. A larger position buys settlement speed and tooling. The ladder says exactly that, on the ladder, not in a footnote.`,
+    body: `We were asked early to pay more on larger positions. We did not. A rate that moves with the size of a balance is a negotiation, and a negotiation is a thing you can lose without ever being told you were in one. So the rate is written into the product as a constant: ${DAY_RATE} of principal a day for ${CYCLE_DAYS} days, ${TERM_RATE} at maturity, identical at ${FIRST_TIER.name} and at ${TOP_TIER.name}. What a larger position buys is a shorter settlement target, and today that is the only column on the ladder that moves. The ladder says exactly that, on the ladder, not in a footnote.`,
   },
   {
     heading: "Every figure comes from your own ledger",

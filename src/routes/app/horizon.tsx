@@ -425,7 +425,7 @@ export default function Horizon() {
                             key={cell.key}
                             role="gridcell"
                             aria-selected={cell.inMonth ? isSelected : undefined}
-                            className="aspect-square sm:aspect-auto sm:h-[68px]"
+                            className="aspect-square min-h-[44px] sm:aspect-auto sm:h-[68px]"
                           >
                             {cell.inMonth ? (
                               <button
