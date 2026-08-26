@@ -43,6 +43,15 @@ jobs:
       - name: Derivation assertions
         run: pnpm run check
 
+      # The test toolchain is installed here rather than declared in
+      # package.json. The deploy runner verifies the lockfile against a supply
+      # chain policy before it installs anything, and the lockfile that passes
+      # today is the one without these two hundred odd extra entries. Keeping
+      # them out of it means a test dependency can never be the reason a deploy
+      # fails, and CI is the only place they are needed.
+      - name: Install the test toolchain
+        run: pnpm run test:install
+
       - name: Tests
         run: pnpm run test
 
