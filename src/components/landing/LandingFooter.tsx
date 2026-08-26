@@ -30,7 +30,7 @@ const COLUMNS: { heading: string; items: Item[] }[] = [
       { label: "Enter", to: "/app" },
       { label: "Open a term", to: "/app/vaults/new" },
       { label: "Tiers", to: "/app/tiers" },
-      { label: "Support", to: "/app/support" },
+      { label: "Security", to: "/app/security" },
       { label: "Glossary", to: "/app/glossary" },
     ],
   },
@@ -40,6 +40,10 @@ const COLUMNS: { heading: string; items: Item[] }[] = [
       { label: "Risk disclosure", to: "/legal/risk" },
       { label: "Terms of service", to: "/legal/terms" },
       { label: "Privacy policy", to: "/legal/privacy" },
+      { label: "Change log", to: "/legal/changes" },
+      // The only route in the product that reaches a person, so it sits with
+      // the documents rather than behind the Gate with the assistants.
+      { label: "Contact", to: "/contact" },
     ],
   },
 ];

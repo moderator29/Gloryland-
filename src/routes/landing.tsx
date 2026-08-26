@@ -104,7 +104,7 @@ const SURFACES: Surface[] = [
     icon: Layers,
     kicker: "Tiers",
     title: "Access, never a better rate",
-    body: `${TIERS.length} rungs from ${FIRST_TIER.name} to ${TOP_TIER.name}. Climbing shortens settlement and deepens the tooling. The term rate does not move.`,
+    body: `${TIERS.length} rungs from ${FIRST_TIER.name} to ${TOP_TIER.name}. Climbing shortens the published settlement target, from ${FIRST_TIER.settlementHours} hours to ${TOP_TIER.settlementHours}. The term rate does not move.`,
     span: "lg:col-span-5",
   },
   {
@@ -136,48 +136,51 @@ const SURFACES: Surface[] = [
     icon: Sparkles,
     kicker: "Copilot",
     title: "An analyst that cannot act",
-    body: "It reads the figures derived from your ledger, when you allow it, and explains what they mean. It does not advise, and it cannot move capital.",
+    body: "It reads the figures derived from your ledger, unless you switch that off on its own screen, and explains what they mean. It does not advise, and it cannot move capital.",
     span: "lg:col-span-4",
   },
 ];
 
-/* ── Section 06: what the system refuses to do ───────────────────────── */
+/* ── Section 06: what the system refuses to do ───────────────────────────
+   Every entry here has to be checkable against the running product, so each
+   one names where to check it. A refusal that cannot be tested is a slogan,
+   and it belongs on somebody else's site. */
 
 const DISCIPLINE: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: ScrollText,
     title: "It will not edit history",
-    body: "Placements, claims, settlements and instructions are appended as entries and nothing is ever removed. Corrections are new entries too, so the record of a mistake survives the fix.",
+    body: "Placements, claims, settlements and instructions are appended as entries, and a correction is a new entry too, so the record of a mistake survives the fix. The only deletion anywhere in the product is the one you perform yourself, on your whole record at once, from Settings.",
   },
   {
     icon: Check,
     title: "It will not print a figure it cannot derive",
-    body: "Every number on your surfaces is replayed from your own entries by one function. Where the product shows illustrative activity rather than observed activity, it is labelled in place.",
+    body: "Every number on your surfaces is replayed from your own entries by one function, and Explain will show you that arithmetic step by step. The two figures the product generates rather than observes, the activity band and the members viewing count, each carry the word Sample in visible text next to them.",
   },
   {
     icon: SquareStack,
     title: "It will not pay more for size",
-    body: `Core and Sovereign earn the identical ${TERM_RATE} across ${CYCLE_DAYS} days. A larger position buys a faster settlement target and more tooling, and nothing else.`,
+    body: `Core and Sovereign earn the identical ${TERM_RATE} across ${CYCLE_DAYS} days, from one constant that every surface reads. What a larger position buys is the shorter settlement target published against its rung, and that target is the only figure on the ladder that moves.`,
   },
   {
     icon: Lock,
     title: "It will not act without an instruction you gave",
-    body: "Nothing renews or reallocates on its own. A relay only runs where you armed one, it says before you arm it that it will write without asking again, and it can be disarmed at any point before it fires.",
+    body: "One mechanism writes to your ledger unprompted, and it only exists where you armed it: a relay carries a matured term into the next one. It states before you arm it that it will write without asking again, it runs the next time you open Rigel after maturity rather than while you are away, it is never backdated, and it can be disarmed at any point before it fires. Nothing else renews, reallocates or settles by itself.",
   },
   {
     icon: Fingerprint,
     title: "It will not hold a secret it could lose",
-    body: "There is no password, no recovery question and no stored credential, because there is no account server to hold one. Your identity and your ledger live in your own browser, and the product says so on the screens where it matters.",
+    body: "There is no password, no recovery question and no stored credential, because there is no account server to hold one. Your identity and your ledger live in your own browser, and the security page reads that storage back to you key by key rather than asking you to take it on trust.",
   },
   {
     icon: Network,
     title: "It will not take money it cannot hold",
-    body: "No deposit address is shown until there is custody behind it. An interface that displays a destination it does not control is how people lose funds, so this one shows none.",
+    body: "This build ships with no deposit address at all. There is no custody behind it, so the funding surfaces say funding is not open instead of printing a string that looks like a destination. An interface that shows an address it does not control is how people lose money they cannot get back.",
   },
   {
     icon: ShieldCheck,
     title: "It will not wear a badge it cannot show you",
-    body: "No licence, insurer, auditor, regulator, custodian or press mention is claimed anywhere on this site, because none has been published as a document you could verify.",
+    body: "No licence, insurer, auditor, regulator, custodian, partner, award, press mention or member count is claimed anywhere on this site, because none has been published as a document you could read and check.",
   },
 ];
 export default function Landing() {
@@ -450,7 +453,7 @@ export default function Landing() {
             label="Discipline"
             index="06"
             title="What the system refuses to do on your behalf."
-            lead="Stated as refusals rather than as promises. A refusal is easier to check, harder to quietly drop, and considerably more useful when you are deciding whether to trust a platform with money."
+            lead="Stated as refusals rather than as promises. A refusal is easier to check, harder to quietly drop, and considerably more useful when you are deciding whether to trust a platform with money. Each one below names the surface you can test it on, and every change to this list is dated on the change log."
           />
 
           <Stagger as="ul" className="ledger mt-10 sm:mt-14">

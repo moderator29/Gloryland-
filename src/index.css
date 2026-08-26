@@ -28,11 +28,18 @@
     --accent-deep: #1636a0;
     --accent-cyan: #22d3ee;
 
-    /* ── Text: four steps of hierarchy ── */
+    /* ── Text: four steps of hierarchy ──
+       Every step has to clear 4.5:1 against the grounds it actually lands on,
+       because all four are used at 10px to 13px and none of them qualifies as
+       large text. --text-low was #5b6a86, which measured 3.69:1 on --ink-000
+       and 3.02:1 at the top of a .panel, and it is the colour of the eyebrow,
+       the caption and most supporting copy in the product. At #7e8eab the same
+       pairs measure 6.08:1 and 4.98:1. The step to --text-mid is now narrow;
+       widening it again means lifting --text-mid too, which is its own sweep. */
     --text-hi: #f2f6ff;
     --text: #c2cee4;
     --text-mid: #8494b0;
-    --text-low: #5b6a86;
+    --text-low: #7e8eab;
 
     /* ── Semantic ── */
     --gain: #34d399;
@@ -744,17 +751,23 @@
 
   /* ── Typographic contrast ────────────────────────────────────────────
      The gap between a figure and its label is the loudest signal on the page,
-     so widen it: labels go small, uppercase and widely tracked against
-     numerals that are allowed to get genuinely large. .tag-micro sits a step
-     below .eyebrow in size and a step above it in contrast, which keeps it
-     legible at that size. */
+     so widen it: labels go small, uppercase and tracked against numerals that
+     are allowed to get genuinely large.
+
+     .tag-micro was 9px at 0.28em, which made it the smallest text anywhere in
+     the product and the hardest to read, on the label of every rail statistic
+     and every metric tile. It is 11px now. The tracking comes down with the
+     size rise so the label occupies almost the same width as before: 9px at
+     0.28em advances about 7.5px a character, 11px at 0.16em about 7.8px.
+     Separation from .eyebrow is carried by weight and colour rather than by
+     size, which is the pair that was doing the work anyway. */
 
   .tag-micro {
     display: block;
-    font-size: 0.5625rem;
+    font-size: 0.6875rem;
     font-weight: 700;
-    line-height: 1;
-    letter-spacing: 0.28em;
+    line-height: 1.1;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--text-mid);
   }
@@ -792,6 +805,69 @@
     line-height: 1;
     color: var(--text-hi);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOASTS
+   Sonner is the one element in the product that was painted with literal
+   colours rather than tokens, so a change to the palette left it behind. Its
+   own theme variables are set here, on the design tokens, which is the whole
+   mechanism it needs.
+
+   The !important is not decoration and it is not permanent. `Toaster` in
+   src/main.tsx still passes `toastOptions.style`, and an inline style beats a
+   stylesheet: without this, the literals would keep winning and the tokens
+   below would do nothing. Delete `theme="dark"` and the whole `toastOptions`
+   object there and every !important on this block can go with it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-sonner-toaster] {
+  --normal-bg: var(--glass-hi);
+  --normal-border: var(--line-hi);
+  --normal-text: var(--text-hi);
+  --success-bg: var(--glass-hi);
+  --success-border: rgba(52, 211, 153, 0.34);
+  --success-text: var(--text-hi);
+  --error-bg: var(--glass-hi);
+  --error-border: rgba(248, 113, 113, 0.34);
+  --error-text: var(--text-hi);
+  --gray1: var(--text-hi);
+  --gray2: var(--text);
+  --gray12: var(--text-hi);
+  font-family: var(--font-ui);
+}
+
+[data-sonner-toast] {
+  background: var(--normal-bg) !important;
+  border: 1px solid var(--normal-border) !important;
+  color: var(--normal-text) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.9);
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-color: var(--success-border) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-color: var(--error-border) !important;
+}
+
+[data-sonner-toast] [data-description] {
+  color: var(--text-mid);
+}
+
+[data-sonner-toast] [data-icon] svg {
+  color: var(--accent-hi);
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] svg {
+  color: var(--gain);
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] svg {
+  color: var(--loss);
 }
 
 /* The whole product respects this, JS animations included (see useReducedMotion). */

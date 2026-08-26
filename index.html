@@ -15,12 +15,36 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Rigel" />
+    <!--
+      Share card. og:image points at a real file in public/, generated from the
+      same constants the product publishes, so a shared link cannot quote a rate
+      the ladder no longer carries. Absolute URLs, because most crawlers refuse
+      to resolve a relative one: rigel.capital is the single host named here and
+      in public/sitemap.xml, and both change together if the origin changes.
+    -->
+    <link rel="canonical" href="https://rigel.capital/" />
+    <meta property="og:site_name" content="Rigel" />
     <meta property="og:title" content="Rigel Capital, digital asset vaults" />
     <meta
       property="og:description"
-      content="Private capital infrastructure. Fixed 30-day vault terms, accruing daily."
+      content="Fixed 30-day vault terms. 1.00% of principal a day, 30% at maturity, the same rate on every rung. Capital at risk, including total loss."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://rigel.capital/" />
+    <meta property="og:image" content="https://rigel.capital/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Rigel. 1.00% of principal a day, 30 days end to end, 30% at maturity. Capital at risk, including total loss."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Rigel Capital, digital asset vaults" />
+    <meta
+      name="twitter:description"
+      content="Fixed 30-day vault terms. 1.00% of principal a day, 30% at maturity, the same rate on every rung. Capital at risk, including total loss."
+    />
+    <meta name="twitter:image" content="https://rigel.capital/og.png" />
     <!--
       Type is served from our own origin, declared in src/fonts.css. The two
       faces that are on screen at first paint are preloaded so the swap happens

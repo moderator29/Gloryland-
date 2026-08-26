@@ -26,6 +26,172 @@ export function SectionHeader({
   );
 }
 
+/* ── Band grammar ────────────────────────────────────────────────────────
+   Three routes each carried a private copy of these two, which is how the
+   band head on one page drifted a hairline away from the band head on the
+   next. One definition, imported everywhere, is the whole point of a grammar. */
+
+/** Left aligned section head: accent tick, label, hairline out to the edge. */
+export function BandHead({
+  title,
+  hint,
+  action,
+  id,
+}: {
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+  /** Set when a section uses aria-labelledby to point at this heading. */
+  id?: string;
+}) {
+  return (
+    <div className="mb-4">
+      <div className="band-head">
+        <h2 id={id} className="band-title">
+          {title}
+        </h2>
+        <span className="hairline" aria-hidden="true" />
+        {action}
+      </div>
+      {hint && <p className="mt-2 pl-[0.9375rem] text-xs text-[var(--text-low)]">{hint}</p>}
+    </div>
+  );
+}
+
+/** One supporting figure in the narrow rail beside a lead figure. */
+export function RailStat({
+  label,
+  children,
+  tone = "default",
+}: {
+  label: string;
+  children: ReactNode;
+  tone?: "default" | "gain" | "accent";
+}) {
+  const toneClass =
+    tone === "gain"
+      ? "text-[var(--gain)]"
+      : tone === "accent"
+        ? "text-[var(--accent-hi)]"
+        : "text-[var(--text-hi)]";
+  return (
+    <div className="rail-stat">
+      <span className="tag-micro">{label}</span>
+      <span className={`metric text-lg ${toneClass}`}>{children}</span>
+    </div>
+  );
+}
+
+/* ── Breadcrumbs ─────────────────────────────────────────────────────────
+   Every nested route had solved "how do I get back" with its own ghost
+   button in its own position, which teaches a member nothing about where
+   they are. One trail, one place, and the ancestors are real links so the
+   hierarchy is walkable rather than just visible. */
+
+export type Crumb = {
+  label: string;
+  /** Omit on the last item: that is the page the member is already on. */
+  to?: string;
+};
+
+export function Crumbs({ trail, className = "" }: { trail: Crumb[]; className?: string }) {
+  if (trail.length === 0) return null;
+  return (
+    <nav aria-label="Breadcrumb" className={`min-w-0 ${className}`}>
+      <ol className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs">
+        {trail.map((crumb, i) => {
+          const last = i === trail.length - 1;
+          return (
+            <li key={`${crumb.label}-${i}`} className="flex min-w-0 items-center gap-1">
+              {i > 0 && (
+                <ChevronRight
+                  className="h-3.5 w-3.5 shrink-0 text-[var(--text-low)]"
+                  aria-hidden="true"
+                />
+              )}
+              {crumb.to && !last ? (
+                <Link
+                  to={crumb.to}
+                  className="min-h-[36px] flex items-center rounded-lg px-1.5 text-[var(--text-mid)] transition-colors hover:text-[var(--text-hi)]"
+                >
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span
+                  aria-current={last ? "page" : undefined}
+                  className="min-w-0 truncate px-1.5 font-medium text-[var(--text-hi)]"
+                >
+                  {crumb.label}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/* ── Text alternative for a chart ────────────────────────────────────────
+   Recharts draws paths and nothing else, so a screen reader reaching a chart
+   reaches nothing at all. The table below carries the same figures in the
+   same order; it is visually hidden because the chart already says it to
+   anyone who can see it, and the summary line above it is shown to everyone
+   because a one line reading of a curve is useful sighted or not. */
+
+export type ChartColumn = { key: string; label: string };
+
+export function ChartTable({
+  caption,
+  summary,
+  columns,
+  rows,
+  className = "",
+}: {
+  /** Names the table. Read out before the data. */
+  caption: string;
+  /** One line stating what the shape of the chart amounts to. Visible. */
+  summary: ReactNode;
+  columns: ChartColumn[];
+  rows: Record<string, string>[];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <p className="text-xs leading-relaxed text-[var(--text-low)]">{summary}</p>
+      {rows.length > 0 && (
+        <table className="sr-only">
+          <caption>{caption}</caption>
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={column.key} scope="col">
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i}>
+                {columns.map((column, c) =>
+                  c === 0 ? (
+                    <th key={column.key} scope="row">
+                      {row[column.key]}
+                    </th>
+                  ) : (
+                    <td key={column.key}>{row[column.key]}</td>
+                  ),
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 /* ── Metric tile ─────────────────────────────────────────────────────── */
 
 export function Metric({
@@ -127,24 +293,126 @@ export function Status({ kind }: { kind: keyof typeof STATUS }) {
   );
 }
 
-/* ── Empty state ─────────────────────────────────────────────────────── */
+/* ── Empty state ─────────────────────────────────────────────────────────
+   Most first sessions are empty, so the empty state is the product's first
+   impression rather than an edge case. Three drawn marks replace the bordered
+   icon square, each built from geometry the product already uses: the six
+   blade aperture from the logo, the ruled rows of `.ledger`, and the rail of
+   nodes the Horizon and Trajectory panels plot on.
+
+   All three are inline SVG on the design tokens, so they follow a palette
+   change and cost no request. They are decorative, and the caller's icon is
+   drawn inside them, which is why every existing call site upgrades without
+   changing a line. */
+
+export type EmptyArt = "aperture" | "ledger" | "horizon";
+
+const APERTURE_BLADES = Array.from({ length: 6 }, (_, i) => {
+  const start = i * 60 - 90;
+  const end = start + 44;
+  const at = (r: number, deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    return `${(50 + r * Math.cos(a)).toFixed(2)} ${(50 + r * Math.sin(a)).toFixed(2)}`;
+  };
+  return `M ${at(30, start)} L ${at(46, start + 6)} L ${at(46, end)} L ${at(30, end - 6)} Z`;
+});
+
+function EmptyMark({ art, icon: Icon }: { art: EmptyArt; icon: LucideIcon }) {
+  return (
+    <span className="relative mb-4 grid h-[84px] w-[84px] place-items-center">
+      <svg
+        viewBox="0 0 100 100"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+        focusable="false"
+      >
+        {art === "aperture" &&
+          APERTURE_BLADES.map((d, i) => (
+            <path
+              key={i}
+              d={d}
+              fill="var(--accent)"
+              // The blades fade around the ring so the mark reads as an
+              // aperture caught open rather than as a solid badge.
+              opacity={0.08 + (i % 3) * 0.05}
+              stroke="var(--line-hi)"
+              strokeWidth="0.8"
+            />
+          ))}
+
+        {art === "ledger" && (
+          <>
+            <rect x="16" y="24" width="2" height="52" rx="1" fill="var(--accent)" opacity="0.55" />
+            {[32, 48, 64].map((y, i) => (
+              <g key={y}>
+                <rect
+                  x="24"
+                  y={y - 3}
+                  width={44 - i * 10}
+                  height="6"
+                  rx="3"
+                  fill="var(--accent)"
+                  opacity={0.16 - i * 0.04}
+                />
+                <line
+                  x1="24"
+                  y1={y + 8}
+                  x2="84"
+                  y2={y + 8}
+                  stroke="var(--line-hi)"
+                  strokeWidth="0.8"
+                />
+              </g>
+            ))}
+          </>
+        )}
+
+        {art === "horizon" && (
+          <>
+            <line x1="12" y1="62" x2="88" y2="62" stroke="var(--line-hi)" strokeWidth="1" />
+            {[
+              [24, 8],
+              [46, 12],
+              [70, 6],
+            ].map(([x, r]) => (
+              <circle
+                key={x}
+                cx={x}
+                cy="62"
+                r={r}
+                fill="var(--accent)"
+                opacity="0.14"
+                stroke="var(--line-hi)"
+                strokeWidth="0.8"
+              />
+            ))}
+            {[12, 34, 58, 88].map((x) => (
+              <line key={x} x1={x} y1="62" x2={x} y2="70" stroke="var(--line)" strokeWidth="0.8" />
+            ))}
+          </>
+        )}
+      </svg>
+      <Icon className="relative h-6 w-6 text-[var(--accent-hi)]" strokeWidth={1.6} />
+    </span>
+  );
+}
 
 export function Empty({
   icon: Icon,
   title,
   body,
   action,
+  art = "aperture",
 }: {
   icon: LucideIcon;
   title: string;
   body: string;
   action?: { label: string; to: string };
+  art?: EmptyArt;
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-12 text-center">
-      <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
-        <Icon className="h-5 w-5 text-[var(--accent-hi)]" strokeWidth={1.7} />
-      </span>
+      <EmptyMark art={art} icon={Icon} />
       <p className="font-semibold text-[var(--text-hi)]">{title}</p>
       <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-[var(--text-low)]">{body}</p>
       {action && (

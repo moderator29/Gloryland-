@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Check, Clock, Wallet } from "lucide-react";
+import { ArrowUpRight, Check, Clock, Wallet } from "lucide-react";
 import {
   CYCLE_RETURN,
   TIERS,
@@ -12,6 +12,7 @@ import {
 } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { money } from "@/components/system/format";
+import { Crumbs } from "@/components/system/ui";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 function isCarryOver(line: string) {
@@ -132,9 +133,7 @@ export default function TierCompare() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
-        <ArrowLeft className="h-4 w-4" /> Tiers
-      </Link>
+      <Crumbs trail={[{ label: "Tiers", to: "/app/tiers" }, { label: "Compare" }]} />
 
       <header>
         <p className="eyebrow">Programme</p>

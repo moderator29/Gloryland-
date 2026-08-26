@@ -11,7 +11,14 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  * `sampleConcurrent`, a pure function of the clock: it is illustrative, it is
  * the same for every viewer at a given minute, and it drifts smoothly instead
  * of jumping. When a real presence feed exists, replace `sampleConcurrent`
- * with the reading and delete this note.
+ * with the reading and delete this note along with the marker below.
+ *
+ * The disclosure used to live in a `title` attribute and an `aria-label`,
+ * which inverted the usual failure: a screen reader was told the figure was a
+ * sample and a phone user was not told at all. It now reads Sample in visible
+ * text, before the number rather than after it, using the same marker the
+ * activity band carries, so one glance covers both. The longer sentence stays
+ * available to assistive technology and to a hovering mouse.
  *
  * Nothing financial is derived from it. It never touches the ledger.
  */
@@ -24,6 +31,8 @@ export type ConcurrentProps = {
 
 /** How often the reading is refreshed. Slow, because the curve is slow. */
 const SAMPLE_INTERVAL_MS = 15_000;
+
+const EXPLANATION = "Sample figure, generated from the clock. Live presence is not measured yet.";
 
 /**
  * Illustrative presence count for an instant.
@@ -57,11 +66,12 @@ export function Concurrent({ className = "", label = "viewing now" }: Concurrent
   }, [reduce]);
 
   return (
-    <span
-      className={`chip ${className}`}
-      title="Sample figure. Live presence is not measured yet."
-      aria-label={`Sample figure: ${count} members ${label}`}
-    >
+    <span className={`chip ${className}`} title={EXPLANATION}>
+      {/* Ahead of the figure on purpose: the qualifier has to be read before
+          the number it qualifies, not discovered after it. */}
+      <span className="shrink-0 rounded border border-[var(--line)] px-1 py-px text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-low)]">
+        Sample
+      </span>
       <Users
         className="h-3.5 w-3.5 shrink-0 text-[var(--accent-hi)]"
         strokeWidth={1.8}
@@ -73,6 +83,7 @@ export function Concurrent({ className = "", label = "viewing now" }: Concurrent
       />
       <span className="tabular text-[var(--text-hi)]">{count.toLocaleString("en-US")}</span>
       <span className="font-medium text-[var(--text-low)]">{label}</span>
+      <span className="sr-only">. {EXPLANATION}</span>
     </span>
   );
 }

@@ -85,6 +85,7 @@ export function Trajectory({ snap, className = "" }: TrajectoryProps) {
       <section className={`panel ${className}`} aria-label="Trajectory">
         <Empty
           icon={CalendarClock}
+          art="horizon"
           title="Nothing scheduled yet"
           body="Open a vault and its maturity date lands here, with the capital it releases plotted across the next 90 days."
           action={{ label: "Open a vault", to: "/app/vaults/new" }}

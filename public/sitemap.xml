@@ -1,8 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The routes a crawler can actually read.
+
+  Everything under /app is behind the Gate and rendered in the browser, so it
+  has nothing for a crawler to index and is deliberately absent. The four
+  legacy paths that used to be listed here belonged to the previous product
+  and now only redirect.
+
+  Locations are absolute because the sitemap protocol requires it. rigel.capital
+  is the one host named here, in robots.txt and in the share tags in index.html,
+  and all three change together if the origin changes.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>/</loc><priority>1.0</priority></url>
-  <url><loc>/packages</loc><priority>0.9</priority></url>
-  <url><loc>/portal</loc><priority>0.9</priority></url>
-  <url><loc>/portfolio</loc><priority>0.8</priority></url>
-  <url><loc>/settings</loc><priority>0.5</priority></url>
+  <url>
+    <loc>https://rigel.capital/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://rigel.capital/legal/risk</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://rigel.capital/legal/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rigel.capital/legal/privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rigel.capital/legal/changes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rigel.capital/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>

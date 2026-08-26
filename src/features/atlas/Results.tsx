@@ -1,9 +1,11 @@
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import {
+  AlignVerticalDistributeCenter,
   Banknote,
   Bell,
   BookOpen,
+  CalendarRange,
   CandlestickChart,
   ChartLine,
   Clock,
@@ -17,12 +19,14 @@ import {
   Layers,
   LayoutDashboard,
   LifeBuoy,
+  Mail,
   Medal,
   Palette as PaletteIcon,
   Plus,
   Radio,
   Receipt,
   Repeat,
+  Route,
   Scale,
   Send,
   Settings,
@@ -61,9 +65,11 @@ import { atlasOptionId } from "./useAtlas";
  */
 
 const ICONS: Record<string, LucideIcon> = {
+  AlignVerticalDistributeCenter,
   Banknote,
   Bell,
   BookOpen,
+  CalendarRange,
   CandlestickChart,
   ChartLine,
   Clock,
@@ -77,6 +83,7 @@ const ICONS: Record<string, LucideIcon> = {
   Layers,
   LayoutDashboard,
   LifeBuoy,
+  Mail,
   Medal,
   // Aliased at the import: Palette is also the name of the launcher.
   Palette: PaletteIcon,
@@ -84,6 +91,7 @@ const ICONS: Record<string, LucideIcon> = {
   Radio,
   Receipt,
   Repeat,
+  Route,
   Scale,
   Send,
   Settings,

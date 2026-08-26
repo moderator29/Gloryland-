@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
  * Countdown: a live read of the time left until a timestamp.
  *
  * The only input is the target instant, which callers take from the ledger
  * (a position's `maturesAt`), so this component cannot invent a date. It ticks
- * once per second, clears its interval on unmount, and holds a single frozen
- * reading when reduced motion is requested rather than repainting every
- * second. Past the target it reads "Matured" and stops.
+ * once per second, clears its interval on unmount, and past the target it
+ * reads "Matured" and stops.
+ *
+ * It used to freeze under reduced motion, which meant a member who prefers
+ * reduced motion watched a stopped clock for as long as they stayed on the
+ * page. Reduced motion is a request about animation, and a figure changing to
+ * a new true value is not animation: nothing here eases, tweens or moves, the
+ * text is simply replaced. So the tick runs regardless of the preference and
+ * stops only where it earns nothing, which is a hidden tab.
  */
 
 export type CountdownProps = {
@@ -49,21 +54,41 @@ export function Countdown({
   doneLabel = "Matured",
   className = "",
 }: CountdownProps) {
-  const reduce = useReducedMotion();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    // Frozen under reduced motion: the reading taken at mount stands.
-    if (reduce) return;
     if (to <= Date.now()) return;
-    const id = window.setInterval(() => {
-      const t = Date.now();
-      setNow(t);
-      // Nothing left to count once the target has passed.
-      if (t >= to) window.clearInterval(id);
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [to, reduce]);
+
+    let id = 0;
+    const stop = () => {
+      if (id) window.clearInterval(id);
+      id = 0;
+    };
+    const start = () => {
+      stop();
+      id = window.setInterval(() => {
+        const t = Date.now();
+        setNow(t);
+        // Nothing left to count once the target has passed.
+        if (t >= to) stop();
+      }, 1000);
+    };
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else {
+        // Catch up in one step rather than counting back through the gap.
+        setNow(Date.now());
+        start();
+      }
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [to]);
 
   const remaining = to - now;
 

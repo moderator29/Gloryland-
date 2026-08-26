@@ -8,6 +8,8 @@ import {
   Clock,
   Gift,
   Layers,
+  Pause,
+  Play,
   Sparkles,
   Users,
   Vault,
@@ -101,11 +103,18 @@ function describe(e: LedgerEvent): { icon: LucideIcon; label: string; value: str
   }
 }
 
-/** A clock that only runs when it is wanted, so a still page stays still. */
-function useSecond(enabled: boolean): number {
+/**
+ * The per second clock behind the figures in the band.
+ *
+ * It is not gated on reduced motion. The accrual reading, the countdowns and
+ * the relative times are data, and a member who asked for less animation did
+ * not ask to be shown a stopped account. What reduced motion turns off is the
+ * scroll, which is directly below. The clock stops on a hidden tab, where it
+ * would only cost battery.
+ */
+function useSecond(): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!enabled) return;
     let id = 0;
     const start = () => {
       stop();
@@ -128,7 +137,7 @@ function useSecond(enabled: boolean): number {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [enabled]);
+  }, []);
   return now;
 }
 
@@ -246,13 +255,22 @@ function Item({ item }: { item: TickerItem }) {
  * The moving track. Position is held in a motion value rather than React
  * state, so the per-second figures can re-render without ever interrupting
  * the scroll.
+ *
+ * Three things stop it, and all three matter. The pointer, so reading one item
+ * does not require chasing it. Focus anywhere inside, so a keyboard user
+ * tabbing into the band is not fighting it. And `stopped`, the member's own
+ * explicit choice from the control in the header, which is the one WCAG 2.2.2
+ * actually requires: content that moves for more than five seconds needs a
+ * mechanism to pause it, and hovering is not a mechanism a keyboard has.
  */
-function Marquee({ items }: { items: TickerItem[] }) {
+function Marquee({ items, stopped }: { items: TickerItem[]; stopped: boolean }) {
   const x = useMotionValue(0);
   const viewport = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const [copies, setCopies] = useState(2);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = stopped || hovered || focused;
 
   /**
    * Repeat the run often enough to cover the band twice over. A short list on
@@ -294,8 +312,10 @@ function Marquee({ items }: { items: TickerItem[] }) {
         maskImage:
           "linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent)",
       }}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={() => setFocused(false)}
     >
       <motion.div ref={track} style={{ x }} className="flex w-max items-center py-0.5">
         {Array.from({ length: copies }, (_, copy) => (
@@ -318,11 +338,18 @@ export type LiveTickerProps = {
 
 export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
   const reduce = useReducedMotion();
-  const now = useSecond(!reduce);
+  const now = useSecond();
   const items = useMemo(() => buildItems(snap, now), [snap, now]);
+
+  // The member's own choice, held here rather than in the track, because the
+  // control that sets it sits outside the track it stops.
+  const [stopped, setStopped] = useState(false);
 
   const perDay = snap.dailyRate;
   const hasSomething = items.length > 0;
+  // Under reduced motion the band never scrolls, so there is nothing to pause
+  // and offering a pause control would be a button that does nothing.
+  const scrolls = hasSomething && !reduce;
 
   return (
     <section
@@ -331,11 +358,29 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
     >
       <span className="chip chip-gain shrink-0">
         <span
-          className={`h-1.5 w-1.5 rounded-full bg-current ${reduce ? "" : "pulse-dot"}`}
+          className={`h-1.5 w-1.5 rounded-full bg-current ${reduce || stopped ? "" : "pulse-dot"}`}
           aria-hidden="true"
         />
         Live
       </span>
+
+      {scrolls && (
+        <button
+          type="button"
+          onClick={() => setStopped((s) => !s)}
+          aria-pressed={stopped}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[var(--line)] text-[var(--text-mid)] transition-colors hover:border-[var(--line-hi)] hover:text-[var(--text-hi)]"
+        >
+          {stopped ? (
+            <Play className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          <span className="sr-only">
+            {stopped ? "Resume the live band" : "Pause the live band"}
+          </span>
+        </button>
+      )}
 
       {hasSomething ? (
         reduce ? (
@@ -345,7 +390,7 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
             ))}
           </div>
         ) : (
-          <Marquee items={items} />
+          <Marquee items={items} stopped={stopped} />
         )
       ) : (
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">

@@ -1,4 +1,10 @@
+# The portal is behind the Gate and renders in the browser, so there is
+# nothing under /app for a crawler to read. Saying so keeps crawl budget on
+# the pages that do have content.
 User-agent: *
 Allow: /
+Disallow: /app/
 
-Sitemap: /sitemap.xml
+# Absolute, because the sitemap protocol requires it. This host also appears
+# in public/sitemap.xml and in the share tags in index.html.
+Sitemap: https://rigel.capital/sitemap.xml

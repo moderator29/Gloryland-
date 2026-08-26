@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { ShieldCheck } from "lucide-react";
+import { useRef, useState } from "react";
+import { motion, useAnimationFrame, useMotionValue } from "framer-motion";
+import { Pause, Play, ShieldCheck } from "lucide-react";
 import { CYCLE_DAYS, TIERS } from "@/domain/tiers";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -21,6 +22,9 @@ export type StandardsProps = {
   className?: string;
 };
 
+/** Scroll speed in pixels per second, derived from the pass length below. */
+const PASS_PX = 1400;
+
 const FASTEST_SETTLEMENT = Math.min(...TIERS.map((t) => t.settlementHours));
 
 const STANDARDS: string[] = [
@@ -34,6 +38,28 @@ const STANDARDS: string[] = [
 
 export function Standards({ duration = 44, className = "" }: StandardsProps) {
   const reduce = useReducedMotion();
+
+  // WCAG 2.2.2: anything that moves for longer than five seconds needs a way
+  // to stop it, and a way a keyboard can reach. Three inputs stop this strip:
+  // the pointer, focus landing anywhere inside it, and the explicit control in
+  // the header, which is the one that satisfies the criterion.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  const paused = hovered || focused || stopped;
+
+  const x = useMotionValue(0);
+  const track = useRef<HTMLDivElement>(null);
+
+  useAnimationFrame((_, delta) => {
+    if (paused) return;
+    // Half the track is one pass: the second copy exists to carry the seam.
+    const run = (track.current?.scrollWidth ?? 0) / 2;
+    if (run <= 0) return;
+    let next = x.get() - (delta / 1000) * (PASS_PX / duration);
+    if (next <= -run) next += run;
+    x.set(next);
+  });
 
   const items = STANDARDS.map((text, i) => (
     <span key={`${text}-${i}`} className="flex shrink-0 items-center gap-2 pr-8">
@@ -72,23 +98,36 @@ export function Standards({ duration = 44, className = "" }: StandardsProps) {
     <section
       className={`panel relative overflow-hidden px-0 py-3 ${className}`}
       aria-label="What Rigel holds itself to"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
     >
-      <div className="no-bar flex overflow-hidden">
-        <motion.div
-          className="flex shrink-0"
-          animate={{ x: ["0%", "-100%"] }}
-          transition={{ duration, ease: "linear", repeat: Infinity }}
+      <div className="mb-2 flex items-center gap-3 px-4">
+        <p className="eyebrow whitespace-nowrap">What we hold ourselves to</p>
+        <span aria-hidden="true" className="hairline" />
+        <button
+          type="button"
+          className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-[11px]"
+          aria-pressed={stopped}
+          onClick={() => setStopped((v) => !v)}
         >
-          {items}
-        </motion.div>
-        {/* Second pass carries the loop across the seam. */}
-        <motion.div
-          className="flex shrink-0"
-          animate={{ x: ["0%", "-100%"] }}
-          transition={{ duration, ease: "linear", repeat: Infinity }}
-          aria-hidden="true"
-        >
-          {items}
+          {stopped ? (
+            <Play className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Pause className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+          )}
+          {stopped ? "Resume" : "Pause"}
+        </button>
+      </div>
+
+      <div className="no-bar overflow-hidden">
+        <motion.div ref={track} style={{ x }} className="flex w-max">
+          <div className="flex shrink-0">{items}</div>
+          {/* Second pass carries the loop across the seam. */}
+          <div className="flex shrink-0" aria-hidden="true">
+            {items}
+          </div>
         </motion.div>
       </div>
       {/* Soft edges so words enter and leave rather than being cut. */}

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useUser } from "@/context/UserContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { fullDate } from "@/components/system/format";
+import { BandHead } from "@/components/system/ui";
 import {
   inviteCode,
   inviteUrl,
@@ -149,9 +150,9 @@ export default function Circle() {
       </motion.section>
 
       {/* ── How it works ── */}
-      <motion.section {...rise(2)} className="panel p-5">
-        <h2 className="text-[15px] font-semibold text-[var(--text-hi)]">How the programme works</h2>
-        <ol className="mt-4 space-y-3">
+      <motion.section {...rise(2)} className="band" aria-labelledby="circle-how">
+        <BandHead id="circle-how" title="How the programme works" />
+        <ol className="space-y-3">
           {STEPS.map((step, i) => (
             <li key={step.title} className="flex gap-3.5">
               <span className="metric grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)] text-xs text-[var(--accent-hi)]">
@@ -171,18 +172,15 @@ export default function Circle() {
       </motion.section>
 
       {/* ── Status ── */}
-      <motion.section {...rise(3)} className="panel p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-[var(--text-hi)]">Status</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-low)]">
-              What this device knows, and nothing more.
-            </p>
-          </div>
-          <span className="chip chip-warn shrink-0">Not tracked yet</span>
-        </div>
+      <motion.section {...rise(3)} className="band" aria-labelledby="circle-status">
+        <BandHead
+          id="circle-status"
+          title="Status"
+          hint="What this device knows, and nothing more"
+          action={<span className="chip chip-warn shrink-0">Not tracked yet</span>}
+        />
 
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+        <div className="grid gap-2.5 sm:grid-cols-2">
           <div className="inset p-3.5">
             <p className="eyebrow">Inbound code</p>
             <p className="metric mt-1.5 text-lg">{state.inbound ?? "None"}</p>

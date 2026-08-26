@@ -82,6 +82,7 @@ export function Horizon({ snap, className = "" }: HorizonProps) {
         </h3>
         <Empty
           icon={CalendarClock}
+          art="horizon"
           title="Nothing scheduled yet"
           body={
             beyond > 0

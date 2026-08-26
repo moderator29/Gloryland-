@@ -16,5 +16,6 @@ export { FirstLight, type FirstLightProps } from "./FirstLight";
 export { Horizon, type HorizonProps } from "./Horizon";
 export { Redeploy, type RedeployProps } from "./Redeploy";
 export { Standards, type StandardsProps } from "./Standards";
+export { Standing, type StandingProps } from "./Standing";
 export { Systems, type SystemsProps } from "./Systems";
 export { TierBadge, type TierBadgeProps } from "./TierBadge";

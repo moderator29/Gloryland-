@@ -180,6 +180,62 @@ const SURFACES: AtlasEntry[] = [
     keywords: ["rewards", "claim", "earnings", "accrued", "claimable", "payout"],
   },
   {
+    id: "horizon",
+    kind: "surface",
+    title: "Horizon",
+    subtitle: "The maturity calendar: which dates your open terms reach.",
+    to: "/app/horizon",
+    icon: "CalendarRange",
+    keywords: [
+      "calendar",
+      "maturity",
+      "matures",
+      "payout calendar",
+      "schedule",
+      "dates",
+      "when",
+      "month",
+    ],
+  },
+  {
+    id: "course",
+    kind: "surface",
+    title: "Course",
+    subtitle: "An amount and a rhythm, with a date on every placement ahead of you.",
+    to: "/app/course",
+    icon: "Route",
+    keywords: [
+      "plan",
+      "recurring",
+      "schedule",
+      "rhythm",
+      "drip",
+      "regular",
+      "every week",
+      "monthly",
+      "legs",
+    ],
+  },
+  {
+    id: "echelon",
+    kind: "surface",
+    title: "Echelon",
+    subtitle: `One sum placed as several ${CYCLE_DAYS} day terms starting days apart.`,
+    to: "/app/echelon",
+    icon: "AlignVerticalDistributeCenter",
+    keywords: [
+      "ladder",
+      "laddering",
+      "stagger",
+      "staggered",
+      "split",
+      "spread",
+      "formation",
+      "legs",
+      "spacing",
+    ],
+  },
+  {
     id: "markets",
     kind: "surface",
     title: "Markets",
@@ -250,6 +306,60 @@ const SURFACES: AtlasEntry[] = [
     to: "/app/circle",
     icon: "UsersRound",
     keywords: ["referrals", "invite", "network", "code", "share"],
+  },
+  {
+    id: "provenance",
+    kind: "surface",
+    title: "Provenance",
+    subtitle: "The arithmetic behind every figure, worked on your own vault.",
+    to: "/app/glossary",
+    icon: "BookOpen",
+    keywords: [
+      "glossary",
+      "reference",
+      "definitions",
+      "figures",
+      "how is this calculated",
+      "arithmetic",
+      "explain",
+      "terms",
+    ],
+  },
+  {
+    id: "security",
+    kind: "surface",
+    title: "Security",
+    subtitle: "What this build protects, what it does not, and what is on this device.",
+    to: "/app/security",
+    icon: "ShieldCheck",
+    keywords: [
+      "safe",
+      "password",
+      "encryption",
+      "storage",
+      "privacy",
+      "trust",
+      "protection",
+      "account server",
+    ],
+  },
+  {
+    id: "atlas",
+    kind: "surface",
+    title: "Atlas",
+    subtitle: "This index, as a place: every surface laid out by area.",
+    to: "/app/atlas",
+    icon: "Compass",
+    keywords: ["index", "search", "directory", "map", "find", "command", "everything"],
+  },
+  {
+    id: "contact",
+    kind: "surface",
+    title: "Contact",
+    subtitle: "Reach a person, from inside or outside the application.",
+    to: "/contact",
+    icon: "Mail",
+    keywords: ["email", "write", "message", "human", "reach", "get in touch", "complaint"],
   },
   {
     id: "settings",
@@ -337,9 +447,14 @@ const SURFACES: AtlasEntry[] = [
 /* ── actions ────────────────────────────────────────────────────────────── */
 
 /**
- * The four things a member comes here to do. Three of them share a path with
- * a surface on purpose: reaching for a verb is a different search than
- * reaching for a place, and both should land.
+ * The things a member comes here to do. Several share a path with a surface on
+ * purpose: reaching for a verb is a different search than reaching for a place,
+ * and both should land.
+ *
+ * The three instruments are here as verbs as well as places, because a member
+ * who wants a term to roll itself is not looking for a noun they have never
+ * read. Relay has no route of its own, it is armed on a vault, so the verb
+ * lands on the list where the vault is chosen.
  */
 const ACTIONS: AtlasEntry[] = [
   {
@@ -368,6 +483,44 @@ const ACTIONS: AtlasEntry[] = [
     to: "/app/rewards",
     icon: "Coins",
     keywords: ["claim", "collect", "harvest", "accrued", "claimable", "yield"],
+  },
+  {
+    id: "act-relay",
+    kind: "action",
+    title: "Arm a relay",
+    subtitle: "Set a vault to carry itself into a new term the day it matures.",
+    to: "/app/vaults",
+    icon: "Repeat",
+    keywords: [
+      "relay",
+      "roll",
+      "rollover",
+      "roll over",
+      "auto",
+      "automatic",
+      "standing instruction",
+      "compound",
+      "reinvest",
+      "again",
+    ],
+  },
+  {
+    id: "act-course",
+    kind: "action",
+    title: "Set a course",
+    subtitle: "Choose an amount and a rhythm, and put a date on every placement.",
+    to: "/app/course",
+    icon: "Route",
+    keywords: ["course", "schedule", "recurring", "regular", "plan", "drip", "rhythm"],
+  },
+  {
+    id: "act-echelon",
+    kind: "action",
+    title: "Plan an echelon",
+    subtitle: "Split one sum into terms that start days apart, so maturities arrive spaced.",
+    to: "/app/echelon",
+    icon: "AlignVerticalDistributeCenter",
+    keywords: ["echelon", "ladder", "stagger", "split", "spread", "spacing", "formation"],
   },
   {
     id: "act-support",
@@ -473,6 +626,44 @@ const TERMS: AtlasEntry[] = [
     icon: "Repeat",
     keywords: ["reinvest", "roll over", "rollover", "top up", "again", "idle capital"],
   },
+  {
+    id: "term-relay",
+    kind: "term",
+    title: "Relay",
+    subtitle:
+      "A standing instruction on one vault: at maturity it opens a new term and re-arms itself.",
+    to: "/app/vaults",
+    icon: "Repeat",
+    keywords: [
+      "standing instruction",
+      "auto roll",
+      "automatic",
+      "carry",
+      "compound",
+      "arm",
+      "disarm",
+      "fire",
+    ],
+  },
+  {
+    id: "term-course",
+    kind: "term",
+    title: "Course",
+    subtitle:
+      "An amount and an interval, with a dated placement for every leg between here and a chosen rung.",
+    to: "/app/course",
+    icon: "Route",
+    keywords: ["leg", "interval", "rhythm", "recurring", "schedule", "lapsed", "due"],
+  },
+  {
+    id: "term-echelon",
+    kind: "term",
+    title: "Echelon",
+    subtitle: `One sum placed as several terms starting days apart. The reward is identical either way, so it buys timing rather than yield.`,
+    to: "/app/echelon",
+    icon: "AlignVerticalDistributeCenter",
+    keywords: ["ladder", "laddering", "stagger", "spacing", "split", "formation", "timing"],
+  },
 ];
 
 /* ── the static half of the index ───────────────────────────────────────── */
@@ -495,7 +686,13 @@ const AREAS: AtlasArea[] = [
     id: "capital",
     label: "Capital",
     blurb: "Where capital is placed, watched and settled.",
-    entries: pick("home", "desk", "act-open", "vaults", "yield", "markets"),
+    entries: pick("home", "desk", "act-open", "vaults", "yield", "horizon", "markets"),
+  },
+  {
+    id: "instruments",
+    label: "Instruments",
+    blurb: "Three ways to decide once instead of every time.",
+    entries: pick("act-relay", "course", "echelon"),
   },
   {
     id: "programme",
@@ -525,8 +722,15 @@ const AREAS: AtlasArea[] = [
       "settings-appearance",
       "settings-notifications",
       "settings-data",
+      "security",
       "orientation",
     ),
+  },
+  {
+    id: "reference",
+    label: "Reference",
+    blurb: "Where the words and the arithmetic are written down.",
+    entries: pick("provenance", "atlas", "contact"),
   },
   {
     id: "legal",

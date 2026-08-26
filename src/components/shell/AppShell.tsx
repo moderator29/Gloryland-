@@ -8,6 +8,7 @@ import { Ambience } from "./Ambience";
 import { AccountMenu } from "./AccountMenu";
 import { MarketTicker } from "@/features/market";
 import { LocalLedgerNotice } from "./LocalLedgerNotice";
+import { OfflineNotice } from "./OfflineNotice";
 import { Aperture } from "@/features/onboarding";
 import { InstallPrompt, ScrollRail, Wayfinder } from "@/features/utility";
 import { Palette } from "@/features/atlas";
@@ -86,6 +87,7 @@ export function AppShell() {
         <style>{`@media (min-width:1024px){:root{--rail:${collapsed ? 96 : 256}px}}@media (max-width:1023px){:root{--rail:0px}}`}</style>
 
         <ScrollRail />
+        <OfflineNotice />
         <LocalLedgerNotice />
         <MarketTicker />
 

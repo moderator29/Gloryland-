@@ -12,6 +12,7 @@ import {
 } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { money } from "@/components/system/format";
+import { Crumbs } from "@/components/system/ui";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
@@ -341,28 +342,29 @@ export default function TierMatch() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        {step === 0 ? (
-          <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
-            <ArrowLeft className="h-4 w-4" /> Tiers
-          </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={back}
-            className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-        )}
+      {/* The trail stays put at every step, so "where am I" is answered the
+          same way here as on every other nested route. Stepping back through
+          the questions is a different action from leaving, and it sits with
+          the other question control rather than replacing the way out. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Crumbs trail={[{ label: "Tiers", to: "/app/tiers" }, { label: "Tier Match" }]} />
         {step > 0 && (
-          <button
-            type="button"
-            onClick={restart}
-            className="min-h-[36px] btn btn-ghost !py-1.5 !text-xs"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Start over
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={back}
+              className="min-h-[36px] btn btn-ghost !py-1.5 !text-xs"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+            <button
+              type="button"
+              onClick={restart}
+              className="min-h-[36px] btn btn-ghost !py-1.5 !text-xs"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Start over
+            </button>
+          </div>
         )}
       </div>
 

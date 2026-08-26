@@ -1,15 +1,21 @@
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Split } from "lucide-react";
+import {
+  AlignVerticalDistributeCenter,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Split,
+} from "lucide-react";
 import { DAY_MS, type Position } from "@/domain/ledger";
-import { CYCLE_DAYS, TIERS } from "@/domain/tiers";
+import { CYCLE_DAYS } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Countdown, Horizon as HorizonRail } from "@/features/engagement";
-import { Ladder, MINIMUM_PLACEMENT, maxParts, stagger } from "@/features/ladder";
-import { Empty, Metric, Status } from "@/components/system/ui";
-import { days, fullDate, money, moneyCompact, shortDate } from "@/components/system/format";
+import { Ladder } from "@/features/ladder";
+import { BandHead, Empty, Metric, Status } from "@/components/system/ui";
+import { fullDate, money, moneyCompact } from "@/components/system/format";
 
 /**
  * Horizon: the maturity calendar.
@@ -257,22 +263,6 @@ export default function Horizon() {
   const selectedPositions = selected ? (byDay.get(keyOf(selected)) ?? []) : [];
   const selectedTotals = summarise(selectedPositions);
 
-  /* ── laddering ── */
-
-  const [total, setTotal] = useState(() =>
-    snap.deployed >= MINIMUM_PLACEMENT ? Math.round(snap.deployed) : TIERS[1].entry,
-  );
-  const [parts, setParts] = useState(3);
-  const limit = maxParts(total);
-  const legs = Math.min(parts, limit);
-  const staged = useMemo(() => stagger(total, legs), [total, legs]);
-
-  const totalOptions = useMemo(() => {
-    const set = new Set<number>(TIERS.map((t) => t.entry));
-    if (snap.deployed >= MINIMUM_PLACEMENT) set.add(Math.round(snap.deployed));
-    return [...set].sort((a, b) => a - b);
-  }, [snap.deployed]);
-
   const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
 
   return (
@@ -290,6 +280,7 @@ export default function Horizon() {
         <section className="panel">
           <Empty
             icon={CalendarClock}
+            art="horizon"
             title="No maturities to plot"
             body={`A position matures ${CYCLE_DAYS} days after it opens. Open one and its date lands on this calendar the same day.`}
             action={{ label: "Open a vault", to: "/app/vaults/new" }}
@@ -576,16 +567,17 @@ export default function Horizon() {
         </>
       )}
 
-      {/* ── Staging the next placement ── */}
-      <section className="band" aria-labelledby="stagger-title">
-        <div className="band-head">
-          <h2 id="stagger-title" className="band-title">
-            Laddering
-          </h2>
-          <span className="hairline" aria-hidden="true" />
-        </div>
+      {/* ── Echelon ──
+          The planner that used to sit here is a surface of its own now, and
+          NAMING.md rule 3 is the reason the panel could not keep its old
+          title: `features/ladder` already means the tier progression, so
+          calling staggered maturities "Laddering" used one word for two
+          different things. This links rather than duplicating, because two
+          copies of a planner are two planners to keep in agreement. */}
+      <section className="band" aria-labelledby="echelon-title">
+        <BandHead id="echelon-title" title="Echelon" />
 
-        <div className="panel mt-4 p-4 sm:p-5">
+        <div className="panel p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[rgba(46,139,255,0.07)]">
               <Split
@@ -597,124 +589,24 @@ export default function Horizon() {
             <div className="min-w-0 flex-1">
               <p className="eyebrow">One cliff, or a rolling schedule</p>
               <h3 className="mt-1 text-[15px] font-semibold text-[var(--text-hi)]">
-                Split a placement across the term
+                Stagger a placement across the term
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-low)]">
                 Opened at even intervals, each position still runs a full {CYCLE_DAYS} days, so
-                their maturities arrive spaced out instead of on one date. The rate is identical
-                either way. This changes when capital comes back, not how much.
+                their maturities arrive spaced out instead of landing on one date. The rate is
+                identical either way: this changes when capital comes back, not how much.
               </p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--text-low)]">
+                Echelon plans it. Every leg gets a date, a placement button on the day it is due,
+                and a comparison against placing the whole sum at once.
+              </p>
+
+              <Link to="/app/echelon" className="btn btn-secondary mt-4">
+                <AlignVerticalDistributeCenter className="h-4 w-4" aria-hidden="true" />
+                Plan an echelon
+              </Link>
             </div>
           </div>
-
-          <fieldset className="mt-5">
-            <legend className="eyebrow">Total to place</legend>
-            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
-              {totalOptions.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTotal(t)}
-                  aria-pressed={total === t}
-                  className={`min-h-[40px] rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${
-                    total === t
-                      ? "border-[rgba(46,139,255,0.5)] bg-[rgba(46,139,255,0.14)] text-[var(--accent-hi)]"
-                      : "border-[var(--line)] text-[var(--text-mid)] hover:border-[var(--line-hi)]"
-                  }`}
-                >
-                  {money(t)}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="mt-4">
-            <legend className="eyebrow">Positions</legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {[2, 3, 4, 5, 6].map((n) => {
-                const possible = n <= limit;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setParts(n)}
-                    disabled={!possible}
-                    aria-pressed={legs === n}
-                    className={`min-h-[40px] min-w-[3rem] rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                      legs === n
-                        ? "border-[rgba(46,139,255,0.5)] bg-[rgba(46,139,255,0.14)] text-[var(--accent-hi)]"
-                        : "border-[var(--line)] text-[var(--text-mid)] hover:border-[var(--line-hi)]"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-            {limit < 6 && (
-              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-low)]">
-                {limit === 1
-                  ? `${money(total)} cannot be staged. A second position would fall under the ${money(MINIMUM_PLACEMENT)} minimum.`
-                  : `${money(total)} splits ${limit} ways at most before a leg falls under the ${money(MINIMUM_PLACEMENT)} minimum.`}
-              </p>
-            )}
-          </fieldset>
-
-          <ol className="ledger mt-4">
-            {staged.legs.map((leg) => (
-              <li key={leg.step} className="rail-row">
-                <span
-                  className="tabular grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[var(--line-hi)] text-[11px] font-semibold text-[var(--accent-hi)]"
-                  aria-hidden="true"
-                >
-                  {leg.step}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[var(--text-hi)]">
-                    {money(leg.amount)}
-                    {leg.tier ? ` at ${leg.tier.name}` : ""}
-                  </p>
-                  <p className="mt-0.5 text-xs text-[var(--text-low)]">
-                    Opens {shortDate(leg.opensAt)} · matures {fullDate(leg.maturesAt)}
-                  </p>
-                </div>
-                <p className="metric shrink-0 text-sm text-[var(--gain)]">+{money(leg.reward)}</p>
-              </li>
-            ))}
-          </ol>
-
-          <p className="mt-3.5 text-xs leading-relaxed text-[var(--text-low)]">
-            {staged.parts === 1 ? (
-              <>
-                There is nothing to stage at this size. Placed as one position,{" "}
-                {money(staged.total)} returns {money(staged.single.releases)} on{" "}
-                {fullDate(staged.single.maturesAt)}.
-              </>
-            ) : (
-              <>
-                Placed at once, {money(staged.total)} returns {money(staged.single.releases)} on{" "}
-                {fullDate(staged.single.maturesAt)}, a single date. Staged across {staged.parts}{" "}
-                positions, the same {money(staged.reward)} in rewards arrives on {staged.parts}{" "}
-                dates, one every {days(staged.spacingDays)} days, from{" "}
-                {shortDate(staged.legs[0].maturesAt)} to{" "}
-                {shortDate(staged.legs[staged.legs.length - 1].maturesAt)}.
-              </>
-            )}
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link
-              to={`/app/vaults/new?amount=${staged.legs[0].amount}`}
-              className="btn btn-secondary"
-            >
-              <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              Start with {money(staged.legs[0].amount)}
-            </Link>
-          </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-low)]">
-            Only the first leg is placed today. The rest are opened on their own dates, each as a
-            new term, and nothing here is scheduled on your behalf.
-          </p>
         </div>
       </section>
 

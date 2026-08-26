@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { playTing } from "@/lib/sound";
@@ -6,47 +6,9 @@ import { Gift, Send, Wallet } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { claimRewards, recordWithdrawal } from "@/domain/ledger";
 import { Value } from "@/components/system/Value";
-import { Progress, Empty } from "@/components/system/ui";
+import { BandHead, Progress, Empty, RailStat } from "@/components/system/ui";
 import { money, fullDate, relative } from "@/components/system/format";
 import { Explain } from "@/features/explain";
-
-/** Left-aligned section head: accent tick, label, hairline out to the edge. */
-function BandHead({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
-  return (
-    <div className="mb-4">
-      <div className="band-head">
-        <h2 className="band-title">{title}</h2>
-        <span className="hairline" aria-hidden="true" />
-        {action}
-      </div>
-      {hint && <p className="mt-2 pl-[0.9375rem] text-xs text-[var(--text-low)]">{hint}</p>}
-    </div>
-  );
-}
-
-/** One supporting figure in the narrow rail beside the lead figure. */
-function RailStat({
-  label,
-  children,
-  tone = "default",
-}: {
-  label: string;
-  children: ReactNode;
-  tone?: "default" | "gain" | "accent";
-}) {
-  const toneClass =
-    tone === "gain"
-      ? "text-[var(--gain)]"
-      : tone === "accent"
-        ? "text-[var(--accent-hi)]"
-        : "text-[var(--text-hi)]";
-  return (
-    <div className="rail-stat">
-      <span className="tag-micro">{label}</span>
-      <span className={`metric text-lg ${toneClass}`}>{children}</span>
-    </div>
-  );
-}
 
 export default function Rewards() {
   const snap = useLedger();
@@ -83,7 +45,10 @@ export default function Rewards() {
       <section className="lede">
         <div className="min-w-0">
           <p className="eyebrow">Earnings</p>
-          <h1 className="display mt-1.5 text-2xl sm:text-3xl">Rewards</h1>
+          {/* The nav row says Yield and docs/NAMING.md says Yield. A member who
+              clicks Yield and lands on a page called Rewards has been told the
+              naming system is decoration. */}
+          <h1 className="display mt-1.5 text-2xl sm:text-3xl">Yield</h1>
 
           <p className="tag-micro mt-8">Ready to claim</p>
           <p className="figure-lead mt-3 text-[var(--gain)]">
@@ -148,6 +113,7 @@ export default function Rewards() {
             ) : (
               <Empty
                 icon={Gift}
+                art="ledger"
                 title="Nothing accruing"
                 body="Rewards begin the moment capital enters a vault and build every day of the term."
                 action={{ label: "Open a vault", to: "/app/vaults/new" }}

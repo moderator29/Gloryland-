@@ -54,12 +54,18 @@ export function LegalPage({
   updated,
   summary,
   sections,
+  footnote,
 }: {
   title: string;
   kicker: string;
   updated: string;
   summary: ReactNode;
   sections: LegalSection[];
+  /**
+   * Replaces the standing "needs counsel" note. The change log is a record
+   * rather than an agreement, so the default line is wrong on it.
+   */
+  footnote?: ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-[var(--ink-000)] text-[var(--text)]">
@@ -128,20 +134,31 @@ export function LegalPage({
             ))}
 
             <div className="mt-10 border-t border-[var(--line)] pt-8">
-              <p className="text-xs leading-relaxed text-[var(--text-low)]">
-                This document is a good-faith description of how the platform intends to operate. It
-                is not legal advice, and it has not been reviewed by counsel. Sections flagged above
-                need real legal and business input before this page is relied upon.
-              </p>
+              <div className="text-xs leading-relaxed text-[var(--text-low)] [&_a]:text-[var(--accent-hi)] [&_a]:underline [&_a]:underline-offset-2">
+                {footnote ?? (
+                  <p>
+                    This document is a good-faith description of how the platform intends to
+                    operate. It is not legal advice, and it has not been reviewed by counsel.
+                    Sections flagged above need real legal and business input before this page is
+                    relied upon.
+                  </p>
+                )}
+              </div>
               <div className="mt-6 flex flex-wrap gap-2">
-                <Link to="/legal/privacy" className="btn btn-outline text-[13px]">
-                  Privacy policy
+                <Link to="/legal/risk" className="btn btn-outline text-[13px]">
+                  Risk disclosure
                 </Link>
                 <Link to="/legal/terms" className="btn btn-outline text-[13px]">
                   Terms of service
                 </Link>
-                <Link to="/legal/risk" className="btn btn-outline text-[13px]">
-                  Risk disclosure
+                <Link to="/legal/privacy" className="btn btn-outline text-[13px]">
+                  Privacy policy
+                </Link>
+                <Link to="/legal/changes" className="btn btn-outline text-[13px]">
+                  Change log
+                </Link>
+                <Link to="/contact" className="btn btn-outline text-[13px]">
+                  Contact
                 </Link>
               </div>
             </div>

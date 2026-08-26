@@ -8,6 +8,8 @@ import {
   surfaceDirectory,
   useAtlas,
 } from "@/features/atlas";
+import { Systems } from "@/features/engagement";
+import { useMarket } from "@/hooks/useMarket";
 
 /**
  * Atlas as a place rather than a launcher.
@@ -17,6 +19,13 @@ import {
  * out by area, one line each on what a surface is for, so the shape of the
  * thing can be read rather than recalled. Type anything and it becomes the
  * same ranked list the launcher shows, from the same index.
+ *
+ * Systems sits at the foot of it. A member who has come to the index of the
+ * product to work out where something is, is often the member wondering
+ * whether it is working at all, and Systems reports only what this browser
+ * has actually observed. The market reading is taken from the same shared
+ * fetch the ticker in the shell already runs, so mounting it here costs no
+ * extra request.
  */
 
 const LIST_ID = "atlas-page-list";
@@ -46,6 +55,11 @@ export default function Atlas() {
     if (active < 0) return;
     document.getElementById(atlasOptionId(LIST_ID, active))?.scrollIntoView({ block: "nearest" });
   }, [active, query]);
+
+  // Undefined while the first fetch is still out, so Systems can say it is
+  // waiting rather than reporting a failure that has not happened.
+  const market = useMarket();
+  const marketOk = market.loading ? undefined : market.coins.length > 0 && !market.stale;
 
   const searching = query.trim().length > 0;
   const areas = surfaceDirectory();
@@ -165,20 +179,25 @@ export default function Atlas() {
         </>
       )}
 
-      <aside className="panel flex items-start gap-3 p-4 sm:items-center sm:p-5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
-          <Command
-            className="h-4 w-4 text-[var(--accent-hi)]"
-            strokeWidth={1.8}
-            aria-hidden="true"
-          />
-        </span>
-        <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-[var(--text-mid)]">
-          <span className="font-semibold text-[var(--text-hi)]">Keyboard.</span> Atlas opens
-          anywhere in the product with <Key>⌘</Key> <Key>K</Key> on a Mac, or <Key>Ctrl</Key>{" "}
-          <Key>K</Key> elsewhere. Press <Key>/</Key> when you are not already typing to do the same.
-        </p>
-      </aside>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <aside className="panel flex items-start gap-3 p-4 sm:items-center sm:p-5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
+            <Command
+              className="h-4 w-4 text-[var(--accent-hi)]"
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
+          </span>
+          <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-[var(--text-mid)]">
+            <span className="font-semibold text-[var(--text-hi)]">Keyboard.</span> Atlas opens
+            anywhere in the product with <Key>⌘</Key> <Key>K</Key> on a Mac, or <Key>Ctrl</Key>{" "}
+            <Key>K</Key> elsewhere. Press <Key>/</Key> when you are not already typing to do the
+            same.
+          </p>
+        </aside>
+
+        <Systems marketOk={marketOk} />
+      </div>
     </div>
   );
 }

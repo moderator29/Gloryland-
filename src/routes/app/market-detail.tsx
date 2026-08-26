@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowLeft, ArrowDown, ArrowUp, Copy, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useMarket, useMarketHistory, WINDOWS, type Window } from "@/hooks/useMarket";
 import { assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
-import { Skeleton } from "@/components/system/ui";
+import { Crumbs, Skeleton } from "@/components/system/ui";
 import { money, moneyCompact } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -70,9 +70,7 @@ export default function MarketDetail() {
 
   return (
     <div className="space-y-5">
-      <Link to="/app/market" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
-        <ArrowLeft className="h-4 w-4" /> Markets
-      </Link>
+      <Crumbs trail={[{ label: "Markets", to: "/app/market" }, { label: meta.name }]} />
 
       {/* Price header */}
       <section className="panel-hi edge-light p-5 sm:p-6">

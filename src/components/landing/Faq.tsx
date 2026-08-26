@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { LifeBuoy, Plus } from "lucide-react";
+import { LifeBuoy, Mail, Plus } from "lucide-react";
 import { CYCLE_DAYS, TIERS, dailyReward, termReward } from "@/domain/tiers";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -40,8 +40,9 @@ const GROUPS: Group[] = [
           <>
             A fixed {CYCLE_DAYS} day commitment of capital. Opening a vault writes a position
             carrying your principal, the day it opened and the day it matures. It accrues from the
-            first day and closes at the end of the term. Nothing rolls on its own: at maturity you
-            choose to settle or to open a new one.
+            first day and closes at the end of the term. At maturity you choose to settle or to open
+            a new one, unless you armed a relay on the position, which is the one instruction that
+            rolls a term without asking again.
           </>
         ),
       },
@@ -73,8 +74,11 @@ const GROUPS: Group[] = [
         a: (
           <>
             The position stops accruing at {TERM_RATE} of principal. Principal and reward sit in the
-            position until you act on them. You can settle to an allow listed address, or open a new{" "}
-            {CYCLE_DAYS} day term with the whole balance. Both start with an instruction from you.
+            position until something acts on them. You can claim the reward into your balance,
+            settle to an address you own, or open a new {CYCLE_DAYS} day term with the whole
+            balance. Each of those starts with an instruction from you, and so does the fourth path:
+            a relay you armed earlier will do the roll for you the next time you open Rigel after
+            maturity.
           </>
         ),
       },
@@ -82,11 +86,13 @@ const GROUPS: Group[] = [
         q: "Can I withdraw before maturity?",
         a: (
           <>
-            A term is a commitment, so capital inside an open vault is not available on demand.
-            Accrual is calculated for completed terms. An early exit is handled by the desk as an
-            exception, forfeits accrual on the unfinished term, and may not be granted at all. If
-            there is a realistic chance you will need the money inside {CYCLE_DAYS} days, do not
-            place it.
+            A term is a commitment, so capital inside an open vault is not available on demand, and
+            accrual is calculated for completed terms. <strong>This build offers no early exit at
+            all</strong>: settling is available once a position has matured and not before, so there
+            is no button to press and no request to file. If an early exit is ever built, it will
+            forfeit accrual on the unfinished term, it will be an exception rather than a right, and
+            it will appear on the change log the day it ships. Until then, if there is a realistic
+            chance you will need the money inside {CYCLE_DAYS} days, do not place it.
           </>
         ),
       },
@@ -99,11 +105,15 @@ const GROUPS: Group[] = [
         q: "What does a tier actually change?",
         a: (
           <>
-            Access, and nothing about the rate. The ladder runs from {FIRST_TIER.name} at{" "}
-            {money(FIRST_TIER.entry)} to {TOP_TIER.name} at {money(TOP_TIER.entry)}, and every rung
-            earns the same {TERM_RATE} term. Climbing buys analytics depth, queue priority, coverage
-            and shorter settlement targets: {FIRST_TIER.settlementHours} hours at {FIRST_TIER.name}{" "}
-            down to {TOP_TIER.settlementHours} hours at {TOP_TIER.name}.
+            The settlement target, and nothing about the rate. The ladder runs from{" "}
+            {FIRST_TIER.name} at {money(FIRST_TIER.entry)} to {TOP_TIER.name} at{" "}
+            {money(TOP_TIER.entry)}, every rung earns the same {TERM_RATE} term, and climbing
+            shortens the published target from {FIRST_TIER.settlementHours} hours at{" "}
+            {FIRST_TIER.name} to {TOP_TIER.settlementHours} hours at {TOP_TIER.name}.{" "}
+            <strong>Nothing in the portal is gated by tier today.</strong> Every surface, chart and
+            assistant is open at every rung, including to a member with no standing at all, so where
+            a rung describes a benefit beyond the target, treat it as what the ladder is for rather
+            than as something you are currently missing.
           </>
         ),
       },
@@ -115,7 +125,9 @@ const GROUPS: Group[] = [
             then, an accrued figure is an entry against your position rather than money in your
             hands. Settlement targets are measured from an approved withdrawal request, and they are
             targets the desk works to rather than guarantees. Network conditions and review checks
-            can extend them.
+            can extend them. <strong>No settlement can occur in this build</strong>, because there
+            is no custody and no payment path behind it, which is why the funding surfaces say
+            funding is not open rather than showing an address.
           </>
         ),
       },
@@ -136,10 +148,18 @@ const GROUPS: Group[] = [
           <>
             Nothing happens, which is the design. A matured position stops accruing and waits. It
             does not reallocate and it does not settle itself, and it holds principal plus reward
-            until you claim, settle or open a new term. The one exception is a relay, which only
-            runs on a position where you armed one and which tells you, before you arm it, that it
-            will write to your ledger without asking again. Capital that is not inside a term is not
+            until you claim, settle or open a new term. Capital that is not inside a term is not
             accruing, so leaving it there is a decision with a cost.
+            <br />
+            <br />
+            The one exception is a <strong>relay</strong>, and it only exists on a position where
+            you armed one. A relay claims the reward, closes the matured term and opens a new{" "}
+            {CYCLE_DAYS} day term with what it carried, then arms itself again, all as a single
+            write to your ledger and without asking a second time. It says so on the panel before
+            you arm it. It runs the next time you open Rigel after the term matures, not while you
+            are away, and it is never backdated, so the days a matured position sat still earn
+            nothing and the ledger says so. Disarm it at any point before it fires and the term
+            settles and stays settled.
           </>
         ),
       },
@@ -223,17 +243,22 @@ const GROUPS: Group[] = [
         q: "How do I get help?",
         a: (
           <>
-            Start with{" "}
+            For a person, use{" "}
+            <Link to="/contact" className={legalLink}>
+              contact
+            </Link>
+            . It is a public route, it does not require you to be signed in, and it is the right
+            channel for anything about money, a figure that looks wrong, or a decision you are about
+            to make. For everything else,{" "}
             <Link to="/app/support" className={legalLink}>
               Support
             </Link>{" "}
-            inside the portal. The{" "}
+            inside the portal is an assistant that explains how the product works, and the{" "}
             <Link to="/app/glossary" className={legalLink}>
               glossary
             </Link>{" "}
-            defines every term the product uses, and the risk disclosure, terms and privacy policy
-            are linked from the foot of every page including this one. If a screen does not match
-            what you expected, ask before you act on it rather than after.
+            defines every term with the arithmetic behind it. If a screen does not match what you
+            expected, ask before you act on it rather than after.
           </>
         ),
       },
@@ -377,13 +402,20 @@ export function Faq() {
             Still unclear about something?
           </p>
           <p className="mt-1 text-sm text-[var(--text-mid)]">
-            Ask before you place capital, not after.
+            Ask before you place capital, not after. Contact reaches a person; Support is an
+            assistant that explains the product.
           </p>
         </div>
-        <Link to="/app/support" className="btn btn-secondary">
-          <LifeBuoy className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
-          Open Support
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/contact" className="btn btn-secondary">
+            <Mail className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+            Contact us
+          </Link>
+          <Link to="/app/support" className="btn btn-outline">
+            <LifeBuoy className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+            Open Support
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
 import { money, pct } from "@/components/system/format";
 import { LegalPage, ReviewNote, type LegalSection } from "@/components/landing/LegalLayout";
 
-const UPDATED = "25 August 2026";
+const UPDATED = "26 August 2026";
 const FIRST = TIERS[0];
 const LAST = TIERS[TIERS.length - 1];
 
@@ -22,6 +22,15 @@ const SECTIONS: LegalSection[] = [
           Read these terms alongside the <Link to="/legal/risk">Risk Disclosure</Link> and the{" "}
           <Link to="/legal/privacy">Privacy Policy</Link>. Together they form the agreement between
           you and us.
+        </p>
+        <p>
+          <strong>Some clauses below describe capability this build does not yet have.</strong>{" "}
+          There is no custody, no settlement and no account server today: no deposit address is
+          issued, no withdrawal can leave, and your record is held in your own browser rather than
+          on ours. Where a clause governs something that is not built, it takes effect when that
+          thing ships, and the day it ships is written on the{" "}
+          <Link to="/legal/changes">change log</Link>. Nothing in these terms should be read as a
+          claim that a facility already exists.
         </p>
         <ReviewNote>
           The legal entity that contracts with members, and the jurisdiction of incorporation, must
@@ -64,18 +73,31 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Your account is personal to you. You are responsible for the credentials and the devices
-          you authorise, and for everything done through your account by anyone who has access to
-          them.
+          Your account is personal to you. In this build it is a member name and an event log held
+          in the browser you are using. <strong>There is no password and no credential</strong>,
+          nothing is enrolled, and no verification step exists, so anyone with access to that
+          browser profile has your account. You are responsible for the device, and for everything
+          done through it.
         </p>
         <ul>
-          <li>Do not share credentials, and do not let anyone else operate your account.</li>
-          <li>Enrol only devices you control, and remove ones you no longer use.</li>
-          <li>Tell us immediately if you suspect unauthorised access.</li>
+          <li>
+            Treat the device as the credential, because it is the only one. A shared or unlocked
+            machine is a shared account.
+          </li>
+          <li>
+            Keep your own copy. Settings exports the complete event log, and clearing site data
+            destroys the original with no recovery on our side.
+          </li>
+          <li>
+            The <Link to="/app/security">security page</Link> states exactly what is and is not
+            protected. Read it before you rely on the account for anything.
+          </li>
         </ul>
         <p>
-          We may require additional verification before acting on an instruction, and may decline or
-          delay an instruction we reasonably believe to be unauthorised, fraudulent or unlawful.
+          Once identity, credentials or device enrolment exist, this section is rewritten to
+          describe them and the change is dated on the change log. We may require additional
+          verification before acting on an instruction, and may decline or delay an instruction we
+          reasonably believe to be unauthorised, fraudulent or unlawful.
         </p>
       </>
     ),
@@ -96,8 +118,12 @@ const SECTIONS: LegalSection[] = [
             -day term. Accrual is linear and does not compound within a term.
           </li>
           <li>
-            <strong>Maturity.</strong> A term does not renew automatically. At maturity you may
-            request settlement or open a new term.
+            <strong>Maturity.</strong> A term does not renew by itself. At maturity you may request
+            settlement or open a new one. The single exception is a relay: where you armed one on a
+            position, the platform claims, closes and reopens that term with what it carried and
+            arms the next, without asking again. It does that the next time you open Rigel after
+            maturity, never before and never with a backdated timestamp, and it can be disarmed at
+            any point before it runs.
           </li>
           <li>
             <strong>Early exit.</strong> Capital in an open term is not available on demand. A
@@ -128,14 +154,21 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Deposits are credited once the network confirms them to the threshold we apply. Sending to
-          an address other than the one issued for your position, or sending an asset the position
-          does not accept, may result in permanent loss that we cannot reverse.
+          <strong>Funding is not open.</strong> This build issues no deposit address, holds no
+          custody and cannot settle a withdrawal, so no value can enter or leave it. The two
+          paragraphs that follow describe how deposits and withdrawals work once that exists, and
+          they govern nothing until then.
         </p>
         <p>
-          Withdrawals are sent only to destinations you have registered in advance. A newly
-          registered destination is subject to a hold window before it can be used. We may apply
-          additional review to unusual requests.
+          Deposits will be credited once the network confirms them to the threshold we apply.
+          Sending to an address other than the one issued for your position, or sending an asset the
+          position does not accept, may result in permanent loss that we cannot reverse.
+        </p>
+        <p>
+          Withdrawal destinations, any registration or hold window applied to a new one, and the
+          review we apply to unusual requests are all to be defined with the settlement mechanism
+          itself. Until they are, this agreement makes no claim that a destination you enter is
+          checked, held or screened.
         </p>
         <p>
           Settlement targets vary by tier, from {FIRST.settlementHours} hours at {FIRST.name} to{" "}
@@ -152,10 +185,18 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Tiers are determined by the capital you have placed, beginning at {money(FIRST.entry)} for{" "}
-          {FIRST.name} and running to {money(LAST.entry)} for {LAST.name}. Tiers affect access ,
-          analytics, queue priority, settlement targets and service coverage, and do not change the
-          term rate, which is identical at every rung.
+          Tiers are determined by your standing, which is the greater of the capital you have
+          brought in and the most you have ever had deployed at one time, beginning at{" "}
+          {money(FIRST.entry)} for {FIRST.name} and running to {money(LAST.entry)} for {LAST.name}.
+          No tier changes the term rate, which is identical at every rung.
+        </p>
+        <p>
+          <strong>
+            The published settlement target is the only benefit that differs by rung in this build.
+          </strong>{" "}
+          Nothing in the portal is gated by tier today: every surface, chart and assistant is
+          available at every rung, including to a member with no standing at all. Where a tier
+          description elsewhere in the product implies otherwise, this clause governs.
         </p>
         <p>
           We may adjust tier thresholds and the benefits attached to them on notice. Existing open
@@ -248,7 +289,8 @@ const SECTIONS: LegalSection[] = [
         <p>
           To the maximum extent the law allows, we are not liable for indirect, incidental,
           consequential or punitive loss, for lost profits, or for loss arising from your own
-          errors, including sending assets to a wrong address or losing control of your credentials.
+          errors, including sending assets to a wrong address, or losing access to the browser your
+          record is held in.
         </p>
         <ReviewNote>
           Liability caps, carve-outs and any consumer-protection rights that cannot be excluded must
@@ -274,8 +316,9 @@ const SECTIONS: LegalSection[] = [
     heading: "Changes to the service and to these terms",
     body: (
       <p>
-        We may change the platform, and we may change these terms. Material changes are notified in
-        the portal before they take effect, and the date at the top of this page is updated.
+        We may change the platform, and we may change these terms. Material changes are written up
+        on the <Link to="/legal/changes">change log</Link> and the date at the top of this page is
+        updated. There is no mailing list to notify, because we hold no address to notify it at.
         Continuing to use the service after that point means you accept the revised terms. If you do
         not, close your account once your positions have matured.
       </p>
@@ -287,8 +330,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Before starting formal proceedings, both sides agree to raise the issue through the
-          support channel and attempt to resolve it in good faith.
+          Before starting formal proceedings, both sides agree to raise the issue through{" "}
+          <Link to="/contact">contact</Link> and attempt to resolve it in good faith.
         </p>
         <ReviewNote>
           Governing law, forum, dispute-resolution mechanism and any arbitration or class-action
@@ -313,7 +356,9 @@ const SECTIONS: LegalSection[] = [
           transaction.
         </p>
         <p>
-          Questions about these terms should be raised through the support channel in your account.
+          Questions about these terms go through <Link to="/contact">contact</Link>, which is a
+          public route and does not require you to be signed in. Changes to the product are dated on
+          the <Link to="/legal/changes">change log</Link>.
         </p>
       </>
     ),
@@ -330,8 +375,8 @@ export default function TermsOfService() {
         <>
           A vault is a {CYCLE_DAYS}-day commitment: capital is not available on demand once a term
           is open, and the published {pct(CYCLE_RETURN, 0)} structure is a target rather than a
-          guaranteed payment. You are responsible for your credentials and your withdrawal
-          destinations. Nothing here is advice.
+          guaranteed payment. Funding is not open in this build, there is no password on your
+          account, and your record lives in your own browser. Nothing here is advice.
         </>
       }
       sections={SECTIONS}

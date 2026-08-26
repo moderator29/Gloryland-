@@ -1,9 +1,9 @@
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Check, Clock, Layers, Search } from "lucide-react";
+import { ArrowUpRight, Check, Clock, Layers, Search } from "lucide-react";
 import { CYCLE_DAYS, CYCLE_RETURN, TIERS, dailyReward, termReward, tierById } from "@/domain/tiers";
 import { useLedger } from "@/hooks/useLedger";
-import { Progress } from "@/components/system/ui";
+import { Crumbs, Progress } from "@/components/system/ui";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -15,9 +15,7 @@ function isCarryOver(line: string) {
 function NotFound({ id }: { id?: string }) {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
-        <ArrowLeft className="h-4 w-4" /> Tiers
-      </Link>
+      <Crumbs trail={[{ label: "Tiers", to: "/app/tiers" }, { label: "Not found" }]} />
       <section className="panel-hi edge-light p-8 text-center">
         <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-[var(--line-hi)] bg-[rgba(46,139,255,0.08)]">
           <Search className="h-5 w-5 text-[var(--accent-hi)]" strokeWidth={1.7} aria-hidden />
@@ -67,9 +65,7 @@ export default function TierDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link to="/app/tiers" className="min-h-[36px] btn btn-ghost -ml-2 !py-1.5 !text-xs">
-        <ArrowLeft className="h-4 w-4" /> Tiers
-      </Link>
+      <Crumbs trail={[{ label: "Tiers", to: "/app/tiers" }, { label: tier.name }]} />
 
       {/* Identity */}
       <motion.header {...fade(0)}>

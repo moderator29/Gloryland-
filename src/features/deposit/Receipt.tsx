@@ -1,10 +1,10 @@
 import { forwardRef } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
 import { assetById, type AssetId } from "@/features/market/assets";
 import { CoinLogo } from "@/features/market/CoinLogo";
 import { money, fullDate } from "@/components/system/format";
-import { tierById } from "@/domain/tiers";
+import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, tierById } from "@/domain/tiers";
 
 export type ReceiptData = {
   reference: string;
@@ -16,13 +16,30 @@ export type ReceiptData = {
 };
 
 /**
- * Deposit receipt.
+ * Record of a position, rendered for export.
  *
- * Rendered at a fixed 380px column so the saved image is identical on a phone
- * and a desktop: exporting a fluid layout produces a receipt whose proportions
+ * Fixed at a 380px column so the saved image is identical on a phone and a
+ * desktop: exporting a fluid layout produces a receipt whose proportions
  * depend on the window that happened to be open. Colours are literal rather
- * than CSS variables because the export rasterises this node outside the app's
- * cascade.
+ * than CSS variables because the export rasterises this node outside the
+ * app's cascade.
+ *
+ * WHY THE TYPE IS THE SIZE IT IS. `saveReceipt` renders this node with
+ * html2canvas at `scale: 3`, and html2canvas sets the canvas to
+ * `width * scale` and then calls `ctx.scale(3, 3)`, so every element is still
+ * drawn in CSS pixels onto a canvas with three times the resolution. Scale
+ * buys sharpness and nothing else: it does not change how large the type is
+ * relative to the receipt, and it cannot change a contrast ratio at all. The
+ * disclaimer used to be 9px in #5B6A86, which is about 3.4:1 on this ground
+ * and fails AA at any resolution, and it was the only thing on the image
+ * saying no money had moved. Nothing here is below 12px, and the disclaimer
+ * is the highest contrast text on the card after the amount.
+ *
+ * WHY IT NO LONGER LOOKS LIKE A TRANSFER. Receipts get forwarded, and a
+ * forwarded PNG arrives without the app around it. A green tick and "Status:
+ * Recorded" read as a confirmed deposit from a company, so both are gone: the
+ * card is marked Preview at the top, states in the status row that nothing
+ * moved, and carries the disclaimer in a bordered block that survives a crop.
  */
 export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(function Receipt(
   { data },
@@ -38,9 +55,9 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
     >
       <span
         style={{
-          color: "#5B6A86",
-          fontSize: 11,
-          letterSpacing: "0.14em",
+          color: "#8494B0",
+          fontSize: 12,
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
         }}
       >
@@ -64,32 +81,47 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
-      {/* Brand */}
-      <div className="flex items-center justify-between">
+      {/* Brand, and the one word that has to survive being cropped out of
+          context. It sits where a confirmation tick used to. */}
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Mark size={26} glow={false} />
           <div>
             <p style={{ color: "#F2F6FF", fontSize: 15, fontWeight: 600, letterSpacing: "0.18em" }}>
               RIGEL
             </p>
-            <p style={{ color: "#7DD3FC", fontSize: 8, letterSpacing: "0.3em", marginTop: 2 }}>
+            <p style={{ color: "#7DD3FC", fontSize: 10, letterSpacing: "0.26em", marginTop: 3 }}>
               CAPITAL
             </p>
           </div>
         </div>
-        <CheckCircle2 size={22} style={{ color: "#34D399" }} />
+        <span
+          style={{
+            color: "#FBBF24",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.16em",
+            border: "1px solid rgba(251,191,36,0.42)",
+            background: "rgba(251,191,36,0.10)",
+            borderRadius: 8,
+            padding: "4px 8px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          PREVIEW
+        </span>
       </div>
 
       <p
         style={{
-          color: "#5B6A86",
-          fontSize: 10,
-          letterSpacing: "0.24em",
+          color: "#8494B0",
+          fontSize: 11,
+          letterSpacing: "0.22em",
           textTransform: "uppercase",
           marginTop: 20,
         }}
       >
-        Deposit receipt
+        Position record
       </p>
 
       {/* Amount */}
@@ -108,8 +140,9 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
             {money(data.amount)}
           </p>
           {data.units !== undefined && meta && (
-            <p style={{ color: "#8494B0", fontSize: 11, marginTop: 2 }}>
-              ≈ {data.units.toFixed(6)} {meta.symbol}
+            <p style={{ color: "#8494B0", fontSize: 12, marginTop: 2 }}>
+              {/* An equivalent at the day's price, not an amount anybody sent. */}
+              ≈ {data.units.toFixed(6)} {meta.symbol} at the price on this date
             </p>
           )}
         </div>
@@ -124,24 +157,45 @@ export const Receipt = forwardRef<HTMLDivElement, { data: ReceiptData }>(functio
       <Row label="Reference">
         <span style={{ fontFamily: "ui-monospace, monospace" }}>{data.reference}</span>
       </Row>
-      <Row label="Term">30 days at 1% daily</Row>
-      <Row label="Status">
-        <span style={{ color: "#34D399" }}>Recorded</span>
+      <Row label="Term">
+        {CYCLE_DAYS} days at {(DAILY_RATE * 100).toFixed(2)}% daily,{" "}
+        {(CYCLE_RETURN * 100).toFixed(0)}% at maturity
       </Row>
+      <Row label="Status">Recorded. No funds moved.</Row>
 
-      <div className="mt-4 flex items-center justify-between">
-        <span style={{ color: "#5B6A86", fontSize: 9, letterSpacing: "0.18em" }}>
+      {/* The disclaimer, at a size and contrast that survives the export and
+          a crop. It is bordered so it reads as part of the document rather
+          than as small print that can be cut off without anyone noticing. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          marginTop: 16,
+          padding: 12,
+          border: "1px solid rgba(251,191,36,0.42)",
+          background: "rgba(251,191,36,0.08)",
+          borderRadius: 12,
+        }}
+      >
+        <TriangleAlert size={16} style={{ color: "#FBBF24", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ color: "#E6EDFA", fontSize: 12, lineHeight: 1.55 }}>
+          <strong style={{ color: "#FBBF24", fontWeight: 700 }}>
+            This is not a payment confirmation.
+          </strong>{" "}
+          It records a position in a preview build, held in one browser. No deposit was received, no
+          custody or settlement network is connected, and no value has moved.
+        </p>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span style={{ color: "#8494B0", fontSize: 11, letterSpacing: "0.16em" }}>
           RIGEL.CAPITAL
         </span>
-        <span style={{ color: "#5B6A86", fontSize: 9, fontFamily: "ui-monospace, monospace" }}>
+        <span style={{ color: "#8494B0", fontSize: 11, fontFamily: "ui-monospace, monospace" }}>
           #{data.reference}
         </span>
       </div>
-
-      <p style={{ color: "#5B6A86", fontSize: 9, lineHeight: 1.5, marginTop: 12 }}>
-        Preview build. This records a position in your browser. No custody or settlement network is
-        connected yet.
-      </p>
     </div>
   );
 });

@@ -1,9 +1,28 @@
 import { Link } from "react-router-dom";
-import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE } from "@/domain/tiers";
-import { pct } from "@/components/system/format";
+import { CYCLE_DAYS, CYCLE_RETURN, DAILY_RATE, TIERS } from "@/domain/tiers";
+import { money, pct } from "@/components/system/format";
 import { LegalPage, ReviewNote, type LegalSection } from "@/components/landing/LegalLayout";
 
-const UPDATED = "25 August 2026";
+const UPDATED = "26 August 2026";
+
+/**
+ * What repeated rolling actually compounds to.
+ *
+ * Derived from the published constants rather than typed, so this cannot drift
+ * from the rate the product offers, and quoted from a real ladder entry rather
+ * than an invented starting sum. The relay panel links here, because a member
+ * arming a standing instruction is the one person who needs the series in
+ * front of them.
+ */
+const BASE = TIERS[1].entry;
+const GROWTH = 1 + CYCLE_RETURN;
+const compounded = (terms: number) => BASE * GROWTH ** terms;
+
+/** Terms in a calendar year, and the annual rate that repeating them implies. */
+const TERMS_PER_YEAR = 365 / CYCLE_DAYS;
+const ANNUALISED = GROWTH ** TERMS_PER_YEAR - 1;
+const ANNUALISED_TEXT = `${Math.round(ANNUALISED * 100).toLocaleString("en-US")}%`;
+const YEAR_TERMS = Math.floor(TERMS_PER_YEAR);
 
 const SECTIONS: LegalSection[] = [
   {
@@ -53,9 +72,32 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           A {pct(CYCLE_RETURN, 0)} return every {CYCLE_DAYS} days is very far above what established
-          markets produce. Sustained and reinvested, it compounds to an annualised rate in the
-          thousands of percent, a rate no conventional asset class, lending market or treasury
-          strategy delivers reliably.
+          markets produce. Sustained and reinvested it compounds, and the compounding is worth
+          seeing written out rather than described. Starting from {money(BASE)} and rolling the
+          whole balance into the next term each time:
+        </p>
+        <ul>
+          <li>
+            After one term, {money(compounded(1))}. After three, {money(compounded(3))}.
+          </li>
+          <li>
+            After six terms, {money(compounded(6), 2)}. After {YEAR_TERMS}, which is roughly a
+            calendar year, {money(compounded(YEAR_TERMS), 2)}.
+          </li>
+          <li>
+            Repeated for a full year that is an annualised rate of about {ANNUALISED_TEXT}, against
+            a long run figure in the high single digits for a broad equity index.
+          </li>
+        </ul>
+        <p>
+          <strong>
+            That series is arithmetic, not a forecast, and it is not a projection of what you will
+            receive.
+          </strong>{" "}
+          It is what the published rate produces if every term completes and pays in full, which is
+          exactly the assumption this document exists to challenge. No conventional asset class,
+          lending market or treasury strategy delivers a rate of that order reliably, and the longer
+          a chain of terms runs the more times the same risk has to not happen.
         </p>
         <p>
           <strong>
@@ -252,7 +294,7 @@ const SECTIONS: LegalSection[] = [
         <p>
           Read this alongside the <Link to="/legal/terms">Terms of Service</Link> and the{" "}
           <Link to="/legal/privacy">Privacy Policy</Link>. If any part of this document is unclear,
-          ask before you place capital, not after.
+          ask through <Link to="/contact">contact</Link> before you place capital, not after.
         </p>
       </>
     ),

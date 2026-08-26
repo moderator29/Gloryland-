@@ -1,49 +1,10 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Vault as VaultIcon, Repeat } from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Value } from "@/components/system/Value";
-import { Progress, Status, Empty } from "@/components/system/ui";
+import { BandHead, Progress, RailStat, Status, Empty } from "@/components/system/ui";
 import { money, days, fullDate } from "@/components/system/format";
-import { CYCLE_RETURN } from "@/domain/tiers";
-
-/** Left-aligned section head: accent tick, label, hairline out to the edge. */
-function BandHead({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
-  return (
-    <div className="mb-4">
-      <div className="band-head">
-        <h2 className="band-title">{title}</h2>
-        <span className="hairline" aria-hidden="true" />
-        {action}
-      </div>
-      {hint && <p className="mt-2 pl-[0.9375rem] text-xs text-[var(--text-low)]">{hint}</p>}
-    </div>
-  );
-}
-
-/** One supporting figure in the narrow rail beside the lead figure. */
-function RailStat({
-  label,
-  children,
-  tone = "default",
-}: {
-  label: string;
-  children: ReactNode;
-  tone?: "default" | "gain" | "accent";
-}) {
-  const toneClass =
-    tone === "gain"
-      ? "text-[var(--gain)]"
-      : tone === "accent"
-        ? "text-[var(--accent-hi)]"
-        : "text-[var(--text-hi)]";
-  return (
-    <div className="rail-stat">
-      <span className="tag-micro">{label}</span>
-      <span className={`metric text-lg ${toneClass}`}>{children}</span>
-    </div>
-  );
-}
+import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
 
 export default function Vaults() {
   const snap = useLedger();
@@ -84,6 +45,7 @@ export default function Vaults() {
           <div className="panel">
             <Empty
               icon={VaultIcon}
+              art="horizon"
               title="No vaults yet"
               body={`A vault holds capital for a 30-day term and returns ${(CYCLE_RETURN * 100).toFixed(0)}%, accruing every day.`}
               action={{ label: "Open your first vault", to: "/app/vaults/new" }}
@@ -120,16 +82,27 @@ export default function Vaults() {
                           </p>
                         </div>
                         <Status kind={p.matured ? "matured" : "accruing"} />
-                        {snap.relaysArmed.some((r) => r.positionId === p.id) && (
-                          <span
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-hi)]"
-                            title="A relay is armed on this vault"
-                          >
-                            <Repeat className="h-3 w-3" strokeWidth={2.2} aria-hidden="true" />
-                            Relay
-                          </span>
-                        )}
                       </div>
+
+                      {/* The relay glyph used to carry its whole explanation in
+                          a title attribute, so the assistive reading of this
+                          card was more honest than the visible one. Anything
+                          that qualifies a figure has to be on the screen: this
+                          card says a vault holds capital for a fixed term, and
+                          an armed relay means it will not stop there. */}
+                      {snap.relaysArmed.some((r) => r.positionId === p.id) && (
+                        <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--accent-hi)]">
+                          <Repeat
+                            className="mt-px h-3 w-3 shrink-0"
+                            strokeWidth={2.2}
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <span className="font-semibold">Relay armed.</span> At maturity this
+                            vault opens a new {CYCLE_DAYS} day term and arms itself again.
+                          </span>
+                        </p>
+                      )}
 
                       <div className="mt-auto pt-6">
                         <div className="ledger">
