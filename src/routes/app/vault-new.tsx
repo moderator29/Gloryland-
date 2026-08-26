@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Check, Copy, Download, Info, Send } from "lucide-react";
 import { toast } from "sonner";
 import { playTierChord } from "@/lib/sound";
-import { openPosition } from "@/domain/ledger";
+import { openPosition, fillCourseLeg } from "@/domain/ledger";
 import {
   CYCLE_DAYS,
   CYCLE_RETURN,
@@ -47,6 +47,10 @@ export default function VaultNew() {
   // ledger has to know the difference, otherwise the same capital is counted
   // twice and tier standing climbs on money that was only deposited once.
   const fromBalance = rolledFrom !== null;
+  // A leg is only marked filled by the placement that fills it, written in the
+  // same commit, so the schedule can never claim a leg that has no position.
+  const courseId = params.get("course");
+  const courseLeg = Number(params.get("leg")) || 0;
 
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState(preset ? String(preset) : "");
@@ -94,6 +98,7 @@ export default function VaultNew() {
       at: evt.at,
       units,
     });
+    if (courseId && courseLeg > 0) fillCourseLeg(courseId, courseLeg, evt.id);
     playTierChord(tier.id);
     setStep("done");
   };

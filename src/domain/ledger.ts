@@ -26,7 +26,16 @@ import {
 export const DAY_MS = 86_400_000;
 const EVENTS_KEY = "rgl_ledger_v1";
 
-export type EventKind = "open" | "claim" | "withdraw" | "close" | "relay.set" | "relay.clear";
+export type EventKind =
+  | "open"
+  | "claim"
+  | "withdraw"
+  | "close"
+  | "relay.set"
+  | "relay.clear"
+  | "course.set"
+  | "course.stop"
+  | "course.fill";
 
 export type LedgerEvent =
   /** Capital placed into a vault. Starts a term. */
@@ -65,10 +74,77 @@ export type LedgerEvent =
    * and the whole history stays readable in Ledger.
    */
   | { id: string; kind: "relay.set"; at: number; positionId: string; mode: RelayMode }
-  | { id: string; kind: "relay.clear"; at: number; positionId: string };
+  | { id: string; kind: "relay.clear"; at: number; positionId: string }
+  /**
+   * A stated intention to place a fixed amount on a fixed rhythm.
+   *
+   * The platform cannot take the money: there is no mandate, no scheduler and
+   * nothing that can move funds on a member's behalf. A course is therefore a
+   * schedule the member fills by hand, and every surface says so. What it buys
+   * is that the decision is made once, in advance, and the dates are visible.
+   */
+  | {
+      id: string;
+      kind: "course.set";
+      at: number;
+      courseId: string;
+      amount: number;
+      everyDays: number;
+      /** Total legs, or 0 for open ended. */
+      legs: number;
+      startAt: number;
+      asset: string;
+      network: string;
+    }
+  | { id: string; kind: "course.stop"; at: number; courseId: string }
+  | {
+      id: string;
+      kind: "course.fill";
+      at: number;
+      courseId: string;
+      leg: number;
+      positionId: string;
+    };
 
 /** What a relay carries forward. */
 export type RelayMode = "full" | "principal";
+
+export type CourseLegState = "filled" | "due" | "scheduled" | "lapsed";
+
+export type CourseLeg = {
+  /** One based, so the interface can name it as the member sees it. */
+  index: number;
+  amount: number;
+  dueAt: number;
+  state: CourseLegState;
+  /** Set once the leg has been filled by an actual placement. */
+  positionId?: string;
+};
+
+export type Course = {
+  id: string;
+  amount: number;
+  everyDays: number;
+  /** Total legs, or 0 for open ended. */
+  legs: number;
+  startAt: number;
+  asset: string;
+  network: string;
+  /** No stop event has been written for it. */
+  active: boolean;
+  schedule: CourseLeg[];
+  filledCount: number;
+  /** Capital actually placed against this course. */
+  placed: number;
+  /** The leg waiting to be filled, if one is. */
+  nextDue: CourseLeg | null;
+  /** The next leg not yet due, for a "next on" line. */
+  upcoming: CourseLeg | null;
+  /** Capital that enters terms across any thirty day stretch, at this rhythm. */
+  per30: number;
+  /** Legs that went unfilled and were overtaken by a later one. */
+  lapsedCount: number;
+};
 
 export type Position = {
   id: string;
@@ -162,6 +238,12 @@ export type Snapshot = {
   tierProgress: number;
   /** Capital still required to reach the next tier. */
   toNextTier: number;
+  /** Every course ever set, newest first. */
+  courses: Course[];
+  /** The one course still running, if any. */
+  activeCourse: Course | null;
+  /** Legs waiting to be filled across every active course. */
+  courseDue: CourseLeg[];
   /** Every position that has ever had a relay instruction, armed or not. */
   relays: Relay[];
   relaysArmed: Relay[];
@@ -278,6 +360,69 @@ function accruedAt(principal: number, openedAt: number, now: number, closedAt?: 
   const end = closedAt !== undefined ? Math.min(now, closedAt) : now;
   const days = clamp((end - openedAt) / DAY_MS, 0, CYCLE_DAYS);
   return principal * DAILY_RATE * days;
+}
+
+/** Upper bound on a generated schedule, so an open ended course terminates. */
+const MAX_LEGS = 60;
+
+/**
+ * Turn one course instruction into a schedule.
+ *
+ * A leg is filled when a fill event names it. Of the unfilled legs whose date
+ * has passed, the most recent is due and the ones before it have lapsed: they
+ * stay on the schedule rather than being deleted or quietly rolled forward,
+ * because the member should be able to see that a date slipped and that the
+ * rung they were aiming at moved with it.
+ */
+function buildCourse(
+  set: Extract<LedgerEvent, { kind: "course.set" }>,
+  stopped: boolean,
+  fills: Map<string, Extract<LedgerEvent, { kind: "course.fill" }>>,
+  now: number,
+): Course {
+  const total = set.legs > 0 ? Math.min(set.legs, MAX_LEGS) : MAX_LEGS;
+  const every = Math.max(1, Math.round(set.everyDays));
+
+  const raw: CourseLeg[] = Array.from({ length: total }, (_, i) => {
+    const fill = fills.get(`${set.courseId}:${i + 1}`);
+    return {
+      index: i + 1,
+      amount: set.amount,
+      dueAt: set.startAt + i * every * DAY_MS,
+      state: fill ? ("filled" as const) : ("scheduled" as const),
+      positionId: fill?.positionId,
+    };
+  });
+
+  // The last unfilled leg whose date has passed is the one to act on.
+  const overdue = raw.filter((l) => l.state !== "filled" && l.dueAt <= now);
+  const dueIndex = overdue.length > 0 ? overdue[overdue.length - 1].index : null;
+
+  const schedule = raw.map((l) => {
+    if (l.state === "filled") return l;
+    if (l.dueAt > now) return l;
+    return { ...l, state: l.index === dueIndex ? ("due" as const) : ("lapsed" as const) };
+  });
+
+  const filled = schedule.filter((l) => l.state === "filled");
+
+  return {
+    id: set.courseId,
+    amount: set.amount,
+    everyDays: every,
+    legs: set.legs,
+    startAt: set.startAt,
+    asset: set.asset,
+    network: set.network,
+    active: !stopped,
+    schedule,
+    filledCount: filled.length,
+    placed: filled.reduce((sum, l) => sum + l.amount, 0),
+    nextDue: stopped ? null : (schedule.find((l) => l.state === "due") ?? null),
+    upcoming: schedule.find((l) => l.state === "scheduled") ?? null,
+    per30: set.amount * Math.floor(CYCLE_DAYS / every),
+    lapsedCount: schedule.filter((l) => l.state === "lapsed").length,
+  };
 }
 
 export function derive(events: LedgerEvent[], now: number = Date.now()): Snapshot {
@@ -399,6 +544,30 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
   }
   relays.sort((a, b) => a.firesAt - b.firesAt);
 
+  // Courses. Like relays, the latest instruction per id wins, and the schedule
+  // is derived rather than stored so a change of rhythm cannot leave stale
+  // dates behind.
+  const courseSets = new Map<string, Extract<LedgerEvent, { kind: "course.set" }>>();
+  const courseStops = new Set<string>();
+  const courseFills = new Map<string, Extract<LedgerEvent, { kind: "course.fill" }>>();
+  for (const e of events) {
+    if (e.kind === "course.set") {
+      const prev = courseSets.get(e.courseId);
+      if (prev === undefined || e.at >= prev.at) courseSets.set(e.courseId, e);
+    } else if (e.kind === "course.stop") {
+      courseStops.add(e.courseId);
+    } else if (e.kind === "course.fill") {
+      courseFills.set(`${e.courseId}:${e.leg}`, e);
+    }
+  }
+
+  const courses: Course[] = Array.from(courseSets.values()).map((c) =>
+    buildCourse(c, courseStops.has(c.courseId), courseFills, now),
+  );
+  courses.sort((a, b) => b.startAt - a.startAt);
+  const activeCourse = courses.find((c) => c.active) ?? null;
+  const courseDue = courses.filter((c) => c.active).flatMap((c) => (c.nextDue ? [c.nextDue] : []));
+
   const relaysArmed = relays.filter((r) => r.armed);
   const relaysDue = relays.filter((r) => r.due);
 
@@ -431,6 +600,9 @@ export function derive(events: LedgerEvent[], now: number = Date.now()): Snapsho
     nextTier: next,
     tierProgress,
     toNextTier: next ? Math.max(0, next.entry - standing) : 0,
+    courses,
+    activeCourse,
+    courseDue,
     relays,
     relaysArmed,
     relaysDue,
@@ -460,6 +632,37 @@ export function claimRewards(positionId: string, amount: number) {
 
 export function recordWithdrawal(amount: number, address: string) {
   return append({ kind: "withdraw", amount, address });
+}
+
+/** Set a course, or replace the terms of one already running. */
+export function setCourse(input: {
+  courseId?: string;
+  amount: number;
+  everyDays: number;
+  legs: number;
+  startAt?: number;
+  asset: string;
+  network: string;
+}) {
+  return append({
+    kind: "course.set",
+    courseId: input.courseId ?? newId(),
+    amount: input.amount,
+    everyDays: input.everyDays,
+    legs: input.legs,
+    startAt: input.startAt ?? Date.now(),
+    asset: input.asset,
+    network: input.network,
+  });
+}
+
+export function stopCourse(courseId: string) {
+  return append({ kind: "course.stop", courseId });
+}
+
+/** Record that a placement filled one leg. Written with the open, never after. */
+export function fillCourseLeg(courseId: string, leg: number, positionId: string) {
+  return append({ kind: "course.fill", courseId, leg, positionId });
 }
 
 /** Arm a relay, or change the mode on one that is already armed. */

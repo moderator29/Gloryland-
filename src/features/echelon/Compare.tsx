@@ -64,6 +64,12 @@ function AccrualChart({ plan }: { plan: EchelonPlan }) {
   const single = stepPath(accrual, (p) => p.single, plan);
   const lumpX = ((CYCLE_DAYS / Math.max(spanDays, 1)) * W).toFixed(2);
 
+  // The echelon only reaches the same peak rate as one placement when its legs
+  // all overlap. Where they do not, saying "both ways" would be a claim the
+  // chart itself contradicts.
+  const peakEchelon = accrual.reduce((m, p) => Math.max(m, p.echelon), 0);
+  const samePeak = Math.abs(peakEchelon - compare.single.daily) < 0.005;
+
   return (
     <div className="mt-3">
       <svg
@@ -121,7 +127,9 @@ function AccrualChart({ plan }: { plan: EchelonPlan }) {
           One placement
         </span>
         <span className="tabular">
-          Peak {money(compare.single.daily, 2)} a day, both ways
+          {samePeak
+            ? `Peak ${money(compare.single.daily, 2)} a day, both ways`
+            : `Peak ${money(compare.single.daily, 2)} a day placed at once, ${money(peakEchelon, 2)} at most as an echelon`}
         </span>
       </div>
     </div>
@@ -190,9 +198,7 @@ export function Compare({ plan, className = "" }: CompareProps) {
             </p>
           </div>
           <div className="bento-cell inset p-3.5 lg:col-span-6">
-            <p className="eyebrow">
-              Echelon, {plan.parts} legs, total reward
-            </p>
+            <p className="eyebrow">Echelon, {plan.parts} legs, total reward</p>
             <p className="figure-mid mt-1.5">
               <Value value={c.reward} decimals={2} />
             </p>
@@ -252,9 +258,8 @@ export function Compare({ plan, className = "" }: CompareProps) {
           }
           echelon={
             <>
-              <span className="tabular">{money(c.meanDeployedFirstTerm)}</span> on average,
-              accruing <span className="tabular">{money(c.accruedByLumpMaturity, 2)}</span> by the
-              same date.
+              <span className="tabular">{money(c.meanDeployedFirstTerm)}</span> on average, accruing{" "}
+              <span className="tabular">{money(c.accruedByLumpMaturity, 2)}</span> by the same date.
             </>
           }
           note={`The legs open days apart, so by ${fullDate(c.lumpMaturesAt)} they have not all run a full term. This is the real cost of the formation.`}
@@ -279,8 +284,8 @@ export function Compare({ plan, className = "" }: CompareProps) {
       {/* ── The fixed line, with the figures this plan actually produces ── */}
       <p className="mt-4 text-xs leading-relaxed text-[var(--text-low)]">
         The rate is the same on every leg. An echelon does not earn more and it does not reduce
-        risk, because every leg carries the same operator risk as one placement of the same size.
-        It accrues {money(c.shortfallAtLumpMaturity, 2)} less by {fullDate(c.lumpMaturesAt)} and
+        risk, because every leg carries the same operator risk as one placement of the same size. It
+        accrues {money(c.shortfallAtLumpMaturity, 2)} less by {fullDate(c.lumpMaturesAt)} and
         reaches the same {money(c.reward, 2)} {days(c.lagDays)} days later. What it changes is when
         capital comes back.
       </p>

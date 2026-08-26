@@ -4,6 +4,7 @@ import { fireRelay } from "@/domain/ledger";
 import { useLedger } from "@/hooks/useLedger";
 import { money, fullDate } from "@/components/system/format";
 import { CYCLE_DAYS } from "@/domain/tiers";
+import { playTierChord } from "@/lib/sound";
 
 /**
  * Runs due relays.
@@ -54,6 +55,7 @@ export function useRelays() {
       handled.current.add(relay.positionId);
       fireRelay(relay, position);
 
+      playTierChord(position.tier.id);
       const nextMatures = Date.now() + CYCLE_DAYS * 86_400_000;
       toast.success(`${position.tier.name} vault rolled`, {
         description: `${money(relay.carries)} carried into a term maturing ${fullDate(nextMatures)}.`,

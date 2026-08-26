@@ -217,5 +217,69 @@ console.log("\n8. Relays");
   is("rearmed on the new position", after.relaysArmed[0].positionId, "p2");
 }
 
+console.log("\n9. Courses");
+{
+  const courseSet = (at: number, legs: number, every = 7, amount = 400): LedgerEvent =>
+    ({
+      id: "cs", kind: "course.set", at, courseId: "c1", amount, everyDays: every,
+      legs, startAt: at, asset: "USDT", network: "TRC20",
+    }) as LedgerEvent;
+  const fill = (id: string, at: number, leg: number, positionId: string): LedgerEvent =>
+    ({ id, kind: "course.fill", at, courseId: "c1", leg, positionId }) as LedgerEvent;
+
+  const fresh = derive([courseSet(T0, 25)], T0);
+  is("one course", fresh.courses.length, 1);
+  is("active", fresh.activeCourse?.id, "c1");
+  is("25 legs scheduled", fresh.courses[0].schedule.length, 25);
+  is("first leg is due on day zero", fresh.courses[0].nextDue?.index, 1);
+  // floor(30 / 7) = 4 legs land in any thirty day stretch.
+  is("capital per thirty days", fresh.courses[0].per30, 1600);
+
+  // Two weeks in with nothing filled: leg 3 is due, legs 1 and 2 have lapsed.
+  const drifted = derive([courseSet(T0, 25)], day(14));
+  is("leg three is the one to act on", drifted.activeCourse?.nextDue?.index, 3);
+  is("two legs lapsed", drifted.activeCourse?.lapsedCount, 2);
+  is("nothing placed", drifted.activeCourse?.placed, 0);
+
+  // Filling legs one and two moves the count and the money.
+  const kept = derive(
+    [
+      courseSet(T0, 25),
+      open("p1", T0, 400, "core"),
+      fill("f1", T0, 1, "p1"),
+      open("p2", day(7), 400, "core", true),
+      fill("f2", day(7), 2, "p2"),
+    ],
+    day(14),
+  );
+  is("two legs filled", kept.activeCourse?.filledCount, 2);
+  is("placed", kept.activeCourse?.placed, 800);
+  is("no lapses", kept.activeCourse?.lapsedCount, 0);
+  is("leg three is due", kept.activeCourse?.nextDue?.index, 3);
+
+  // Stopping ends it without deleting the history.
+  const stopped = derive(
+    [courseSet(T0, 25), { id: "st", kind: "course.stop", at: day(20), courseId: "c1" } as LedgerEvent],
+    day(30),
+  );
+  is("no longer active", stopped.activeCourse, null);
+  is("still on the record", stopped.courses.length, 1);
+  is("nothing due", stopped.courseDue.length, 0);
+
+  // Open ended terminates rather than generating forever.
+  const openEnded = derive([courseSet(T0, 0)], day(400));
+  is("schedule is bounded", openEnded.courses[0].schedule.length, 60);
+
+  // A later instruction replaces the terms without a second course appearing.
+  const changed = derive(
+    [courseSet(T0, 25), { ...(courseSet(day(10), 12, 14, 1000) as object), id: "cs2" } as LedgerEvent],
+    day(10),
+  );
+  is("still one course", changed.courses.length, 1);
+  is("new amount", changed.activeCourse?.amount, 1000);
+  is("new rhythm", changed.activeCourse?.everyDays, 14);
+  is("recomputed per thirty days", changed.activeCourse?.per30, 2000);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

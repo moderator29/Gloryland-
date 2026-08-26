@@ -73,7 +73,9 @@ export function legChoices(total: number, upTo = 6): number[] {
 export function spacingChoices(parts: number): number[] {
   const even = clamp(Math.round(evenSpacing(parts)), MIN_SPACING_DAYS, MAX_SPACING_DAYS);
   const set = new Set<number>([2, 3, 5, 7, 10, 14, even]);
-  return [...set].filter((n) => n >= MIN_SPACING_DAYS && n <= MAX_SPACING_DAYS).sort((a, b) => a - b);
+  return [...set]
+    .filter((n) => n >= MIN_SPACING_DAYS && n <= MAX_SPACING_DAYS)
+    .sort((a, b) => a - b);
 }
 
 /* ── Whether a plan can actually be placed ──────────────────────────────── */

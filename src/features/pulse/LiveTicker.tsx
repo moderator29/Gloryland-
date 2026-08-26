@@ -82,6 +82,12 @@ function describe(e: LedgerEvent): { icon: LucideIcon; label: string; value: str
       return { icon: Repeat, label: "Relay armed", value: "" };
     case "relay.clear":
       return { icon: Repeat, label: "Relay disarmed", value: "" };
+    case "course.set":
+      return { icon: Repeat, label: "Course set", value: money(e.amount) };
+    case "course.stop":
+      return { icon: Repeat, label: "Course stopped", value: "" };
+    case "course.fill":
+      return { icon: Repeat, label: `Leg ${e.leg} filled`, value: "" };
     case "close":
       return { icon: Check, label: "Vault settled", value: "principal returned" };
   }

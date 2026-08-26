@@ -13,6 +13,7 @@ import {
   Settings,
   UsersRound,
   CalendarRange,
+  Route,
   Compass,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export const NAV: NavGroup[] = [
       { to: "/app/tiers", label: "Tiers", icon: Layers },
       { to: "/app/rewards", label: "Yield", icon: Gift },
       { to: "/app/horizon", label: "Horizon", icon: CalendarRange },
+      { to: "/app/course", label: "Course", icon: Route },
       { to: "/app/market", label: "Markets", icon: CandlestickChart },
     ],
   },

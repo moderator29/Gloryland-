@@ -19,8 +19,9 @@ import { useUser } from "@/context/UserContext";
 import { Wordmark } from "@/components/brand/Mark";
 import { Ambience } from "./Ambience";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { playTap, playTierChord } from "@/lib/sound";
 import { money } from "@/components/system/format";
-import { CYCLE_DAYS, CYCLE_RETURN } from "@/domain/tiers";
+import { CYCLE_DAYS, CYCLE_RETURN, tierForAmount } from "@/domain/tiers";
 import {
   APPROACHES,
   DISPLAY_MAX,
@@ -108,6 +109,7 @@ export function Gate({ children }: { children: ReactNode }) {
 
   const finish = useCallback(() => {
     if (!nameCheck.ok || !handleOk) return;
+    playTierChord(tierForAmount(band ?? 0)?.id ?? "core");
     setMember({
       username: check!.value,
       displayName: nameCheck.value,
@@ -130,6 +132,7 @@ export function Gate({ children }: { children: ReactNode }) {
   const next = () => {
     if (step === 0) setTouched(true);
     if (!canAdvance) return;
+    if (step < 3) playTap();
     if (step === 3) finish();
     else setStep((s) => (s + 1) as Step);
   };

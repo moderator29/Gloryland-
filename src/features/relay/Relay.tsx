@@ -15,6 +15,7 @@ import { CYCLE_DAYS, DAILY_RATE } from "@/domain/tiers";
 import { money, fullDate, days } from "@/components/system/format";
 import { Status } from "@/components/system/ui";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { playTap, playTierChord } from "@/lib/sound";
 
 /**
  * Relay: a standing instruction on one position.
@@ -73,6 +74,7 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
     remember();
     setConfirming(false);
     armRelay(position.id, mode);
+    playTap();
     toast.success("Relay armed", {
       description: `At maturity, ${money(carry)} carries into a new ${CYCLE_DAYS} day term.`,
     });
@@ -259,6 +261,7 @@ export function RelayDue({ snap, className = "" }: RelayDueProps) {
       fired++;
     }
     if (fired > 0) {
+      playTierChord(snap.tier?.id ?? "core");
       toast.success(fired === 1 ? "Relay fired" : `${fired} relays fired`, {
         description: `${money(snap.relayCarry)} carried into new terms.`,
       });

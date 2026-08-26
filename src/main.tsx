@@ -49,6 +49,7 @@ const OrientationRoute = lazy(() => import("./routes/app/orientation"));
 const Glossary = lazy(() => import("./routes/app/glossary"));
 const Atlas = lazy(() => import("./routes/app/atlas"));
 const Security = lazy(() => import("./routes/app/security"));
+const CourseRoute = lazy(() => import("./routes/app/course"));
 const HorizonRoute = lazy(() => import("./routes/app/horizon"));
 const Signal = lazy(() => import("./routes/app/signal"));
 const SignalPost = lazy(() => import("./routes/app/signal-post"));
@@ -336,6 +337,14 @@ function App() {
                   element={
                     <Suspense fallback={<RouteFallback />}>
                       <Support />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="course"
+                  element={
+                    <Suspense fallback={<RouteFallback />}>
+                      <CourseRoute />
                     </Suspense>
                   }
                 />

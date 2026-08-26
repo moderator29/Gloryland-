@@ -160,6 +160,9 @@ const EMPTY_COUNTS: Record<EventKind, number> = {
   close: 0,
   "relay.set": 0,
   "relay.clear": 0,
+  "course.set": 0,
+  "course.stop": 0,
+  "course.fill": 0,
 };
 
 function fail(problem: string): InspectResult {
@@ -343,6 +346,78 @@ export function inspectLedgerFile(text: string): InspectResult {
         });
         return;
       }
+      case "course.set": {
+        const amount = Number(candidate.amount);
+        const everyDays = Number(candidate.everyDays);
+        const legs = Number(candidate.legs);
+        const startAt = Number(candidate.startAt);
+        if (
+          typeof candidate.courseId !== "string" ||
+          candidate.courseId.length === 0 ||
+          !Number.isFinite(amount) ||
+          amount <= 0 ||
+          !Number.isFinite(everyDays) ||
+          everyDays < 1 ||
+          !Number.isFinite(legs) ||
+          legs < 0 ||
+          !Number.isFinite(startAt)
+        ) {
+          problems.push(`Entry ${line} is a course with terms this ledger cannot read.`);
+          rejected += 1;
+          return;
+        }
+        accepted.push({
+          id: id || `imported-${line}`,
+          kind: "course.set",
+          at,
+          courseId: candidate.courseId,
+          amount,
+          everyDays: Math.round(everyDays),
+          legs: Math.round(legs),
+          startAt,
+          asset: typeof candidate.asset === "string" ? candidate.asset : "",
+          network: typeof candidate.network === "string" ? candidate.network : "",
+        });
+        return;
+      }
+      case "course.stop": {
+        if (typeof candidate.courseId !== "string" || candidate.courseId.length === 0) {
+          problems.push(`Entry ${line} stops no course.`);
+          rejected += 1;
+          return;
+        }
+        accepted.push({
+          id: id || `imported-${line}`,
+          kind: "course.stop",
+          at,
+          courseId: candidate.courseId,
+        });
+        return;
+      }
+      case "course.fill": {
+        const leg = Number(candidate.leg);
+        if (
+          typeof candidate.courseId !== "string" ||
+          candidate.courseId.length === 0 ||
+          !Number.isFinite(leg) ||
+          leg < 1 ||
+          typeof candidate.positionId !== "string" ||
+          candidate.positionId.length === 0
+        ) {
+          problems.push(`Entry ${line} fills a course leg this ledger cannot place.`);
+          rejected += 1;
+          return;
+        }
+        accepted.push({
+          id: id || `imported-${line}`,
+          kind: "course.fill",
+          at,
+          courseId: candidate.courseId,
+          leg: Math.round(leg),
+          positionId: candidate.positionId,
+        });
+        return;
+      }
       default:
         problems.push(`Entry ${line} is a kind this ledger does not record.`);
         rejected += 1;
@@ -447,6 +522,35 @@ export function applyLedgerFile(events: LedgerEvent[], mode: ImportMode): number
         const positionId = idMap.get(e.positionId) ?? e.positionId;
         if (!idMap.has(e.positionId) && !existing.has(positionId)) continue;
         append({ kind: "relay.clear", at: e.at, positionId });
+        written += 1;
+        break;
+      }
+      case "course.set": {
+        append({
+          kind: "course.set",
+          at: e.at,
+          courseId: e.courseId,
+          amount: e.amount,
+          everyDays: e.everyDays,
+          legs: e.legs,
+          startAt: e.startAt,
+          asset: e.asset,
+          network: e.network,
+        });
+        written += 1;
+        break;
+      }
+      case "course.stop": {
+        append({ kind: "course.stop", at: e.at, courseId: e.courseId });
+        written += 1;
+        break;
+      }
+      case "course.fill": {
+        // The leg points at a position, which is remapped like every other
+        // reference so a merge cannot attach a leg to someone else's vault.
+        const positionId = idMap.get(e.positionId) ?? e.positionId;
+        if (!idMap.has(e.positionId) && !existing.has(positionId)) continue;
+        append({ kind: "course.fill", at: e.at, courseId: e.courseId, leg: e.leg, positionId });
         written += 1;
         break;
       }

@@ -50,86 +50,110 @@ export function Schedule({ plan, placed = [], action, className = "" }: Schedule
   const stillRunning = runningAt(plan, firstMaturesAt);
   const stillDeployed = deployedAt(plan, firstMaturesAt);
 
+  // The legs still running are always a contiguous run, so they read as a range
+  // rather than as a list of numbers.
+  const first = stillRunning[0]?.step ?? 0;
+  const last = stillRunning[stillRunning.length - 1]?.step ?? 0;
+  const stillLabel =
+    stillRunning.length === 1
+      ? `leg ${first} is`
+      : stillRunning.length === 2
+        ? `legs ${first} and ${last} are`
+        : `legs ${first} to ${last} are`;
+
+  // Where the first maturity falls across the track.
+  const firstMark = CYCLE_DAYS / spanDays;
+
   return (
     <div className={`min-w-0 ${className}`}>
       {/* ── The formation ── */}
       <figure className="inset m-0 p-3.5 sm:p-4">
-        <figcaption className="eyebrow">
-          Each leg runs its own {CYCLE_DAYS} days
-        </figcaption>
+        <figcaption className="eyebrow">Each leg runs its own {CYCLE_DAYS} days</figcaption>
 
-        <div className="relative mt-3">
-          {/* The day the first leg matures. Every bar crossing this line is a
-              leg that is still running when the first one returns. */}
-          <span
-            className="pointer-events-none absolute top-0 bottom-5 w-px bg-[var(--line-hi)]"
-            style={{ left: pct(CYCLE_DAYS / spanDays) }}
-            aria-hidden="true"
-          />
-          {showToday && (
-            <span
-              className="pointer-events-none absolute top-0 bottom-5 w-px bg-[var(--accent)]"
-              style={{ left: pct(elapsed / spanDays) }}
+        <div className="mt-3">
+          <div className="relative">
+            {/* The guides sit inside the track rather than the figure, because
+                the bars are measured from where the track starts and not from
+                the step number gutter beside it. */}
+            <div
+              className="pointer-events-none absolute inset-y-0 right-0 left-6"
               aria-hidden="true"
-            />
-          )}
+            >
+              {/* The day the first leg matures. Every bar crossing this line is
+                  a leg still running when the first one returns. */}
+              <span
+                className="absolute inset-y-0 w-px bg-[var(--line-hi)]"
+                style={{ left: pct(firstMark) }}
+              />
+              {showToday && (
+                <span
+                  className="absolute inset-y-0 w-px bg-[var(--accent)]"
+                  style={{ left: pct(elapsed / spanDays) }}
+                />
+              )}
+            </div>
 
-          <ul className="m-0 list-none space-y-1 p-0">
-            <AnimatePresence initial={false}>
-              {legs.map((leg) => {
-                const isPlaced = placed.includes(leg.step);
-                return (
-                  <motion.li
-                    key={leg.step}
-                    layout={!reduce}
-                    initial={reduce ? false : { opacity: 0, scaleX: 0.85 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    exit={reduce ? { opacity: 0 } : { opacity: 0, scaleX: 0.85 }}
-                    transition={reduce ? { duration: 0 } : TRAVEL}
-                    className="flex origin-left items-center gap-2"
-                  >
-                    <span
-                      className="tabular w-4 shrink-0 text-right text-[10px] text-[var(--text-low)]"
-                      aria-hidden="true"
+            <ul className="m-0 list-none space-y-1 p-0">
+              <AnimatePresence initial={false}>
+                {legs.map((leg) => {
+                  const isPlaced = placed.includes(leg.step);
+                  return (
+                    <motion.li
+                      key={leg.step}
+                      layout={!reduce}
+                      initial={reduce ? false : { opacity: 0, scaleX: 0.85 }}
+                      animate={{ opacity: 1, scaleX: 1 }}
+                      exit={reduce ? { opacity: 0 } : { opacity: 0, scaleX: 0.85 }}
+                      transition={reduce ? { duration: 0 } : TRAVEL}
+                      className="flex origin-left items-center gap-2"
                     >
-                      {leg.step}
-                    </span>
-                    <span className="relative h-2.5 min-w-0 flex-1">
                       <span
-                        className="absolute inset-y-0 rounded-full border"
-                        style={{
-                          left: pct(leg.offsetDays / spanDays),
-                          width: pct(CYCLE_DAYS / spanDays),
-                          background: isPlaced
-                            ? "rgba(52,211,153,0.22)"
-                            : leg.due
-                              ? "rgba(46,139,255,0.28)"
-                              : "rgba(46,139,255,0.1)",
-                          borderColor: isPlaced
-                            ? "rgba(52,211,153,0.45)"
-                            : leg.due
-                              ? "rgba(92,171,255,0.55)"
-                              : "var(--line-hi)",
-                        }}
-                      />
-                    </span>
-                  </motion.li>
-                );
-              })}
-            </AnimatePresence>
-          </ul>
+                        className="tabular w-4 shrink-0 text-right text-[10px] text-[var(--text-low)]"
+                        aria-hidden="true"
+                      >
+                        {leg.step}
+                      </span>
+                      <span className="relative h-2.5 min-w-0 flex-1">
+                        <span
+                          className="absolute inset-y-0 rounded-full border"
+                          style={{
+                            left: pct(leg.offsetDays / spanDays),
+                            width: pct(CYCLE_DAYS / spanDays),
+                            background: isPlaced
+                              ? "rgba(52,211,153,0.22)"
+                              : leg.due
+                                ? "rgba(46,139,255,0.28)"
+                                : "rgba(46,139,255,0.1)",
+                            borderColor: isPlaced
+                              ? "rgba(52,211,153,0.45)"
+                              : leg.due
+                                ? "rgba(92,171,255,0.55)"
+                                : "var(--line-hi)",
+                          }}
+                        />
+                      </span>
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
+          </div>
 
           {/* ── The axis ── */}
           <div className="relative mt-1.5 ml-6 h-4">
             <span className="absolute left-0 text-[10px] text-[var(--text-low)]">
               {shortDate(from)}
             </span>
-            <span
-              className="absolute -translate-x-1/2 text-[10px] text-[var(--text-low)]"
-              style={{ left: pct(CYCLE_DAYS / spanDays) }}
-            >
-              {shortDate(firstMaturesAt)}
-            </span>
+            {/* The middle mark is dropped rather than allowed to collide with
+                an end label on a short span. */}
+            {firstMark > 0.18 && firstMark < 0.82 && (
+              <span
+                className="absolute -translate-x-1/2 text-[10px] text-[var(--text-low)]"
+                style={{ left: pct(firstMark) }}
+              >
+                {shortDate(firstMaturesAt)}
+              </span>
+            )}
             <span className="absolute right-0 text-[10px] text-[var(--text-low)]">
               {shortDate(plan.lastMaturesAt)}
             </span>
@@ -139,17 +163,14 @@ export function Schedule({ plan, placed = [], action, className = "" }: Schedule
         <p className="mt-3 text-xs leading-relaxed text-[var(--text-low)]">
           {stillRunning.length > 0 ? (
             <>
-              Leg 1 matures on {fullDate(firstMaturesAt)}. On that day{" "}
-              {stillRunning.length === 1 ? "leg" : "legs"}{" "}
-              {stillRunning.map((l) => l.step).join(", ")}{" "}
-              {stillRunning.length === 1 ? "is" : "are"} still running, holding{" "}
-              {money(stillDeployed)}. That overlap is the whole formation.
+              Leg 1 matures on {fullDate(firstMaturesAt)}. On that day {stillLabel} still running,
+              holding {money(stillDeployed)}. That overlap is the whole formation.
             </>
           ) : (
             <>
-              At {days(plan.spacingDays)} days apart, no two legs are ever running at the same
-              time. Leg 1 returns on {fullDate(firstMaturesAt)}, before the next one opens, so this
-              is a sequence of placements rather than a formation.
+              At {days(plan.spacingDays)} days apart, no two legs are ever running at the same time.
+              Leg 1 returns on {fullDate(firstMaturesAt)}, before the next one opens, so this is a
+              sequence of placements rather than a formation.
             </>
           )}
         </p>
@@ -192,10 +213,15 @@ export function Schedule({ plan, placed = [], action, className = "" }: Schedule
                   <span className="metric text-sm text-[var(--gain)]">
                     +<span className="tabular">{money(leg.reward)}</span>
                   </span>
-                  {isPlaced ? (
-                    <span className="chip chip-gain">Marked placed</span>
-                  ) : leg.due ? (
-                    (action?.(leg) ?? <span className="chip chip-accent">Ready to place</span>)
+                  {/* A leg the member can act on hands its right edge to the
+                      caller, placed ones included, so marking a leg placed can
+                      always be undone from the same spot it was set. */}
+                  {isPlaced || leg.due ? (
+                    (action?.(leg) ?? (
+                      <span className={`chip ${isPlaced ? "chip-gain" : "chip-accent"}`}>
+                        {isPlaced ? "Marked placed" : "Ready to place"}
+                      </span>
+                    ))
                   ) : (
                     <span className="chip">Opens in {days(leg.opensIn / DAY_MS)} days</span>
                   )}

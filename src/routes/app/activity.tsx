@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { Receipt, ArrowDownLeft, ArrowUpRight, Gift, Check, Repeat } from "lucide-react";
+import {
+  Receipt,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Gift,
+  Check,
+  Repeat,
+  CalendarClock,
+} from "lucide-react";
 import { useLedger } from "@/hooks/useLedger";
 import { Empty } from "@/components/system/ui";
 import { money, fullDate, relative } from "@/components/system/format";
@@ -68,6 +76,33 @@ function describe(e: LedgerEvent) {
         detail: "This term will settle to your balance",
         amount: null,
         tone: "text-[var(--text-mid)]",
+        sign: "",
+      };
+    case "course.set":
+      return {
+        icon: CalendarClock,
+        title: "Course set",
+        detail: `${money(e.amount)} every ${e.everyDays} days${e.legs > 0 ? `, ${e.legs} legs` : ", open ended"}`,
+        amount: null,
+        tone: "text-[var(--accent-hi)]",
+        sign: "",
+      };
+    case "course.stop":
+      return {
+        icon: CalendarClock,
+        title: "Course stopped",
+        detail: "No further legs are scheduled",
+        amount: null,
+        tone: "text-[var(--text-mid)]",
+        sign: "",
+      };
+    case "course.fill":
+      return {
+        icon: CalendarClock,
+        title: `Leg ${e.leg} filled`,
+        detail: "Placed against your course",
+        amount: null,
+        tone: "text-[var(--gain)]",
         sign: "",
       };
   }
