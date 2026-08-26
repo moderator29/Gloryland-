@@ -23,6 +23,7 @@ import { Value } from "@/components/system/Value";
 import { Metric, SectionHeader, NavRow } from "@/components/system/ui";
 import { money } from "@/components/system/format";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { Standing } from "@/features/engagement";
 
 /**
  * The Desk is where a member acts: fund an account, move value out, and read
@@ -95,10 +96,21 @@ export default function Desk() {
         </Metric>
       </motion.section>
 
+      {/* What is waiting on the member right now: a relay that has come due,
+          a course leg that is. Returns null when there is neither. */}
+      <Standing snap={snap} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Fund */}
         <motion.section {...rise(2)} className="panel p-5">
-          <SectionHeader title="Fund account" hint="Send to the address below, then open a vault" />
+          <SectionHeader
+            title="Fund account"
+            hint={
+              funding.address
+                ? "Send to the address below, then open a vault"
+                : "Funding is not open in this build"
+            }
+          />
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {ASSETS.map((f) => (

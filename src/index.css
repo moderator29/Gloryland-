@@ -814,11 +814,10 @@
    own theme variables are set here, on the design tokens, which is the whole
    mechanism it needs.
 
-   The !important is not decoration and it is not permanent. `Toaster` in
-   src/main.tsx still passes `toastOptions.style`, and an inline style beats a
-   stylesheet: without this, the literals would keep winning and the tokens
-   below would do nothing. Delete `theme="dark"` and the whole `toastOptions`
-   object there and every !important on this block can go with it.
+   These carried !important until main.tsx stopped passing
+   `toastOptions.style`. An inline style beats a stylesheet, so while that
+   object existed the literals won and the tokens below did nothing. The
+   object is gone, so the overrides are too.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 [data-sonner-toaster] {
@@ -838,20 +837,20 @@
 }
 
 [data-sonner-toast] {
-  background: var(--normal-bg) !important;
-  border: 1px solid var(--normal-border) !important;
-  color: var(--normal-text) !important;
-  backdrop-filter: blur(18px) saturate(160%) !important;
+  background: var(--normal-bg);
+  border: 1px solid var(--normal-border);
+  color: var(--normal-text);
+  backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.9);
 }
 
 [data-sonner-toast][data-type="success"] {
-  border-color: var(--success-border) !important;
+  border-color: var(--success-border);
 }
 
 [data-sonner-toast][data-type="error"] {
-  border-color: var(--error-border) !important;
+  border-color: var(--error-border);
 }
 
 [data-sonner-toast] [data-description] {

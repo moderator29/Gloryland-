@@ -443,18 +443,11 @@ function App() {
               />
             </Routes>
           </ErrorBoundary>
-          <Toaster
-            theme="dark"
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: "rgba(24,33,56,0.92)",
-                border: "1px solid rgba(120,170,240,0.26)",
-                color: "#f2f6ff",
-                backdropFilter: "blur(16px)",
-              },
-            }}
-          />
+          {/* Painted from the design tokens in index.css rather than from
+              literal colours here. An inline style beats a stylesheet, so
+              passing one made the toast the only surface in the product that
+              could not follow the theme. */}
+          <Toaster position="top-center" />
           {import.meta.env.PROD && isVercelHost() && <Analytics />}
         </BrowserRouter>
       </MotionProvider>
