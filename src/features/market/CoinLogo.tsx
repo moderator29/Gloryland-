@@ -28,6 +28,7 @@ export function CoinLogo({ asset, size = 32 }: { asset: AssetMeta; size?: number
       {!failed && (
         <img
           src={asset.logo}
+          crossOrigin="anonymous"
           alt=""
           width={size}
           height={size}

@@ -358,7 +358,8 @@ export default function Home() {
           <RailStat label="Available" tone="accent">
             {money(snap.available, 2)}
           </RailStat>
-          <RailStat label="Contributed">{money(snap.contributed)}</RailStat>
+          <RailStat label="Standing">{money(snap.standing)}</RailStat>
+          {snap.scheduled > 0 && <RailStat label="Scheduled">{money(snap.scheduled)}</RailStat>}
         </div>
       </motion.section>
 

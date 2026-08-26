@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { setLedgerOwner } from "@/domain/ledger";
 import {
   APPROACHES,
   approachById,
@@ -105,6 +106,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(MEMBER_KEY, JSON.stringify(member));
         localStorage.removeItem(LEGACY_KEY);
         claimUsername(member.username);
+        // Stamp the log with who it belongs to. The envelope carries an owner
+        // so two devices can never silently merge two different members'
+        // histories, and nothing set it until here.
+        setLedgerOwner(member.username);
       } else {
         localStorage.removeItem(MEMBER_KEY);
       }

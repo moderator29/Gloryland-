@@ -60,12 +60,12 @@ to the same numbers except where noted. Build them once, before feature work.
 events to land together or not at all.
 
 ```ts
-export function newId(): string;                       // export the existing private helper
+export function newId(): string; // export the existing private helper
 export type NewEvent = DistributiveOmit<LedgerEvent, "id" | "at"> & {
   at?: number;
-  id?: string;                                          // caller may mint the id
+  id?: string; // caller may mint the id
 };
-export function appendMany(events: NewEvent[]): LedgerEvent[];  // one saveEvents, one emit
+export function appendMany(events: NewEvent[]): LedgerEvent[]; // one saveEvents, one emit
 ```
 
 Callers mint ids with `newId()` so an event in the batch can reference another event in the same
@@ -76,7 +76,7 @@ batch. Nothing else changes.
 Today `open` never debits `available`:
 
 ```ts
-available = max(0, rewardsClaimed + returnedPrincipal - withdrawn)
+available = max(0, rewardsClaimed + returnedPrincipal - withdrawn);
 ```
 
 That is correct while every position is funded by an external transfer, which is what the Desk
@@ -86,12 +86,12 @@ closes, and navigates to `vaults/new?amount=principal+accrued`.
 
 Worked, on $1,000 held one full term and rolled today:
 
-| Figure | Today | Truth |
-| --- | --- | --- |
-| available | 300 claimed + 1,000 returned = **1,300** | 0 |
-| deployed | 1,300 | 1,300 |
-| portfolioValue | 1,300 + 0 + 1,300 = **2,600** | 1,300 |
-| contributed | 1,000 + 1,300 = **2,300** | 1,000 |
+| Figure         | Today                                    | Truth |
+| -------------- | ---------------------------------------- | ----- |
+| available      | 300 claimed + 1,000 returned = **1,300** | 0     |
+| deployed       | 1,300                                    | 1,300 |
+| portfolioValue | 1,300 + 0 + 1,300 = **2,600**            | 1,300 |
+| contributed    | 1,000 + 1,300 = **2,300**                | 1,000 |
 
 The member has $1,300 and the product shows $2,600. Roll a second time and standing crosses
 Vector on $1,000 of real money.
@@ -106,9 +106,9 @@ Meaning: `amount` of available cash was applied to the position with this id. Wr
 batch as the `open` it funds. Derivation changes, three lines:
 
 ```ts
-const funded = events.filter(e => e.kind === "fund").reduce((s, f) => s + f.amount, 0);
-const available   = Math.max(0, rewardsClaimed + returnedPrincipal - withdrawn - funded);
-const contributed = opens.reduce((s, o) => s + o.amount, 0) - funded;   // external capital only
+const funded = events.filter((e) => e.kind === "fund").reduce((s, f) => s + f.amount, 0);
+const available = Math.max(0, rewardsClaimed + returnedPrincipal - withdrawn - funded);
+const contributed = opens.reduce((s, o) => s + o.amount, 0) - funded; // external capital only
 ```
 
 New `Snapshot` field: `funded: number`. Write time invariants, enforced by the caller, not by
@@ -124,7 +124,7 @@ is a larger relationship than a $1,000 one.
 ```ts
 // The most principal ever at work in started, unclosed positions at one instant.
 peakDeployed: number;
-standingBasis: number;   // Math.max(contributed, peakDeployed)
+standingBasis: number; // Math.max(contributed, peakDeployed)
 ```
 
 `peakDeployed` is a replay, not a stored figure: build deltas `{t: open.at, d: +amount}` and
@@ -140,12 +140,12 @@ dated `open` accrues nothing until its date arrives. Two additions make that leg
 
 ```ts
 // Position
-started: boolean;        // now >= openedAt
+started: boolean; // now >= openedAt
 
 // Snapshot
-deployed:  number;       // sum of active principal where started        (CHANGED)
-scheduled: number;       // sum of active principal where !started       (NEW)
-portfolioValue = deployed + scheduled + rewardsPending + available;      // unchanged total
+deployed: number; // sum of active principal where started        (CHANGED)
+scheduled: number; // sum of active principal where !started       (NEW)
+portfolioValue = deployed + scheduled + rewardsPending + available; // unchanged total
 ```
 
 Closing an unstarted position already behaves correctly: `closedAt < openedAt` clamps elapsed
@@ -186,13 +186,13 @@ there deployed.
 
 ## How it works
 
-**Vault detail (`/app/vaults/:id`).** Under the existing actions, a panel titled *Relay*. It
+**Vault detail (`/app/vaults/:id`).** Under the existing actions, a panel titled _Relay_. It
 states the arithmetic for one term only, using this position's real figures. On a $1,000 Signal
 position: "At maturity this carries $1,300 into a new thirty day term. That term accrues $13.00 a
 day and releases $1,690 on 26 October." Two modes as radio options:
 
-- *Carry principal and reward* (default). Everything goes back to work.
-- *Carry principal only*. The reward is claimed to available cash and the principal alone
+- _Carry principal and reward_ (default). Everything goes back to work.
+- _Carry principal only_. The reward is claimed to available cash and the principal alone
   reopens. The panel shows both figures side by side so the choice is a number, not a word.
 
 A single button, `btn btn-primary`: **Arm relay**. Once armed, the panel becomes a status block
@@ -257,15 +257,22 @@ nothing:
 
 ```ts
 const nextId = newId();
-const carry  = p.claimable > 0 && mode === "full" ? p.principal + p.claimable : p.principal;
+const carry = p.claimable > 0 && mode === "full" ? p.principal + p.claimable : p.principal;
 appendMany([
   ...(mode === "full" && p.claimable >= 0.01
-    ? [{ kind: "claim", positionId: p.id, amount: p.claimable }] : []),
+    ? [{ kind: "claim", positionId: p.id, amount: p.claimable }]
+    : []),
   { kind: "close", positionId: p.id },
-  { id: nextId, kind: "open", amount: carry,
-    tierId: (tierForAmount(carry) ?? p.tier).id, asset: p.asset, network: p.network },
+  {
+    id: nextId,
+    kind: "open",
+    amount: carry,
+    tierId: (tierForAmount(carry) ?? p.tier).id,
+    asset: p.asset,
+    network: p.network,
+  },
   { kind: "fund", amount: carry, positionId: nextId },
-  { kind: "relay.set", positionId: nextId, mode },     // the chain continues
+  { kind: "relay.set", positionId: nextId, mode }, // the chain continues
 ]);
 ```
 
@@ -330,8 +337,8 @@ What prevents it:
 1. **The Relay panel shows one term ahead and no further.** No forward curve, no series, no
    projected balance. The figures are: what this carries, what that one term accrues per day, what
    it releases, on what date.
-2. The compounding series exists in exactly one place, a collapsed disclosure titled *What
-   repeating a term actually means*, closed by default, whose body is fixed copy: "Six consecutive
+2. The compounding series exists in exactly one place, a collapsed disclosure titled _What
+   repeating a term actually means_, closed by default, whose body is fixed copy: "Six consecutive
    terms turn $1,000 into $4,826.81. That is an annualised rate above two thousand percent. No
    established market produces that, the figure describes arithmetic rather than a forecast, and
    it assumes every term completes and settles, which is the assumption that can fail." It links
@@ -388,11 +395,11 @@ is a schedule the member fills by hand, and the design leans into that rather th
 
 **`/app/course/new`.** Four fields, all with live consequences.
 
-1. *Amount per leg.* Minimum $400, because that is `TIERS[0].entry` and the smallest position the
+1. _Amount per leg._ Minimum $400, because that is `TIERS[0].entry` and the smallest position the
    product can open. The field says so when a lower amount is typed.
-2. *Interval.* A segmented control of 7 / 14 / 30 days, plus a custom integer 1 to 90.
-3. *Length.* Number of legs, or open ended.
-4. *Asset and network.* The same asset grid used on the Desk.
+2. _Interval._ A segmented control of 7 / 14 / 30 days, plus a custom integer 1 to 90.
+3. _Length._ Number of legs, or open ended.
+4. _Asset and network._ The same asset grid used on the Desk.
 
 A live preview panel updates on every keystroke: the placement rate, the maturity of the first
 leg, and the standing ladder. On $400 every 7 days:
@@ -401,23 +408,23 @@ leg, and the standing ladder. On $400 every 7 days:
 - At least $1,600 enters terms in any thirty day stretch, because `floor(30 / 7) = 4` legs.
 - The standing ladder, derived, one row per rung above current standing:
 
-| Rung | Cumulative | Leg | Due |
-| --- | --- | --- | --- |
-| Signal, 48h | $1,200 | 3 | day 14 |
-| Vector, 36h | $3,200 | 8 | day 49 |
-| Apex, 24h | $5,200 | 13 | day 84 |
-| Meridian, 12h | $8,000 | 20 | day 133 |
-| Sovereign, 6h | $10,000 | 25 | day 168 |
+| Rung          | Cumulative | Leg | Due     |
+| ------------- | ---------- | --- | ------- |
+| Signal, 48h   | $1,200     | 3   | day 14  |
+| Vector, 36h   | $3,200     | 8   | day 49  |
+| Apex, 24h     | $5,200     | 13  | day 84  |
+| Meridian, 12h | $8,000     | 20  | day 133 |
+| Sovereign, 6h | $10,000    | 25  | day 168 |
 
 **`/app/course`.** The index.
 
 - Lede: the lead figure is the placement rate, "$1,600 every 30 days". The rail carries next leg
   due, legs placed, total placed.
-- Band *Schedule*: a `.ledger` of legs. Each row shows leg number, amount, due date and a state
+- Band _Schedule_: a `.ledger` of legs. Each row shows leg number, amount, due date and a state
   chip. Four states: **Filled** (`chip-gain`), **Due** (`chip-warn`, with a **Place** button),
   **Scheduled** (`chip`), **Lapsed** (`chip` muted, `rail-row-mute`).
-- Band *Standing*: the ladder table above, drawn from the member's real `standingBasis`.
-- Band *What one leg does*: the per leg term arithmetic, so the rate is visible on the page where
+- Band _Standing_: the ladder table above, drawn from the member's real `standingBasis`.
+- Band _What one leg does_: the per leg term arithmetic, so the rate is visible on the page where
   the commitment is made.
 
 **Filling a leg.** A **Place** button on a due row routes to
@@ -624,13 +631,13 @@ comparison and a commit. The controls that already exist (total, number of posit
 
 A two column comparison, both readings side by side, on $3,000 in 6 legs of $500 five days apart:
 
-| | One placement | Echelon |
-| --- | --- | --- |
-| Accrues per day, from day 0 | $30.00 | $5.00 rising to $30.00 |
-| Rewards by day 30 | $900 | $525 |
-| Total rewards | $900 | $900 |
-| Fully earned on | day 30 | day 55 |
-| Capital returns | $3,900 on one date | $650 on each of six dates |
+|                             | One placement      | Echelon                   |
+| --------------------------- | ------------------ | ------------------------- |
+| Accrues per day, from day 0 | $30.00             | $5.00 rising to $30.00    |
+| Rewards by day 30           | $900               | $525                      |
+| Total rewards               | $900               | $900                      |
+| Fully earned on             | day 30             | day 55                    |
+| Capital returns             | $3,900 on one date | $650 on each of six dates |
 
 The arithmetic: each $500 leg accrues $5.00 a day and returns $150 over its own thirty days, six
 legs is $900, identical to $3,000 x 0.30. By day 30 the legs have run 30, 25, 20, 15, 10 and 5
@@ -695,9 +702,14 @@ echelons: Echelon[];
 ```
 
 ```ts
-accruedByLumpMaturity = legs.reduce((s, l) =>
-  s + l.principal * DAILY_RATE *
-      clamp((placedAt + CYCLE_DAYS * DAY_MS - l.openedAt) / DAY_MS, 0, CYCLE_DAYS), 0);
+accruedByLumpMaturity = legs.reduce(
+  (s, l) =>
+    s +
+    l.principal *
+      DAILY_RATE *
+      clamp((placedAt + CYCLE_DAYS * DAY_MS - l.openedAt) / DAY_MS, 0, CYCLE_DAYS),
+  0,
+);
 ```
 
 Standing is unaffected: `contributed` counts the full $3,000 whether it is one `open` or six, so an
@@ -806,7 +818,7 @@ Twelve specific changes, in the order I would make them. Every one names the fil
    file that decides what interrupts a member, so all three features must be represented in it or
    they will only be found by browsing.
 
-5. **`src/routes/app/desk.tsx`: a third panel beside Fund and Withdraw, titled *Standing*.**
+5. **`src/routes/app/desk.tsx`: a third panel beside Fund and Withdraw, titled _Standing_.**
    It lists every due course leg and every due relay as `.rail-row`s with a single action each,
    and renders nothing when both are empty. The Desk is documented as "where a member acts", and
    right now the only two acts it offers are funding and withdrawing.

@@ -28,7 +28,8 @@ export type StorageReading = {
  * screen of opaque identifiers.
  */
 const PURPOSE: Record<string, string> = {
-  rgl_ledger_v1: "Your ledger: every vault opened, reward claimed, position closed and withdrawal",
+  rgl_ledger_v1:
+    "Your ledger: every vault opened, reward claimed, position closed and withdrawal, plus a schema version and the handle it belongs to",
   rgl_member_v2: "Your handle, display name and stated approach",
   rgl_member_v1: "Your name from the first build, kept until it is upgraded",
   rgl_handles_v1: "Handles already claimed in this browser",

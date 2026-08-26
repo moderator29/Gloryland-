@@ -17,12 +17,18 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
  */
 
 export type StandardsProps = {
-  /** Seconds for one full pass. Longer is calmer. */
+  /**
+   * Roughly how many seconds one pass takes. It sets a pace rather than a
+   * duration now: the strip is driven per frame so it can be stopped and
+   * resumed without jumping back to the start, and a per frame scroller works
+   * in pixels a second. PASS_PX is the width of one pass at the default six
+   * items, so the default reads at the speed it always did.
+   */
   duration?: number;
   className?: string;
 };
 
-/** Scroll speed in pixels per second, derived from the pass length below. */
+/** Approximate width of one pass, in pixels. See `duration`. */
 const PASS_PX = 1400;
 
 const FASTEST_SETTLEMENT = Math.min(...TIERS.map((t) => t.settlementHours));
@@ -52,7 +58,9 @@ export function Standards({ duration = 44, className = "" }: StandardsProps) {
   const track = useRef<HTMLDivElement>(null);
 
   useAnimationFrame((_, delta) => {
-    if (paused) return;
+    // The hook has to sit above the reduced motion return below, so the still
+    // branch never attaches the track and this bails on the first line.
+    if (paused || reduce) return;
     // Half the track is one pass: the second copy exists to carry the seam.
     const run = (track.current?.scrollWidth ?? 0) / 2;
     if (run <= 0) return;

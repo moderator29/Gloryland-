@@ -237,10 +237,7 @@ function Item({ item }: { item: TickerItem }) {
       <Icon className={`h-3.5 w-3.5 shrink-0 ${TONE[item.tone]}`} strokeWidth={1.9} />
       <span className="whitespace-nowrap text-[12px] text-[var(--text-mid)]">{item.label}</span>
       {item.sample && (
-        <span
-          className="whitespace-nowrap rounded border border-[var(--line)] px-1 py-px text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-low)]"
-          title="Generated for illustration, not observed activity"
-        >
+        <span className="whitespace-nowrap rounded border border-[var(--line)] px-1 py-px text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-low)]">
           Sample
         </span>
       )}
@@ -350,64 +347,74 @@ export function LiveTicker({ snap, className = "" }: LiveTickerProps) {
   // Under reduced motion the band never scrolls, so there is nothing to pause
   // and offering a pause control would be a button that does nothing.
   const scrolls = hasSomething && !reduce;
+  const hasSample = items.some((item) => item.sample);
 
   return (
-    <section
-      className={`min-h-[36px] panel flex items-center gap-3 overflow-hidden px-3 py-2.5 ${className}`}
-      aria-label="Live account activity"
-    >
-      <span className="chip chip-gain shrink-0">
-        <span
-          className={`h-1.5 w-1.5 rounded-full bg-current ${reduce || stopped ? "" : "pulse-dot"}`}
-          aria-hidden="true"
-        />
-        Live
-      </span>
+    <section className={`panel px-3 py-2.5 ${className}`} aria-label="Live account activity">
+      <div className="flex min-h-[36px] items-center gap-3 overflow-hidden">
+        <span className="chip chip-gain shrink-0">
+          <span
+            className={`h-1.5 w-1.5 rounded-full bg-current ${reduce || stopped ? "" : "pulse-dot"}`}
+            aria-hidden="true"
+          />
+          Live
+        </span>
 
-      {scrolls && (
-        <button
-          type="button"
-          onClick={() => setStopped((s) => !s)}
-          aria-pressed={stopped}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[var(--line)] text-[var(--text-mid)] transition-colors hover:border-[var(--line-hi)] hover:text-[var(--text-hi)]"
-        >
-          {stopped ? (
-            <Play className="h-3.5 w-3.5" aria-hidden="true" />
-          ) : (
-            <Pause className="h-3.5 w-3.5" aria-hidden="true" />
-          )}
-          <span className="sr-only">
-            {stopped ? "Resume the live band" : "Pause the live band"}
-          </span>
-        </button>
-      )}
-
-      {hasSomething ? (
-        reduce ? (
-          <div className="no-bar fade-x flex min-w-0 flex-1 items-center overflow-x-auto">
-            {items.map((item) => (
-              <Item key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <Marquee items={items} stopped={stopped} />
-        )
-      ) : (
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
-          <p className="min-w-0 text-[12px] text-[var(--text-mid)]">
-            <Sparkles
-              className="mr-1.5 inline h-3.5 w-3.5 text-[var(--accent-hi)]"
-              aria-hidden="true"
-            />
-            Nothing is moving yet. Open a vault and this band starts reporting your own accrual.
-          </p>
-          <Link
-            to="/app/vaults/new"
-            className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-xs"
+        {scrolls && (
+          <button
+            type="button"
+            onClick={() => setStopped((s) => !s)}
+            aria-pressed={stopped}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[var(--line)] text-[var(--text-mid)] transition-colors hover:border-[var(--line-hi)] hover:text-[var(--text-hi)]"
           >
-            Open a vault
-          </Link>
-        </div>
+            {stopped ? (
+              <Play className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span className="sr-only">
+              {stopped ? "Resume the live band" : "Pause the live band"}
+            </span>
+          </button>
+        )}
+
+        {hasSomething ? (
+          reduce ? (
+            <div className="no-bar fade-x flex min-w-0 flex-1 items-center overflow-x-auto">
+              {items.map((item) => (
+                <Item key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <Marquee items={items} stopped={stopped} />
+          )
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
+            <p className="min-w-0 text-[12px] text-[var(--text-mid)]">
+              <Sparkles
+                className="mr-1.5 inline h-3.5 w-3.5 text-[var(--accent-hi)]"
+                aria-hidden="true"
+              />
+              Nothing is moving yet. Open a vault and this band starts reporting your own accrual.
+            </p>
+            <Link
+              to="/app/vaults/new"
+              className="min-h-[36px] btn btn-ghost shrink-0 !py-1.5 !text-xs"
+            >
+              Open a vault
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* What "Sample" means, on the screen rather than in a title attribute.
+          The word alone qualifies the row; this says what it qualifies it to,
+          and it appears only while a generated row is actually in the band. */}
+      {hasSample && (
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-low)]">
+          Rows marked Sample are generated for illustration. No other member activity stands behind
+          them.
+        </p>
       )}
 
       {/* The band is decorative motion; this keeps the same facts reachable. */}

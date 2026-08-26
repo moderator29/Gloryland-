@@ -34,7 +34,7 @@
        large text. --text-low was #5b6a86, which measured 3.69:1 on --ink-000
        and 3.02:1 at the top of a .panel, and it is the colour of the eyebrow,
        the caption and most supporting copy in the product. At #7e8eab the same
-       pairs measure 6.08:1 and 4.98:1. The step to --text-mid is now narrow;
+       pairs measure 6.08:1 and 4.97:1. The step to --text-mid is now narrow;
        widening it again means lifting --text-mid too, which is its own sweep. */
     --text-hi: #f2f6ff;
     --text: #c2cee4;

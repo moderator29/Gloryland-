@@ -233,8 +233,8 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
               A relay writes to your ledger without asking again.
             </strong>{" "}
             When it runs it claims the reward, closes this term and opens a new {CYCLE_DAYS} day
-            term with what it carried, then arms itself on the new position. That is four entries
-            you did not write, in one batch.
+            term with what it carried, then arms itself on the new position. That is up to four
+            entries you did not write, in one batch.
           </p>
           <p className="mt-2">
             It fires the next time you open Rigel after this term matures, never before and never
@@ -246,8 +246,12 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
             and the ledger records that gap rather than papering over it.
           </p>
           <p className="mt-2">
-            Disarm it at any point before it fires and the term settles and stays settled. If it has
-            already fired, the new position can be settled immediately.
+            Disarm it at any point before it fires and this term settles and stays settled.{" "}
+            <strong className="font-semibold text-[var(--text-hi)]">
+              Once it has fired there is no undo.
+            </strong>{" "}
+            The new term is a fresh {CYCLE_DAYS} day commitment like any other, and settling is only
+            offered after a term matures, so the capital is committed again for a full term.
           </p>
         </div>
       </div>
@@ -357,9 +361,9 @@ export function RelayPanel({ position, relay, className = "" }: RelayPanelProps)
               />
               <p className="text-xs leading-relaxed text-[var(--text)]">
                 This is your first relay. Confirm that you want {money(carry)} placed into a new{" "}
-                {CYCLE_DAYS} day term automatically when this one matures, without a further prompt.
-                You will not be asked again on later relays, and this panel will keep stating what a
-                relay does.
+                {CYCLE_DAYS} day term the next time you open Rigel after this one matures, with no
+                further prompt at that point. You will not be asked to confirm again on later
+                relays, and this panel will keep stating what a relay does.
               </p>
             </div>
           </motion.div>

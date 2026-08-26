@@ -95,9 +95,12 @@ const SECTIONS: LegalSection[] = [
         <h3>Corrected</h3>
         <ul>
           <li>
-            The landing page and three answers in the FAQ said nothing renews or rolls on its own.
-            Relay had shipped and does exactly that on a position where you armed one. All of them
-            now say so.
+            Six published statements said nothing renews or rolls on its own: one on the landing
+            page, one on the term timeline, three answers in the FAQ and one in the{" "}
+            <Link to="/legal/terms">terms of service</Link>. Relay had shipped and does exactly that
+            on a position where you armed one, so all six now describe it, including the part that
+            matters most, which is that it runs when you next open Rigel rather than while you are
+            away.
           </li>
           <li>
             The relay panel showed its disclosure once per browser, ever, so a second relay was
@@ -149,7 +152,7 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
-    id: "standing",
+    id: "unchanged",
     heading: "What has not changed",
     body: (
       <>

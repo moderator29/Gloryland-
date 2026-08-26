@@ -20,13 +20,13 @@ reads the `pnpm` field in `package.json` at all.
 
 ## Checks
 
-| Command | State |
-| --- | --- |
-| `npm run build` | passes |
-| `npm run typecheck` | passes, app and API |
-| `npm run check` | 72 assertions, all pass |
-| `npx eslint src/` | clean, warnings only |
-| Route sweep at 390px | 36 of 36 clean |
+| Command              | State                    |
+| -------------------- | ------------------------ |
+| `npm run build`      | passes                   |
+| `npm run typecheck`  | passes, app and API      |
+| `npm run check`      | 202 assertions, all pass |
+| `npx eslint src/`    | clean, warnings only     |
+| Route sweep at 390px | 36 of 36 clean           |
 
 The route sweep loads every route with a funded ledger and checks for
 uncaught errors, console errors, horizontal page overflow, heading structure
@@ -105,5 +105,7 @@ Ranked, from `docs/RECOMMENDATIONS.md`.
 3. No em dash characters anywhere, in code, copy or comments.
 4. Never claim a licence, regulator, partner, statistic, member count,
    testimonial or track record.
-5. Tiers differ on settlement speed and tooling, never on rate.
+5. Tiers differ on settlement speed, never on rate. "And tooling" was in
+   this list until an audit found nothing in the codebase gates a feature by
+   tier, which made it a claim rather than a rule.
 6. Where the product cannot do something yet, the interface says so.

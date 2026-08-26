@@ -22,10 +22,30 @@ export type Tier = {
   /** Ordinal position in the ladder, 1-indexed. */
   rank: number;
   blurb: string;
+  /**
+   * What this rung adds over the one below it.
+   *
+   * Settlement is deliberately absent from this list. It is the one thing
+   * every rung changes, `settlementHours` is the single source for it, and a
+   * hand written copy drifted: Vector said "48h settlement" in its benefits
+   * while its target was 36 hours, so the tier card and the insight quoting
+   * the same rung disagreed on screen. Surfaces render the derived line from
+   * `settlementHours` instead, and a test keeps an hour figure out of here.
+   */
   benefits: string[];
   /** Hours the desk targets for a withdrawal request at this tier. */
   settlementHours: number;
 };
+
+/**
+ * The settlement line for a rung, derived rather than written.
+ *
+ * Every surface that mentions a target reads this, so there is exactly one
+ * place a settlement claim can come from.
+ */
+export function settlementNote(tier: Tier): string {
+  return `Withdrawal requests targeted inside ${tier.settlementHours} hours`;
+}
 
 export const TIERS: Tier[] = [
   {
@@ -34,7 +54,7 @@ export const TIERS: Tier[] = [
     entry: 400,
     rank: 1,
     blurb: "Entry into the vault programme with the full 30-day term.",
-    benefits: ["Full 30% term rate", "Daily accrual", "Standard settlement"],
+    benefits: ["Full 30% term rate", "Daily accrual", "The whole ladder visible from day one"],
     settlementHours: 72,
   },
   {
@@ -52,7 +72,7 @@ export const TIERS: Tier[] = [
     entry: 3000,
     rank: 3,
     blurb: "Portfolio intelligence and faster settlement windows.",
-    benefits: ["Everything in Signal", "Portfolio intelligence", "48h settlement"],
+    benefits: ["Everything in Signal", "Portfolio intelligence", "Maturity calendar and laddering"],
     settlementHours: 36,
   },
   {
@@ -79,7 +99,7 @@ export const TIERS: Tier[] = [
     entry: 10000,
     rank: 6,
     blurb: "The full programme: same-day settlement and private terms.",
-    benefits: ["Everything in Meridian", "Same-day settlement", "Private terms"],
+    benefits: ["Everything in Meridian", "Direct line to the desk", "Private terms"],
     settlementHours: 6,
   },
 ];

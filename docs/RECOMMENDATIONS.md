@@ -5,7 +5,7 @@
 Rigel today is a well built, honest, single player financial interface with no
 financial system behind it. Thirty five routes render, the whole product derives
 every figure from one append only event log held in the member's browser, the
-domain is covered by 72 assertions that all pass, the type checker is clean, and
+domain is covered by 202 assertions that all pass, the type checker is clean, and
 the interface is the most carefully made thing in any of the three repositories
 that led to it. It has a real design system, real motion discipline, a real
 naming system, two AI surfaces with a generated knowledge base, an export and
@@ -850,7 +850,7 @@ audit did, because reading code does not catch reflow.
 
 ### K. Engineering quality, testing and the domain model
 
-**K1. 72 assertions run against the real `derive`.** Nine scenarios covering a
+**K1. 202 assertions run against the real `derive`.** Nine scenarios covering a
 fresh deposit, the roll that used to double count, circling the same money, a
 compounding chain, settling and withdrawing, legacy events with no funding flag,
 accrual bounds, relays and courses. Verified passing twice during this audit.
@@ -1011,7 +1011,6 @@ with no recovery.
 pricing a door that does not open.
 `REJECTED`
 
-
 ---
 
 ## 3. What is genuinely missing
@@ -1049,7 +1048,7 @@ that will not fire until they come back. A relay that runs only when the app is
 open leaves real accrual on the table and the product currently has no way to
 tell anyone.
 
-**6. Tests above the domain layer.** 72 assertions cover `derive` and nothing
+**6. Tests above the domain layer.** 202 assertions cover `derive` and nothing
 covers a component, a route or a flow. Every defect in section 5 that is not a
 copy problem is a defect a single test would have caught, and the standing
 definition in Explain drifted out of agreement with the ledger within hours of
@@ -1088,60 +1087,60 @@ five route applications with a shared component set. Rigel has thirty five route
 and replaces almost all of it. This table checks parity so nothing is lost under
 a rename, and it is honest about the few things that are genuinely gone.
 
-| Predecessor feature | Which repo | Rigel equivalent | Called here |
-| --- | --- | --- | --- |
-| `LiveWithdrawals` | both | Yes | Pulse (`features/pulse/LiveTicker.tsx`) |
-| `RevenueTimeline` | Private-country | Yes | Trajectory (`features/pulse/Trajectory.tsx`) |
-| `PayoutCalendar` | both | Yes | Horizon (`routes/app/horizon.tsx`) |
-| `CurtainReveal` | both | Yes | Aperture (`features/onboarding/Aperture.tsx`) |
-| `WelcomeCards` | both | Yes | Orientation (`routes/app/orientation.tsx`) |
-| `HelpDrawer` | both | Yes | Wayfinder (`features/utility/Wayfinder.tsx`) |
-| `StreakCounter` | both | Yes | Cadence (`features/engagement/Cadence.tsx`) |
-| `PresencePill` | both | Yes | Concurrent (`features/engagement/Concurrent.tsx`) |
-| `FirstDepositGift` | both | Reworked | First Light, explains a term instead of promising a bonus the ledger could not pay |
-| `TopUpNudge` | both | Yes | Redeploy (`features/engagement/Redeploy.tsx`) |
-| `StatusCard` | both | Written, not mounted | Systems (`features/engagement/Systems.tsx`) |
-| `PressWall` | both | Replaced | Standards, commitments checkable in the code instead of publication logos nobody endorsed |
-| `ReorderableStack` | both | Yes | Arrange (`features/utility/Arrange.tsx`) |
-| `TierQuiz` | both | Yes | Tier Match (`routes/app/tier-match.tsx`) |
-| `ComparisonDrawer` | both | Yes, as a route | Compare (`routes/app/tier-compare.tsx`) |
-| `TierBadge` | both | Yes | TierBadge (`features/engagement/TierBadge.tsx`) |
-| `Countdown` | both | Yes | Countdown (`features/engagement/Countdown.tsx`) |
-| `DepositWizard` | both | Yes | Vault new (`routes/app/vault-new.tsx`) |
-| `DepositTracker` | both | Yes | ConfirmationTracker (`features/deposit/ConfirmationTracker.tsx`) |
-| `Receipt` | both | Yes | Receipt (`features/deposit/Receipt.tsx`) |
-| `AddressCard` | both | Yes, inline | The funding panel on the Desk and in vault new |
-| `ReferralCard`, `useReferral` | both | Yes | Circle (`domain/circle.ts`, `routes/app/circle.tsx`) |
-| `PwaInstall` | both | Yes | InstallPrompt (`features/utility/InstallPrompt.tsx`) |
-| `BtcTickerBar`, `BtcChartCard`, `useBtcMarket` | both | Yes, five assets not one | Markets (`hooks/useMarket.ts`, `features/market/`) |
-| `Sparkline` | both | Yes | Sparkline (`features/market/Sparkline.tsx`) |
-| `LoginGate` | both | Yes, four steps not one | Gate (`components/shell/Gate.tsx`) |
-| `BottomNav` | both | Yes | MobileTabs (`components/shell/MobileNav.tsx`) |
-| `SiteHeader`, `SiteFooter` | both | Yes | LandingNav, LandingFooter (`components/landing/`) |
-| `RouteShell` | both | Yes | AppShell (`components/shell/AppShell.tsx`) |
-| `Backdrop`, `FrameLight`, `GoldRail` | both | Yes | Ambience, HeroBackdrop, `.edge-light`, `.rule-glow` |
-| `SoundToggle`, `lib/sound` | both | Yes | Appearance settings (`lib/sound.ts`) |
-| `MotionContext`, `useReducedMotion` | both | Yes | Same names, plus three motion levels |
-| `Odometer`, `CountUp` | both | Yes | `Value` and `Counter` |
-| `Ticker` | both | Yes | MarketTicker (`features/market/MarketTicker.tsx`) |
-| `Skeleton`, `Stagger` | both | Yes | `components/system/ui.tsx`, `components/landing/Reveal.tsx` |
-| `SpotlightCard`, `TiltCard` | both | Replaced | `.sheen` and `PointerLight`, one material instead of two card treatments |
-| `TierEmber` | both | No | Deliberate. It was decoration on a tier card with no meaning behind it |
-| `VaultDial` | both | No | A 1.1 second full screen overlay after a placement. The receipt does the job without blocking |
-| `CoinFlipButton`, `MagneticButton`, `LiquidMorphButton`, `HolographicButton`, `CursorTrail`, `ScrollParallax` | both | No | Deliberate. Six novelty interactions replaced by one button system in `index.css` |
-| `GlobalFilters` (SVG goo and grain filters) | both | Partly | `.grain` in `index.css`. The gooey filter is gone and is not missed |
-| `ReceiptReactions` | Wegram | No | Emoji reactions on a deposit receipt. Nothing to react to and nobody to react |
-| `ReserveStickyPill` | both | No | A scroll triggered "Reserve a seat" pill. It sold scarcity that does not exist |
-| `FounderPortrait`, `FounderQuote`, `FounderTimeline`, `PortraitGlow` | Wegram | Replaced | DeskStatement, which explains three decisions and signs with nobody, because there is no track record to attach to a name |
-| `HouseQuote` | Private-country | Replaced | DeskStatement |
-| `RevenueStreams`, `StreamMarquee` | Private-country | Yes | CapitalMarquee (`components/landing/CapitalMarquee.tsx`) |
-| `lib/haptic` | both | **No** | Nothing. Vibration on confirmation is a real mobile affordance and it was dropped without a replacement |
-| `hooks/useLocale` | both | **No** | Nothing. It mapped country to currency and locale for 20+ countries. Rigel formats everything as `en-US` dollars |
-| `lib/confetti` | both | **No** | Deliberate, and worth restating: celebrating a deposit is celebrating a risk being taken |
-| `hooks/useBalancePulse` | both | **No** | Deliberate. It incremented a displayed balance on a timer with random steps, which is a fabricated figure |
-| `lib/firstDeposit`, `lib/dust` | both | No | Belonged to the bonus mechanic that First Light replaced |
-| `lib/error-capture`, `lib/error-page` | Wegram | Partly | `components/ErrorBoundary.tsx`. There is no error reporting sink |
-| `components/ui/*` (49 shadcn primitives) | both | Dropped | Replaced by `components/system/` plus `index.css`. The shadcn token bridge is still in `index.css` and is now unused |
+| Predecessor feature                                                                                           | Which repo      | Rigel equivalent         | Called here                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `LiveWithdrawals`                                                                                             | both            | Yes                      | Pulse (`features/pulse/LiveTicker.tsx`)                                                                                   |
+| `RevenueTimeline`                                                                                             | Private-country | Yes                      | Trajectory (`features/pulse/Trajectory.tsx`)                                                                              |
+| `PayoutCalendar`                                                                                              | both            | Yes                      | Horizon (`routes/app/horizon.tsx`)                                                                                        |
+| `CurtainReveal`                                                                                               | both            | Yes                      | Aperture (`features/onboarding/Aperture.tsx`)                                                                             |
+| `WelcomeCards`                                                                                                | both            | Yes                      | Orientation (`routes/app/orientation.tsx`)                                                                                |
+| `HelpDrawer`                                                                                                  | both            | Yes                      | Wayfinder (`features/utility/Wayfinder.tsx`)                                                                              |
+| `StreakCounter`                                                                                               | both            | Yes                      | Cadence (`features/engagement/Cadence.tsx`)                                                                               |
+| `PresencePill`                                                                                                | both            | Yes                      | Concurrent (`features/engagement/Concurrent.tsx`)                                                                         |
+| `FirstDepositGift`                                                                                            | both            | Reworked                 | First Light, explains a term instead of promising a bonus the ledger could not pay                                        |
+| `TopUpNudge`                                                                                                  | both            | Yes                      | Redeploy (`features/engagement/Redeploy.tsx`)                                                                             |
+| `StatusCard`                                                                                                  | both            | Written, not mounted     | Systems (`features/engagement/Systems.tsx`)                                                                               |
+| `PressWall`                                                                                                   | both            | Replaced                 | Standards, commitments checkable in the code instead of publication logos nobody endorsed                                 |
+| `ReorderableStack`                                                                                            | both            | Yes                      | Arrange (`features/utility/Arrange.tsx`)                                                                                  |
+| `TierQuiz`                                                                                                    | both            | Yes                      | Tier Match (`routes/app/tier-match.tsx`)                                                                                  |
+| `ComparisonDrawer`                                                                                            | both            | Yes, as a route          | Compare (`routes/app/tier-compare.tsx`)                                                                                   |
+| `TierBadge`                                                                                                   | both            | Yes                      | TierBadge (`features/engagement/TierBadge.tsx`)                                                                           |
+| `Countdown`                                                                                                   | both            | Yes                      | Countdown (`features/engagement/Countdown.tsx`)                                                                           |
+| `DepositWizard`                                                                                               | both            | Yes                      | Vault new (`routes/app/vault-new.tsx`)                                                                                    |
+| `DepositTracker`                                                                                              | both            | Yes                      | ConfirmationTracker (`features/deposit/ConfirmationTracker.tsx`)                                                          |
+| `Receipt`                                                                                                     | both            | Yes                      | Receipt (`features/deposit/Receipt.tsx`)                                                                                  |
+| `AddressCard`                                                                                                 | both            | Yes, inline              | The funding panel on the Desk and in vault new                                                                            |
+| `ReferralCard`, `useReferral`                                                                                 | both            | Yes                      | Circle (`domain/circle.ts`, `routes/app/circle.tsx`)                                                                      |
+| `PwaInstall`                                                                                                  | both            | Yes                      | InstallPrompt (`features/utility/InstallPrompt.tsx`)                                                                      |
+| `BtcTickerBar`, `BtcChartCard`, `useBtcMarket`                                                                | both            | Yes, five assets not one | Markets (`hooks/useMarket.ts`, `features/market/`)                                                                        |
+| `Sparkline`                                                                                                   | both            | Yes                      | Sparkline (`features/market/Sparkline.tsx`)                                                                               |
+| `LoginGate`                                                                                                   | both            | Yes, four steps not one  | Gate (`components/shell/Gate.tsx`)                                                                                        |
+| `BottomNav`                                                                                                   | both            | Yes                      | MobileTabs (`components/shell/MobileNav.tsx`)                                                                             |
+| `SiteHeader`, `SiteFooter`                                                                                    | both            | Yes                      | LandingNav, LandingFooter (`components/landing/`)                                                                         |
+| `RouteShell`                                                                                                  | both            | Yes                      | AppShell (`components/shell/AppShell.tsx`)                                                                                |
+| `Backdrop`, `FrameLight`, `GoldRail`                                                                          | both            | Yes                      | Ambience, HeroBackdrop, `.edge-light`, `.rule-glow`                                                                       |
+| `SoundToggle`, `lib/sound`                                                                                    | both            | Yes                      | Appearance settings (`lib/sound.ts`)                                                                                      |
+| `MotionContext`, `useReducedMotion`                                                                           | both            | Yes                      | Same names, plus three motion levels                                                                                      |
+| `Odometer`, `CountUp`                                                                                         | both            | Yes                      | `Value` and `Counter`                                                                                                     |
+| `Ticker`                                                                                                      | both            | Yes                      | MarketTicker (`features/market/MarketTicker.tsx`)                                                                         |
+| `Skeleton`, `Stagger`                                                                                         | both            | Yes                      | `components/system/ui.tsx`, `components/landing/Reveal.tsx`                                                               |
+| `SpotlightCard`, `TiltCard`                                                                                   | both            | Replaced                 | `.sheen` and `PointerLight`, one material instead of two card treatments                                                  |
+| `TierEmber`                                                                                                   | both            | No                       | Deliberate. It was decoration on a tier card with no meaning behind it                                                    |
+| `VaultDial`                                                                                                   | both            | No                       | A 1.1 second full screen overlay after a placement. The receipt does the job without blocking                             |
+| `CoinFlipButton`, `MagneticButton`, `LiquidMorphButton`, `HolographicButton`, `CursorTrail`, `ScrollParallax` | both            | No                       | Deliberate. Six novelty interactions replaced by one button system in `index.css`                                         |
+| `GlobalFilters` (SVG goo and grain filters)                                                                   | both            | Partly                   | `.grain` in `index.css`. The gooey filter is gone and is not missed                                                       |
+| `ReceiptReactions`                                                                                            | Wegram          | No                       | Emoji reactions on a deposit receipt. Nothing to react to and nobody to react                                             |
+| `ReserveStickyPill`                                                                                           | both            | No                       | A scroll triggered "Reserve a seat" pill. It sold scarcity that does not exist                                            |
+| `FounderPortrait`, `FounderQuote`, `FounderTimeline`, `PortraitGlow`                                          | Wegram          | Replaced                 | DeskStatement, which explains three decisions and signs with nobody, because there is no track record to attach to a name |
+| `HouseQuote`                                                                                                  | Private-country | Replaced                 | DeskStatement                                                                                                             |
+| `RevenueStreams`, `StreamMarquee`                                                                             | Private-country | Yes                      | CapitalMarquee (`components/landing/CapitalMarquee.tsx`)                                                                  |
+| `lib/haptic`                                                                                                  | both            | **No**                   | Nothing. Vibration on confirmation is a real mobile affordance and it was dropped without a replacement                   |
+| `hooks/useLocale`                                                                                             | both            | **No**                   | Nothing. It mapped country to currency and locale for 20+ countries. Rigel formats everything as `en-US` dollars          |
+| `lib/confetti`                                                                                                | both            | **No**                   | Deliberate, and worth restating: celebrating a deposit is celebrating a risk being taken                                  |
+| `hooks/useBalancePulse`                                                                                       | both            | **No**                   | Deliberate. It incremented a displayed balance on a timer with random steps, which is a fabricated figure                 |
+| `lib/firstDeposit`, `lib/dust`                                                                                | both            | No                       | Belonged to the bonus mechanic that First Light replaced                                                                  |
+| `lib/error-capture`, `lib/error-page`                                                                         | Wegram          | Partly                   | `components/ErrorBoundary.tsx`. There is no error reporting sink                                                          |
+| `components/ui/*` (49 shadcn primitives)                                                                      | both            | Dropped                  | Replaced by `components/system/` plus `index.css`. The shadcn token bridge is still in `index.css` and is now unused      |
 
 Three genuine gaps, in order: `useLocale` (currency and locale by country, which
 matters for a product whose landing page names Lagos, Lisbon and Jakarta),

@@ -327,7 +327,13 @@ export default function Horizon() {
             </Metric>
           </section>
 
-          <HorizonRail snap={snap} />
+          {/* The rail carries its own h3. Without a band heading above it the
+              page went h1 straight to h3, which is a level skip a screen
+              reader reports as a missing section. */}
+          <section className="band" aria-labelledby="horizon-rail">
+            <BandHead id="horizon-rail" title="The next 90 days" />
+            <HorizonRail snap={snap} />
+          </section>
 
           {/* ── The month ── */}
           <section className="band" aria-labelledby="horizon-month">

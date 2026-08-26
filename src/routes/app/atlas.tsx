@@ -8,6 +8,7 @@ import {
   surfaceDirectory,
   useAtlas,
 } from "@/features/atlas";
+import { BandHead } from "@/components/system/ui";
 import { Systems } from "@/features/engagement";
 import { useMarket } from "@/hooks/useMarket";
 
@@ -113,12 +114,12 @@ export default function Atlas() {
         />
       ) : (
         <>
-          <section className="band">
-            <div className="band-head">
-              <span className="band-title">Suggested</span>
-              <span className="hairline" />
-            </div>
-            <div className="mt-4">
+          {/* Both bands were headed by a span, so the two halves of this page
+              were visually sectioned and semantically flat: an h1 and nothing
+              else, which leaves a screen reader no way to skip the directory. */}
+          <section className="band" aria-labelledby="atlas-suggested">
+            <BandHead id="atlas-suggested" title="Suggested" />
+            <div>
               <AtlasResults
                 groups={groups}
                 query={query}
@@ -130,15 +131,12 @@ export default function Atlas() {
             </div>
           </section>
 
-          <section className="band">
-            <div className="band-head">
-              <span className="band-title">Directory</span>
-              <span className="hairline" />
-            </div>
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <section className="band" aria-labelledby="atlas-directory">
+            <BandHead id="atlas-directory" title="Directory" />
+            <div className="grid gap-4 lg:grid-cols-2">
               {areas.map((area) => (
                 <div key={area.id} className="panel p-4 sm:p-5">
-                  <p className="eyebrow">{area.label}</p>
+                  <h3 className="eyebrow">{area.label}</h3>
                   <p className="mt-1 text-xs leading-relaxed text-[var(--text-low)]">
                     {area.blurb}
                   </p>
