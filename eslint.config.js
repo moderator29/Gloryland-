@@ -36,5 +36,14 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    // Test files and their helpers are never hot reloaded, so the fast refresh
+    // rule has nothing to say about them, and silencing it here keeps the real
+    // warnings visible everywhere else.
+    files: ["**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}", "**/*.check.ts"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
   eslintPluginPrettier,
 );

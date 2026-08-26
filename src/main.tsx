@@ -33,6 +33,7 @@ const Landing = lazy(() => import("./routes/landing"));
 const Privacy = lazy(() => import("./routes/legal/privacy"));
 const Terms = lazy(() => import("./routes/legal/terms"));
 const Risk = lazy(() => import("./routes/legal/risk"));
+const Contact = lazy(() => import("./routes/contact"));
 
 /* Application */
 const Home = lazy(() => import("./routes/app/home"));
@@ -112,6 +113,16 @@ function App() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <Landing />
+                  </Suspense>
+                }
+              />
+              {/* Public on purpose: someone who cannot get in is exactly the
+                  person who most needs to write. */}
+              <Route
+                path="/contact"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <Contact />
                   </Suspense>
                 }
               />
