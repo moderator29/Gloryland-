@@ -15,8 +15,23 @@
 
 import { PLATFORM, briefing, briefingForQuestion } from "../../src/domain/knowledge";
 
-export const MODEL = "claude-sonnet-4-5";
+/**
+ * The model the assistants run on.
+ *
+ * This was `claude-sonnet-4-5`, which is a previous generation identifier. The
+ * API rejects an unknown model with a 400, the handler turned that into a
+ * generic "could not be reached", and the real reason only ever reached the
+ * server log, so a correctly configured key looked like a broken assistant.
+ */
+export const MODEL = "claude-opus-5";
 export const MAX_TOKENS = 1600;
+
+/**
+ * Effort is deliberately low. These are support and explanation surfaces
+ * answering from a briefing that is already in the prompt, so depth costs
+ * latency and money without making the answer better.
+ */
+export const EFFORT = "low";
 
 export type Role = "user" | "assistant";
 export type WireMessage = { role: Role; content: string };

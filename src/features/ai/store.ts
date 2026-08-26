@@ -244,20 +244,55 @@ export function streamReply(opts: {
   return { cancel: () => controller.abort() };
 }
 
-/** Is the server configured with a key? Cached for the session. */
-let configured: boolean | null = null;
-export async function isConfigured(): Promise<boolean> {
-  if (configured !== null) return configured;
+export type AssistantStatus = {
+  /** A key exists in the server environment. */
+  configured: boolean;
+  /** The key was accepted and the model answered a probe. */
+  reachable: boolean;
+  /** Why it is not reachable, in the API's own words. Empty when it is. */
+  detail: string;
+};
+
+/**
+ * Whether the assistant will actually answer.
+ *
+ * `configured` and `reachable` are different questions, and conflating them
+ * is what made a rejected key and an unknown model both look like a working
+ * assistant that simply never replied. The detail line carries the API's own
+ * error type so a misconfiguration can be fixed rather than guessed at.
+ */
+let status: AssistantStatus | null = null;
+
+export async function assistantStatus(): Promise<AssistantStatus> {
+  if (status !== null) return status;
   try {
     const res = await fetch("/api/ai/status");
     if (!res.ok) {
-      configured = false;
-      return configured;
+      status = {
+        configured: false,
+        reachable: false,
+        detail: `Status check failed (${res.status}).`,
+      };
+      return status;
     }
     const body = await res.json();
-    configured = Boolean(body?.configured);
+    status = {
+      configured: Boolean(body?.configured),
+      reachable: Boolean(body?.reachable),
+      detail: typeof body?.detail === "string" ? body.detail : "",
+    };
   } catch {
-    configured = false;
+    status = {
+      configured: false,
+      reachable: false,
+      detail: "The status endpoint could not be reached.",
+    };
   }
-  return configured;
+  return status;
+}
+
+/** Legacy shape: true only when the assistant will actually answer. */
+export async function isConfigured(): Promise<boolean> {
+  const s = await assistantStatus();
+  return s.configured && s.reachable;
 }

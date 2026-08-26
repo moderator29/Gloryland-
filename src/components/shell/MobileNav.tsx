@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Wordmark } from "@/components/brand/Mark";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { NAV, MOBILE_TABS } from "./nav";
@@ -104,70 +105,78 @@ export function MobileMenuButton() {
         <Menu className="h-5 w-5" />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="fixed inset-0 z-[80] lg:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.18 }}
-          >
-            <div
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
-            />
+      {/* Portalled to the body. This button lives in the app header, which
+          sets backdrop-filter, and that makes the header a containing block
+          for any fixed descendant: without the portal the full screen overlay
+          was clipped to the header's own 64px box, so the drawer opened as a
+          short pill with its navigation scrolled out of sight. */}
+      {createPortal(
+        <AnimatePresence>
+          {open && (
             <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation"
-              className="raised absolute inset-y-0 left-0 w-[80%] max-w-xs overflow-y-auto p-5"
-              initial={reduce ? false : { x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={reduce ? undefined : { x: "-100%" }}
-              transition={
-                reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 38 }
-              }
+              className="fixed inset-0 z-[80] lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.18 }}
             >
-              <div className="mb-6 flex items-center justify-between">
-                <Wordmark size={24} />
-                <button
-                  onClick={() => setOpen(false)}
-                  className="btn btn-ghost !px-2"
-                  aria-label="Close navigation"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              {NAV.map((group) => (
-                <div key={group.heading} className="mb-5">
-                  <p className="eyebrow mb-2">{group.heading}</p>
-                  <ul className="space-y-0.5">
-                    {group.items.map(({ to, label, icon: Icon, end }) => (
-                      <li key={to}>
-                        <NavLink
-                          to={to}
-                          end={end}
-                          className={({ isActive }) =>
-                            `min-h-[36px] flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                              isActive
-                                ? "border border-[rgba(46,139,255,0.32)] bg-[rgba(46,139,255,0.12)] text-[var(--text-hi)]"
-                                : "text-[var(--text-mid)]"
-                            }`
-                          }
-                        >
-                          <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                          {label}
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
+              <div
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                onClick={() => setOpen(false)}
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation"
+                className="raised absolute inset-y-0 left-0 w-[80%] max-w-xs overflow-y-auto p-5"
+                initial={reduce ? false : { x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={reduce ? undefined : { x: "-100%" }}
+                transition={
+                  reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 38 }
+                }
+              >
+                <div className="mb-6 flex items-center justify-between">
+                  <Wordmark size={24} />
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="btn btn-ghost !px-2"
+                    aria-label="Close navigation"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-              ))}
+                {NAV.map((group) => (
+                  <div key={group.heading} className="mb-5">
+                    <p className="eyebrow mb-2">{group.heading}</p>
+                    <ul className="space-y-0.5">
+                      {group.items.map(({ to, label, icon: Icon, end }) => (
+                        <li key={to}>
+                          <NavLink
+                            to={to}
+                            end={end}
+                            className={({ isActive }) =>
+                              `min-h-[36px] flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                                isActive
+                                  ? "border border-[rgba(46,139,255,0.32)] bg-[rgba(46,139,255,0.12)] text-[var(--text-hi)]"
+                                  : "text-[var(--text-mid)]"
+                              }`
+                            }
+                          >
+                            <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                            {label}
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 }

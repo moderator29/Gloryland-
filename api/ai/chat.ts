@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   MODEL,
   MAX_TOKENS,
+  EFFORT,
   STYLES,
   systemPrompt,
   validate,
@@ -76,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
+        output_config: { effort: EFFORT },
         stream: true,
         system: systemPrompt(kind, style, snapshot, question),
         messages: checked.messages,
@@ -85,9 +87,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!upstream.ok || !upstream.body) {
       const detail = await upstream.text().catch(() => "");
       console.error("anthropic upstream error", upstream.status, detail.slice(0, 300));
+
+      // Surface enough to diagnose a misconfiguration without leaking
+      // anything sensitive. The key never appears in an upstream error body:
+      // the API returns a type and a message, and both are safe to pass on.
+      // Swallowing them is what made a wrong model id look like an outage.
+      let reason = "";
+      try {
+        const parsed = JSON.parse(detail) as { error?: { type?: string; message?: string } };
+        reason = [parsed.error?.type, parsed.error?.message].filter(Boolean).join(": ");
+      } catch {
+        reason = detail.slice(0, 160);
+      }
+
+      const message =
+        upstream.status === 401 || upstream.status === 403
+          ? "The configured key was rejected. Check ANTHROPIC_API_KEY in the deployment environment."
+          : upstream.status === 429
+            ? "Rate limited upstream. Try again in a moment."
+            : `The assistant could not be reached. Upstream returned ${upstream.status}.`;
+
       return res.status(502).json({
         error: "upstream",
-        message: "The assistant could not be reached. Try again in a moment.",
+        status: upstream.status,
+        reason: reason.slice(0, 200),
+        message,
       });
     }
 
